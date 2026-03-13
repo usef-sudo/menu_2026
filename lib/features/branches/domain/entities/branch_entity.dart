@@ -13,6 +13,9 @@ class BranchEntity extends Equatable {
     required this.upVotes,
     required this.downVotes,
     this.distanceKm,
+    this.openTime,
+    this.closeTime,
+    this.facilities = const <String>[],
   });
 
   final String id;
@@ -26,6 +29,9 @@ class BranchEntity extends Equatable {
   final int upVotes;
   final int downVotes;
   final double? distanceKm;
+  final String? openTime;
+  final String? closeTime;
+  final List<String> facilities;
 
   @override
   List<Object?> get props => <Object?>[
@@ -40,5 +46,8 @@ class BranchEntity extends Equatable {
     upVotes,
     downVotes,
     distanceKm,
+    openTime,
+    closeTime,
+    facilities,
   ];
 }

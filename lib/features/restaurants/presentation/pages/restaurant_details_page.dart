@@ -5,8 +5,6 @@ import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
-import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:cached_network_image/cached_network_image.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
 import "package:menu_2026/features/reviews/presentation/controllers/reviews_controller.dart";
@@ -15,6 +13,7 @@ import "package:menu_2026/features/restaurants/presentation/controllers/menu_ima
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
+import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 
 class RestaurantDetailsPage extends ConsumerStatefulWidget {
   const RestaurantDetailsPage({required this.restaurantId, super.key});
@@ -31,7 +30,6 @@ class _RestaurantDetailsPageState
   @override
   void initState() {
     super.initState();
-    // Defer provider modification until after the first build frame.
     Future<void>.microtask(() {
       ref.read(selectedRestaurantIdProvider.notifier).state =
           widget.restaurantId;
@@ -40,83 +38,388 @@ class _RestaurantDetailsPageState
 
   @override
   Widget build(BuildContext context) {
-    final restaurantsAsync = ref.watch(restaurantsControllerProvider);
+    final detailsAsync =
+        ref.watch(restaurantDetailsControllerProvider(widget.restaurantId));
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     final favorites =
         ref.watch(favoritesControllerProvider).valueOrNull ?? <String>{};
-
-    if (restaurantsAsync.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator.adaptive()),
-      );
-    }
-    if (restaurantsAsync.hasError) {
-      return const Scaffold(
-        body: Center(child: Text("Unable to load restaurant")),
-      );
-    }
-
-    final List<RestaurantEntity> restaurants =
-        restaurantsAsync.valueOrNull ?? <RestaurantEntity>[];
-    RestaurantEntity? restaurant;
-    for (final RestaurantEntity item in restaurants) {
-      if (item.id == widget.restaurantId) {
-        restaurant = item;
-        break;
-      }
-    }
-    if (restaurant == null) {
-      return const Scaffold(
-        body: Center(child: Text("Restaurant not found")),
-      );
-    }
-    final RestaurantEntity selectedRestaurant = restaurant;
     final branchesAsync = ref.watch(branchesControllerProvider);
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(selectedRestaurant.nameEn),
-          actions: <Widget>[
-            IconButton(
-              onPressed: () {
-                if (!isLoggedIn) {
-                  context.push("/auth/login");
-                  return;
-                }
-                ref
-                    .read(favoritesControllerProvider.notifier)
-                    .toggle(selectedRestaurant.id);
+    return detailsAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: (Object error, StackTrace stack) => Scaffold(
+        body: Center(child: Text("Unable to load restaurant: $error")),
+      ),
+      data: (RestaurantDetailsState details) {
+        return DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            body: NestedScrollView(
+              headerSliverBuilder:
+                  (BuildContext context, bool innerBoxIsScrolled) {
+                return <Widget>[
+                  SliverToBoxAdapter(
+                    child: _HeroAndCard(
+                      restaurantId: details.id,
+                      nameEn: details.nameEn,
+                      descriptionEn: details.descriptionEn,
+                      categoryName: details.categoryName,
+                      branchesCount: details.branchesCount,
+                      totalVotes: details.totalVotes,
+                      avgRating: details.avgRating,
+                      facilities: details.facilities,
+                      isLoggedIn: isLoggedIn,
+                      isFavorite: favorites.contains(details.id),
+                      onFavoriteTap: () {
+                        if (!isLoggedIn) {
+                          context.push("/auth/login");
+                          return;
+                        }
+                        ref
+                            .read(favoritesControllerProvider.notifier)
+                            .toggle(details.id);
+                      },
+                    ),
+                  ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _TabBarDelegate(
+                      child: Material(
+                        color: Theme.of(context).colorScheme.surface,
+                        child: TabBar(
+                          indicatorColor: const Color(0xFF8A4DFF),
+                          labelColor: const Color(0xFF8A4DFF),
+                          unselectedLabelColor: Colors.grey,
+                          tabs: const <Widget>[
+                            Tab(text: "Branches"),
+                            Tab(text: "Menu"),
+                            Tab(text: "Photos"),
+                            Tab(text: "Reviews"),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ];
               },
-              icon: Icon(
-                favorites.contains(selectedRestaurant.id)
-                    ? Icons.favorite
-                    : Icons.favorite_border,
+              body: TabBarView(
+                children: <Widget>[
+                  _BranchesTab(
+                    restaurantId: details.id,
+                    branchesAsync: branchesAsync,
+                  ),
+                  const _MenuTab(),
+                  _PhotosTab(restaurantId: details.id),
+                  _ReviewsTab(),
+                ],
               ),
             ),
-          ],
-          bottom: const TabBar(
-            tabs: <Widget>[
-              Tab(text: "Branches"),
-              Tab(text: "Menu"),
-              Tab(text: "Photos"),
-              Tab(text: "Reviews"),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  _TabBarDelegate({required this.child});
+
+  final Widget child;
+
+  @override
+  double get minExtent => 48;
+
+  @override
+  double get maxExtent => 48;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      false;
+}
+
+class _HeroAndCard extends ConsumerWidget {
+  const _HeroAndCard({
+    required this.restaurantId,
+    required this.nameEn,
+    required this.descriptionEn,
+    required this.categoryName,
+    required this.branchesCount,
+    required this.totalVotes,
+    required this.avgRating,
+    required this.facilities,
+    required this.isLoggedIn,
+    required this.isFavorite,
+    required this.onFavoriteTap,
+  });
+
+  final String restaurantId;
+  final String nameEn;
+  final String descriptionEn;
+  final String? categoryName;
+  final int branchesCount;
+  final int totalVotes;
+  final double avgRating;
+  final List<RestaurantFacility> facilities;
+  final bool isLoggedIn;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
+        ref.watch(restaurantPhotosControllerProvider(restaurantId));
+    final String? heroImageUrl = photosAsync.maybeWhen(
+      data: (List<RestaurantPhotoEntity> photos) =>
+          photos.isNotEmpty ? photos.first.imageUrl : null,
+      orElse: () => null,
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(
+          height: 220,
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                child: heroImageUrl != null && heroImageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: heroImageUrl,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        color: Colors.grey.shade300,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.restaurant_rounded,
+                          size: 64,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.3),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                left: 12,
+                child: Material(
+                  color: Colors.white,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Icon(Icons.arrow_back, color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        body: TabBarView(
-          children: <Widget>[
-            _BranchesTab(
-              restaurant: selectedRestaurant,
-              branchesAsync: branchesAsync,
+        Transform.translate(
+          offset: const Offset(0, -24),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 16,
+                  offset: Offset(0, -4),
+                ),
+              ],
             ),
-            const _MenuTab(),
-            _PhotosTab(restaurantId: selectedRestaurant.id),
-            _ReviewsTab(),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        nameEn,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    if (avgRating > 0) ...<Widget>[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade100,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.star,
+                              size: 18,
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              avgRating.toStringAsFixed(1),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: onFavoriteTap,
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                if (descriptionEn.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Text(
+                    descriptionEn,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.black87,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    _SummaryItem(
+                      label: "Category",
+                      value: categoryName ?? "-",
+                    ),
+                    _SummaryItem(
+                      label: "Total Votes",
+                      value: totalVotes.toString(),
+                    ),
+                    _SummaryItem(
+                      label: "Branches",
+                      value: branchesCount.toString(),
+                    ),
+                  ],
+                ),
+                if (facilities.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 16),
+                  Text(
+                    "Facilities",
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: facilities
+                        .map(
+                          (RestaurantFacility f) => _FacilityChip(
+                            nameEn: f.nameEn,
+                            iconName: f.icon,
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _FacilityChip extends StatelessWidget {
+  const _FacilityChip({required this.nameEn, this.iconName});
+
+  final String nameEn;
+  final String? iconName;
+
+  static IconData _iconFor(String? name) {
+    if (name == null || name.isEmpty) return Icons.place;
+    final String n = name.toLowerCase();
+    if (n.contains("wifi") || n.contains("wi-fi")) return Icons.wifi;
+    if (n.contains("park")) return Icons.local_parking;
+    if (n.contains("kid") || n.contains("family")) return Icons.family_restroom;
+    if (n.contains("delivery") || n.contains("deliver")) return Icons.delivery_dining;
+    return Icons.place;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF8A4DFF).withValues(alpha: 0.6)),
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.white,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            _iconFor(iconName),
+            size: 18,
+            color: const Color(0xFF8A4DFF),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            nameEn,
+            style: const TextStyle(
+              color: Color(0xFF8A4DFF),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -124,11 +427,11 @@ class _RestaurantDetailsPageState
 
 class _BranchesTab extends StatelessWidget {
   const _BranchesTab({
-    required this.restaurant,
+    required this.restaurantId,
     required this.branchesAsync,
   });
 
-  final RestaurantEntity restaurant;
+  final String restaurantId;
   final AsyncValue<List<BranchWithDistance>> branchesAsync;
 
   @override
@@ -137,225 +440,22 @@ class _BranchesTab extends StatelessWidget {
       data: (List<BranchWithDistance> all) {
         final List<BranchWithDistance> branchesForRestaurant = all
             .where((BranchWithDistance b) =>
-                b.branch.restaurantId == restaurant.id)
+                b.branch.restaurantId == restaurantId)
             .toList(growable: false);
         if (branchesForRestaurant.isEmpty) {
           return const Center(child: Text("No branches for this restaurant"));
         }
-        final int branchesCount = branchesForRestaurant.length;
-        final int totalVotes = branchesForRestaurant.fold(
-          0,
-          (int sum, BranchWithDistance b) =>
-              sum + b.branch.upVotes + b.branch.downVotes,
-        );
-
         return ListView(
           padding: const EdgeInsets.all(16),
-          children: <Widget>[
-            _RestaurantSummaryHeader(
-              restaurant: restaurant,
-              branchesCount: branchesCount,
-              totalVotes: totalVotes,
-            ),
-            const SizedBox(height: 16),
-            ...branchesForRestaurant.map(
-              (BranchWithDistance b) => _BranchCard(branch: b),
-            ),
-          ],
+          children: branchesForRestaurant
+              .map((BranchWithDistance b) => _BranchCard(branch: b))
+              .toList(growable: false),
         );
       },
       loading: () =>
           const Center(child: CircularProgressIndicator.adaptive()),
       error: (Object error, StackTrace stack) =>
           const Center(child: Text("Unable to load branches")),
-    );
-  }
-}
-
-class _RestaurantSummaryHeader extends ConsumerWidget {
-  const _RestaurantSummaryHeader({
-    required this.restaurant,
-    required this.branchesCount,
-    required this.totalVotes,
-  });
-
-  final RestaurantEntity restaurant;
-  final int branchesCount;
-  final int totalVotes;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
-        ref.watch(restaurantPhotosControllerProvider(restaurant.id));
-
-    final String? heroImageUrl = photosAsync.maybeWhen(
-      data: (List<RestaurantPhotoEntity> photos) =>
-          photos.isNotEmpty ? photos.first.imageUrl : null,
-      orElse: () => null,
-    );
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            height: 220,
-            child: Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                if (heroImageUrl != null && heroImageUrl.isNotEmpty)
-                  CachedNetworkImage(
-                    imageUrl: heroImageUrl,
-                    fit: BoxFit.cover,
-                  )
-                else
-                  Container(
-                    color: Colors.grey.shade300,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.restaurant_rounded,
-                      size: 64,
-                      color: Colors.white,
-                    ),
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[
-                        Colors.black.withValues(alpha: 0.1),
-                        Colors.black.withValues(alpha: 0.6),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    onTap: () => Navigator.of(context).pop(),
-                    child: CircleAvatar(
-                      backgroundColor:
-                          theme.colorScheme.surface.withValues(alpha: 0.8),
-                      child: Icon(
-                        Icons.arrow_back,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          restaurant.nameEn,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            const Icon(
-                              Icons.star,
-                              size: 16,
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              "4.5",
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                if (restaurant.descriptionEn.isNotEmpty) ...<Widget>[
-                  Text(
-                    restaurant.descriptionEn,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    _SummaryItem(
-                      label: "Branches",
-                      value: branchesCount.toString(),
-                    ),
-                    _SummaryItem(
-                      label: "Total Votes",
-                      value: totalVotes.toString(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: const <Widget>[
-                    Chip(
-                      label: Text("Family friendly"),
-                      avatar: Icon(Icons.family_restroom, size: 18),
-                    ),
-                    Chip(
-                      label: Text("Wi‑Fi"),
-                      avatar: Icon(Icons.wifi, size: 18),
-                    ),
-                    Chip(
-                      label: Text("Parking"),
-                      avatar: Icon(Icons.local_parking, size: 18),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

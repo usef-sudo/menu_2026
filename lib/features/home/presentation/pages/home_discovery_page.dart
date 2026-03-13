@@ -10,15 +10,52 @@ import "package:menu_2026/features/restaurants/presentation/controllers/restaura
 import "package:menu_2026/features/spin/presentation/pages/spin_page.dart";
 
 class HomeFilter {
-  const HomeFilter({this.maxDistanceKm, this.openOnly = false});
+  const HomeFilter({
+    this.maxDistanceKm,
+    this.openOnly = false,
+    this.priceMin,
+    this.priceMax,
+    this.minRating,
+    this.categoryId,
+    this.dietaryOptions = const <String>[],
+  });
 
   final double? maxDistanceKm;
   final bool openOnly;
+  final int? priceMin;
+  final int? priceMax;
+  final double? minRating;
+  final String? categoryId;
+  final List<String> dietaryOptions;
 
-  HomeFilter copyWith({double? maxDistanceKm, bool? openOnly}) {
+  int get activeCount {
+    int n = 0;
+    if (maxDistanceKm != null) n++;
+    if (openOnly) n++;
+    if (priceMin != null || priceMax != null) n++;
+    if (minRating != null && minRating! > 0) n++;
+    if (categoryId != null && categoryId!.isNotEmpty) n++;
+    if (dietaryOptions.isNotEmpty) n++;
+    return n;
+  }
+
+  HomeFilter copyWith({
+    double? maxDistanceKm,
+    bool? openOnly,
+    int? priceMin,
+    int? priceMax,
+    double? minRating,
+    String? categoryId,
+    List<String>? dietaryOptions,
+  }) {
     return HomeFilter(
       maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
       openOnly: openOnly ?? this.openOnly,
+      priceMin: priceMin ?? this.priceMin,
+      priceMax: priceMax ?? this.priceMax,
+      minRating: minRating ?? this.minRating,
+      categoryId: categoryId ?? this.categoryId,
+      dietaryOptions: dietaryOptions ?? this.dietaryOptions,
     );
   }
 }
@@ -36,73 +73,101 @@ class HomeDiscoveryPage extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoriesControllerProvider);
     final offersAsync = ref.watch(offersControllerProvider);
 
+    final HomeFilter filter = ref.watch(homeFilterProvider);
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(nearbyBranchesControllerProvider);
         await ref.read(categoriesControllerProvider.notifier).refresh();
         ref.invalidate(offersControllerProvider);
       },
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Stack(
         children: <Widget>[
-          _DiscoverHeader(
-            onSearch: (String value) {
-              final String query = value.trim();
-              ref.read(restaurantsFilterProvider.notifier).state =
-                  RestaurantsFilter(search: query.isNotEmpty ? query : null);
-              ref.invalidate(restaurantsControllerProvider);
-              context.push("/search/results", extra: query);
-            },
-          ),
-          const SizedBox(height: 24),
-          _CategoriesSection(categoriesAsync: categoriesAsync),
-          const SizedBox(height: 24),
-          _NearbySection(nearbyAsync: nearbyAsync),
-          const SizedBox(height: 24),
-          // Optional horizontal offers carousel under top section.
-          // For now, keep it light-weight and only show when offers exist.
-          offersAsync.when(
-            data: (offers) {
-              if (offers.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    "Offers",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 60,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: offers.length,
-                      separatorBuilder:
-                          (context, index) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) {
-                        return Chip(label: Text(offers[index].title));
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            children: <Widget>[
+              _DiscoverHeader(
+                onSearch: (String value) {
+                  final String query = value.trim();
+                  ref.read(restaurantsFilterProvider.notifier).state =
+                      RestaurantsFilter(search: query.isNotEmpty ? query : null);
+                  ref.invalidate(restaurantsControllerProvider);
+                  context.push("/search/results", extra: query);
+                },
+                onFilterTap: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (BuildContext context) => _SuperFilterSheet(
+                      initial: filter,
+                      onApply: (HomeFilter f) {
+                        ref.read(homeFilterProvider.notifier).state = f;
+                        Navigator.of(context).pop();
+                      },
+                      onReset: () {
+                        ref.read(homeFilterProvider.notifier).state =
+                            const HomeFilter();
+                        Navigator.of(context).pop();
                       },
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              );
-            },
-            loading: () => const SizedBox.shrink(),
-            error: (error, stack) => const SizedBox.shrink(),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              _CategoriesSection(categoriesAsync: categoriesAsync),
+              const SizedBox(height: 24),
+              _NearbySection(nearbyAsync: nearbyAsync),
+              const SizedBox(height: 24),
+              offersAsync.when(
+                data: (offers) {
+                  if (offers.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        "Offers",
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 60,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: offers.length,
+                          separatorBuilder:
+                              (context, index) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            return Chip(
+                                label: Text(offers[index].title));
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (error, stack) => const SizedBox.shrink(),
+              ),
+            ],
           ),
-          _SpinCtaCard(
-            onTap: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute<void>(builder: (_) => const SpinPage()));
-            },
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 24,
+            child: _SpinCtaCard(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const SpinPage()),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -110,9 +175,13 @@ class HomeDiscoveryPage extends ConsumerWidget {
 }
 
 class _DiscoverHeader extends StatelessWidget {
-  const _DiscoverHeader({required this.onSearch});
+  const _DiscoverHeader({
+    required this.onSearch,
+    required this.onFilterTap,
+  });
 
   final ValueChanged<String> onSearch;
+  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -138,38 +207,54 @@ class _DiscoverHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-         TextField(
-              style: const TextStyle(color: Colors.black),
-              textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-
-                fillColor: Colors.white,
-                filled: true,
-                hintText: "Search restaurants or categories",
-                prefixIcon: Icon(Icons.search),
-
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  borderSide: BorderSide.none,
-                ),
-
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  borderSide: BorderSide.none,
-                ),
-
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  borderSide: BorderSide.none,
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  style: const TextStyle(color: Colors.black),
+                  textInputAction: TextInputAction.search,
+                  decoration: const InputDecoration(
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Search restaurants or categories",
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onSubmitted: onSearch,
+                  onChanged: (String value) => onSearch(value.trim()),
                 ),
               ),
-              onSubmitted: onSearch,
-              onChanged: (String value) {
-                // Trigger live search with trimmed value
-                onSearch(value.trim());
-              },
-            ),
-
+              const SizedBox(width: 12),
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: onFilterTap,
+                  child: const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Icon(
+                      Icons.tune_rounded,
+                      color: Color(0xFF8A4DFF),
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -321,20 +406,10 @@ class _NearbySection extends StatelessWidget {
                 ),
                 TextButton.icon(
                   onPressed: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(24)),
-                      ),
-                      builder: (BuildContext context) {
-                        return _NearbyFilterSheet(initial: filter);
-                      },
-                    );
+
                   },
-                  icon: const Icon(Icons.filter_list),
-                  label: const Text("Filter"),
+                  icon: const Icon(Icons.align_horizontal_left),
+                  label: const Text("View All"),
                 ),
               ],
             ),
@@ -371,8 +446,38 @@ class _NearbySection extends StatelessWidget {
               loading: () => const Center(
                 child: CircularProgressIndicator.adaptive(),
               ),
-              error: (Object error, StackTrace stack) =>
-                  const Text("Unable to load nearby places"),
+              error: (Object error, StackTrace stack) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      "Unable to load nearby places",
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    if (error.toString().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          error.toString(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () => ref
+                          .invalidate(nearbyBranchesControllerProvider),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Retry"),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         );
@@ -381,125 +486,384 @@ class _NearbySection extends StatelessWidget {
   }
 }
 
-class _NearbyFilterSheet extends ConsumerStatefulWidget {
-  const _NearbyFilterSheet({required this.initial});
+
+class _SuperFilterSheet extends ConsumerStatefulWidget {
+  const _SuperFilterSheet({
+    required this.initial,
+    required this.onApply,
+    required this.onReset,
+  });
 
   final HomeFilter initial;
+  final ValueChanged<HomeFilter> onApply;
+  final VoidCallback onReset;
 
   @override
-  ConsumerState<_NearbyFilterSheet> createState() =>
-      _NearbyFilterSheetState();
+  ConsumerState<_SuperFilterSheet> createState() => _SuperFilterSheetState();
 }
 
-class _NearbyFilterSheetState extends ConsumerState<_NearbyFilterSheet> {
-  late double _maxDistance;
-  late bool _enabled;
+class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
+  late double _maxDistanceKm;
+  late bool _distanceEnabled;
   late bool _openOnly;
+  late int? _priceMin;
+  late int? _priceMax;
+  late double? _minRating;
+  late String? _categoryId;
+  late List<String> _dietaryOptions;
+
+  static const List<String> _dietaryChoices = <String>[
+    "Vegetarian",
+    "Vegan",
+    "Halal",
+    "Gluten-free",
+    "Dairy-free",
+  ];
 
   @override
   void initState() {
     super.initState();
-    _enabled = widget.initial.maxDistanceKm != null;
-    _maxDistance = widget.initial.maxDistanceKm ?? 10;
+    _maxDistanceKm = widget.initial.maxDistanceKm ?? 10;
+    _distanceEnabled = widget.initial.maxDistanceKm != null;
     _openOnly = widget.initial.openOnly;
+    _priceMin = widget.initial.priceMin;
+    _priceMax = widget.initial.priceMax;
+    _minRating = widget.initial.minRating;
+    _categoryId = widget.initial.categoryId;
+    _dietaryOptions = List<String>.from(widget.initial.dietaryOptions);
   }
+
+  int get _activeCount {
+    int n = 0;
+    if (_distanceEnabled) n++;
+    if (_openOnly) n++;
+    if (_priceMin != null || _priceMax != null) n++;
+    if (_minRating != null && _minRating! > 0) n++;
+    if (_categoryId != null && _categoryId!.isNotEmpty) n++;
+    if (_dietaryOptions.isNotEmpty) n++;
+    return n;
+  }
+
+  HomeFilter get _currentFilter => HomeFilter(
+        maxDistanceKm: _distanceEnabled ? _maxDistanceKm : null,
+        openOnly: _openOnly,
+        priceMin: _priceMin,
+        priceMax: _priceMax,
+        minRating: _minRating,
+        categoryId: _categoryId,
+        dietaryOptions: _dietaryOptions,
+      );
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final MediaQueryData mq = MediaQuery.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: mq.viewInsets.bottom + 16,
+    final int active = _activeCount;
+    final AsyncValue<List<CategoryEntity>> categoriesAsync =
+        ref.watch(categoriesControllerProvider);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      padding: EdgeInsets.only(bottom: mq.viewPadding.bottom + 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 12, 8),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        "Filters",
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "$active active filter${active == 1 ? "" : "s"}",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF8A4DFF),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: <Widget>[
+                  _FilterExpansionTile(
+                    title: "Price Range",
+                    value: _priceMin != null || _priceMax != null
+                        ? "${_priceMin ?? 1}\$ - ${_priceMax ?? 5}\$"
+                        : null,
+                    child: Row(
+                      children: <Widget>[
+                        DropdownButton<int?>(
+                          value: _priceMin,
+                          hint: const Text("Min"),
+                          items: <DropdownMenuItem<int?>>[
+                            const DropdownMenuItem<int?>(
+                                value: null, child: Text("Any")),
+                            ...List<int>.generate(5, (int i) => i + 1)
+                                .map(
+                                  (int v) => DropdownMenuItem<int?>(
+                                    value: v,
+                                    child: Text("$v\$"),
+                                  ),
+                                ),
+                          ],
+                          onChanged: (int? v) =>
+                              setState(() => _priceMin = v),
+                        ),
+                        const SizedBox(width: 16),
+                        DropdownButton<int?>(
+                          value: _priceMax,
+                          hint: const Text("Max"),
+                          items: <DropdownMenuItem<int?>>[
+                            const DropdownMenuItem<int?>(
+                                value: null, child: Text("Any")),
+                            ...List<int>.generate(5, (int i) => i + 1)
+                                .map(
+                                  (int v) => DropdownMenuItem<int?>(
+                                    value: v,
+                                    child: Text("$v\$"),
+                                  ),
+                                ),
+                          ],
+                          onChanged: (int? v) =>
+                              setState(() => _priceMax = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _FilterExpansionTile(
+                    title: "Minimum Rating",
+                    value: _minRating != null && _minRating! > 0
+                        ? "${_minRating!.toStringAsFixed(1)}+"
+                        : null,
+                    child: Slider(
+                      value: _minRating ?? 0,
+                      min: 0,
+                      max: 5,
+                      divisions: 10,
+                      label: _minRating == null || _minRating == 0
+                          ? "Any"
+                          : _minRating!.toStringAsFixed(1),
+                      onChanged: (double v) =>
+                          setState(() => _minRating = v == 0 ? null : v),
+                    ),
+                  ),
+                  _FilterExpansionTile(
+                    title: "Distance",
+                    value: _distanceEnabled
+                        ? "Within ${_maxDistanceKm.toStringAsFixed(0)} km"
+                        : null,
+                    child: Column(
+                      children: <Widget>[
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: _distanceEnabled,
+                          title: const Text("Limit by distance"),
+                          onChanged: (bool v) =>
+                              setState(() => _distanceEnabled = v),
+                        ),
+                        if (_distanceEnabled)
+                          Slider(
+                            value: _maxDistanceKm,
+                            min: 1,
+                            max: 30,
+                            divisions: 29,
+                            label: "${_maxDistanceKm.toStringAsFixed(0)} km",
+                            onChanged: (double v) =>
+                                setState(() => _maxDistanceKm = v),
+                          ),
+                      ],
+                    ),
+                  ),
+                  _FilterExpansionTile(
+                    title: "Availability",
+                    value: _openOnly ? "Open now only" : null,
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _openOnly,
+                      title: const Text("Open now only"),
+                      onChanged: (bool v) => setState(() => _openOnly = v),
+                    ),
+                  ),
+                  _FilterExpansionTile(
+                    title: "Cuisine Type",
+                    value: _categoryId != null ? "Selected" : null,
+                    child: categoriesAsync.when(
+                      data: (List<CategoryEntity> list) {
+                        return Column(
+                          children: <Widget>[
+                            RadioListTile<String?>(
+                              value: null,
+                              groupValue: _categoryId,
+                              title: const Text("Any"),
+                              onChanged: (String? v) =>
+                                  setState(() => _categoryId = v),
+                            ),
+                            ...list.map(
+                              (CategoryEntity c) => RadioListTile<String?>(
+                                value: c.id,
+                                groupValue: _categoryId,
+                                title: Text(c.nameEn),
+                                onChanged: (String? v) =>
+                                    setState(() => _categoryId = v),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (_, __) => const Text("Unable to load"),
+                    ),
+                  ),
+                  _FilterExpansionTile(
+                    title: "Dietary Options",
+                    value: _dietaryOptions.isEmpty
+                        ? null
+                        : "${_dietaryOptions.length} selected",
+                    child: Column(
+                      children: _dietaryChoices
+                          .map(
+                            (String option) => CheckboxListTile(
+                              value: _dietaryOptions.contains(option),
+                              title: Text(option),
+                              onChanged: (bool? checked) {
+                                setState(() {
+                                  if (checked == true) {
+                                    _dietaryOptions =
+                                        List<String>.from(_dietaryOptions)
+                                          ..add(option);
+                                  } else {
+                                    _dietaryOptions =
+                                        List<String>.from(_dietaryOptions)
+                                          ..remove(option);
+                                  }
+                                });
+                              },
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          Text(
-            "Filter nearby places",
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Column(
+              children: <Widget>[
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: Material(
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      onTap: () => widget.onApply(_currentFilter),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: <Color>[
+                              Color(0xFF8A4DFF),
+                              Color(0xFFFF3F8E),
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(AppRadii.lg),
+                        ),
+                        child: Center(
+                          child: Text(
+                            "Apply Filters ($active)",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton(
+                    onPressed: widget.onReset,
+                    child: const Text("Reset All"),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _enabled,
-            title: const Text("Limit by distance"),
-            subtitle: Text(
-              _enabled ? "Within ${_maxDistance.toStringAsFixed(1)} km" : "Any",
-            ),
-            onChanged: (bool value) {
-              setState(() {
-                _enabled = value;
-              });
-            },
-          ),
-          if (_enabled)
-            Slider(
-              value: _maxDistance,
-              min: 1,
-              max: 30,
-              divisions: 29,
-              label: "${_maxDistance.toStringAsFixed(1)} km",
-              onChanged: (double value) {
-                setState(() {
-                  _maxDistance = value;
-                });
-              },
-            ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _openOnly,
-            title: const Text("Open now only"),
-            onChanged: (bool value) {
-              setState(() {
-                _openOnly = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: <Widget>[
-              TextButton(
-                onPressed: () {
-                  ref.read(homeFilterProvider.notifier).state =
-                      const HomeFilter();
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Clear"),
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  ref.read(homeFilterProvider.notifier).state = HomeFilter(
-                    maxDistanceKm: _enabled ? _maxDistance : null,
-                    openOnly: _openOnly,
-                  );
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Apply"),
-              ),
-            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FilterExpansionTile extends StatelessWidget {
+  const _FilterExpansionTile({
+    required this.title,
+    required this.child,
+    this.value,
+  });
+
+  final String title;
+  final String? value;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return ExpansionTile(
+      title: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: value != null
+          ? Text(
+              value!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF8A4DFF),
+              ),
+            )
+          : null,
+      trailing: const Icon(Icons.expand_more),
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: child,
+        ),
+      ],
     );
   }
 }

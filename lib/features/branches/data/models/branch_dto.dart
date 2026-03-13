@@ -13,6 +13,9 @@ class BranchDto {
     required this.upVotes,
     required this.downVotes,
     this.distanceKm,
+    this.openTime,
+    this.closeTime,
+    this.facilities = const <String>[],
   });
 
   final String id;
@@ -26,6 +29,9 @@ class BranchDto {
   final int upVotes;
   final int downVotes;
   final double? distanceKm;
+  final String? openTime;
+  final String? closeTime;
+  final List<String> facilities;
 
   factory BranchDto.fromJson(Map<String, dynamic> json) {
     final dynamic isOpenRaw = json["isOpen"] ?? json["is_open"];
@@ -55,6 +61,11 @@ class BranchDto {
           0,
       distanceKm:
           double.tryParse((json["distanceKm"] ?? 0).toString()) ?? 0,
+      openTime: (json["openTime"] ?? json["open_time"] ?? "").toString(),
+      closeTime: (json["closeTime"] ?? json["close_time"] ?? "").toString(),
+      facilities: ((json["facilities"] as List<dynamic>?) ?? <dynamic>[])
+          .map((dynamic item) => item.toString())
+          .toList(growable: false),
     );
   }
 
@@ -71,6 +82,9 @@ class BranchDto {
       upVotes: upVotes,
       downVotes: downVotes,
       distanceKm: distanceKm,
+      openTime: openTime?.isEmpty == true ? null : openTime,
+      closeTime: closeTime?.isEmpty == true ? null : closeTime,
+      facilities: facilities,
     );
   }
 }

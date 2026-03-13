@@ -36,9 +36,9 @@ class BranchDetailsPage extends ConsumerWidget {
             onTap: () => _openMaps(branch),
           ),
           const SizedBox(height: 12),
-          _OpeningHoursCard(),
+          _OpeningHoursCard(branch: branch),
           const SizedBox(height: 12),
-          const _FacilitiesSection(),
+          _FacilitiesSection(branch: branch),
           const SizedBox(height: 12),
           _VotesSummaryCard(votes: votes),
           const SizedBox(height: 16),
@@ -121,8 +121,17 @@ class _MapCard extends StatelessWidget {
 }
 
 class _OpeningHoursCard extends StatelessWidget {
+  const _OpeningHoursCard({required this.branch});
+
+  final BranchWithDistance branch;
+
   @override
   Widget build(BuildContext context) {
+    final String? open = branch.branch.openTime;
+    final String? close = branch.branch.closeTime;
+    final String text = (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
+        ? "$open - $close"
+        : "Hours not available";
     return _InfoCard(
       child: Row(
         children: <Widget>[
@@ -130,10 +139,10 @@ class _OpeningHoursCard extends StatelessWidget {
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const <Widget>[
-              Text("Opening Hours"),
-              SizedBox(height: 4),
-              Text("11:00 AM - 11:00 PM"),
+            children: <Widget>[
+              const Text("Opening Hours"),
+              const SizedBox(height: 4),
+              Text(text),
             ],
           ),
         ],
@@ -143,17 +152,14 @@ class _OpeningHoursCard extends StatelessWidget {
 }
 
 class _FacilitiesSection extends StatelessWidget {
-  const _FacilitiesSection();
+  const _FacilitiesSection({required this.branch});
+
+  final BranchWithDistance branch;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    const List<String> defaultFacilities = <String>[
-      "Wi-Fi",
-      "Parking",
-      "Family Section",
-      "Delivery",
-    ];
+    final List<String> facilities = branch.branch.facilities;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -164,22 +170,25 @@ class _FacilitiesSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: defaultFacilities
-              .map(
-                (String name) => Chip(
-                  label: Text(name),
-                  backgroundColor: theme.colorScheme.primary
-                      .withValues(alpha: 0.06),
-                  labelStyle: TextStyle(
-                    color: theme.colorScheme.primary,
+        if (facilities.isEmpty)
+          const Text("No facilities information")
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: facilities
+                .map(
+                  (String name) => Chip(
+                    label: Text(name),
+                    backgroundColor:
+                        theme.colorScheme.primary.withValues(alpha: 0.06),
+                    labelStyle: TextStyle(
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
-                ),
-              )
-              .toList(growable: false),
-        ),
+                )
+                .toList(growable: false),
+          ),
       ],
     );
   }

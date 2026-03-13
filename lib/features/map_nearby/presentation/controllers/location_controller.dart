@@ -13,22 +13,33 @@ class LocationController extends AutoDisposeAsyncNotifier<UserLocation> {
     return fetch();
   }
 
+  static const UserLocation _fallback =
+      UserLocation(latitude: 31.8353, longitude: 35.6180);
+
   Future<UserLocation> fetch() async {
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      await Geolocator.requestPermission();
-    }
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return _fallback;
+      }
 
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return const UserLocation(latitude: 31.8353, longitude: 35.6180);
-    }
+      final bool serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return _fallback;
+      }
 
-    final position = await Geolocator.getCurrentPosition();
-    return UserLocation(
-      latitude: position.latitude,
-      longitude: position.longitude,
-    );
+      final position = await Geolocator.getCurrentPosition();
+      return UserLocation(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    } catch (_) {
+      return _fallback;
+    }
   }
 }
 

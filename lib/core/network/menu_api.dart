@@ -83,6 +83,12 @@ class MenuApi {
     return envelope.data;
   }
 
+  Future<Map<String, dynamic>> getRestaurantDetails(String id) async {
+    final Response<dynamic> response =
+        await _dio.get<dynamic>("/restaurants/$id/details");
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<List<BranchDto>> getNearbyBranches({
     required double latitude,
     required double longitude,
