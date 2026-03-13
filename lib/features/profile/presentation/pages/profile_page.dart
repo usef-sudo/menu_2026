@@ -126,6 +126,8 @@ class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.isLoggedIn,
     required this.favoritesCount,
+    required this.visitedCount,
+    required this.reviewCount,
   });
 
   final bool isLoggedIn;
