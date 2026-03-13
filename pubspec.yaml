@@ -1,0 +1,42 @@
+name: menu_2026
+description: "Menu 2026 production app."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  cached_network_image: ^3.4.1
+  cupertino_icons: ^1.0.8
+  dio: ^5.9.0
+  equatable: ^2.0.7
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  flutter_secure_storage: ^9.2.4
+  flutter_svg: ^2.2.1
+  flutter_fortune_wheel: ^1.3.2
+  geolocator: ^14.0.2
+  go_router: ^16.2.0
+  google_maps_flutter: ^2.14.0
+  logger: ^2.6.1
+  lottie: ^3.3.2
+  pretty_dio_logger: ^1.4.0
+  sentry_flutter: ^9.7.0
+  shared_preferences: ^2.5.3
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/animations/
