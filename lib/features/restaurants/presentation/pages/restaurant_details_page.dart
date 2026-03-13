@@ -16,13 +16,30 @@ import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 
-class RestaurantDetailsPage extends ConsumerWidget {
+class RestaurantDetailsPage extends ConsumerStatefulWidget {
   const RestaurantDetailsPage({required this.restaurantId, super.key});
 
   final String restaurantId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RestaurantDetailsPage> createState() =>
+      _RestaurantDetailsPageState();
+}
+
+class _RestaurantDetailsPageState
+    extends ConsumerState<RestaurantDetailsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Defer provider modification until after the first build frame.
+    Future<void>.microtask(() {
+      ref.read(selectedRestaurantIdProvider.notifier).state =
+          widget.restaurantId;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final restaurantsAsync = ref.watch(restaurantsControllerProvider);
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
@@ -44,7 +61,7 @@ class RestaurantDetailsPage extends ConsumerWidget {
         restaurantsAsync.valueOrNull ?? <RestaurantEntity>[];
     RestaurantEntity? restaurant;
     for (final RestaurantEntity item in restaurants) {
-      if (item.id == restaurantId) {
+      if (item.id == widget.restaurantId) {
         restaurant = item;
         break;
       }
@@ -55,8 +72,6 @@ class RestaurantDetailsPage extends ConsumerWidget {
       );
     }
     final RestaurantEntity selectedRestaurant = restaurant;
-
-    ref.read(selectedRestaurantIdProvider.notifier).state = restaurantId;
     final branchesAsync = ref.watch(branchesControllerProvider);
 
     return DefaultTabController(
@@ -157,7 +172,7 @@ class _BranchesTab extends StatelessWidget {
   }
 }
 
-class _RestaurantSummaryHeader extends StatelessWidget {
+class _RestaurantSummaryHeader extends ConsumerWidget {
   const _RestaurantSummaryHeader({
     required this.restaurant,
     required this.branchesCount,
@@ -169,9 +184,19 @@ class _RestaurantSummaryHeader extends StatelessWidget {
   final int totalVotes;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
+        ref.watch(restaurantPhotosControllerProvider(restaurant.id));
+
+    final String? heroImageUrl = photosAsync.maybeWhen(
+      data: (List<RestaurantPhotoEntity> photos) =>
+          photos.isNotEmpty ? photos.first.imageUrl : null,
+      orElse: () => null,
+    );
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -180,14 +205,106 @@ class _RestaurantSummaryHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            height: 180,
-            color: Colors.grey.shade300,
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.restaurant_rounded,
-              size: 48,
-              color: Colors.white,
+          SizedBox(
+            height: 220,
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                if (heroImageUrl != null && heroImageUrl.isNotEmpty)
+                  CachedNetworkImage(
+                    imageUrl: heroImageUrl,
+                    fit: BoxFit.cover,
+                  )
+                else
+                  Container(
+                    color: Colors.grey.shade300,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.restaurant_rounded,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Colors.black.withValues(alpha: 0.1),
+                        Colors.black.withValues(alpha: 0.6),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: CircleAvatar(
+                      backgroundColor:
+                          theme.colorScheme.surface.withValues(alpha: 0.8),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          restaurant.nameEn,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.star,
+                              size: 16,
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "4.5",
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -195,20 +312,13 @@ class _RestaurantSummaryHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  restaurant.nameEn,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+                if (restaurant.descriptionEn.isNotEmpty) ...<Widget>[
+                  Text(
+                    restaurant.descriptionEn,
+                    style: theme.textTheme.bodyMedium,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  restaurant.descriptionEn.isEmpty
-                      ? "Restaurant"
-                      : restaurant.descriptionEn,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
@@ -219,6 +329,25 @@ class _RestaurantSummaryHeader extends StatelessWidget {
                     _SummaryItem(
                       label: "Total Votes",
                       value: totalVotes.toString(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: const <Widget>[
+                    Chip(
+                      label: Text("Family friendly"),
+                      avatar: Icon(Icons.family_restroom, size: 18),
+                    ),
+                    Chip(
+                      label: Text("Wi‑Fi"),
+                      avatar: Icon(Icons.wifi, size: 18),
+                    ),
+                    Chip(
+                      label: Text("Parking"),
+                      avatar: Icon(Icons.local_parking, size: 18),
                     ),
                   ],
                 ),

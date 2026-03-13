@@ -154,6 +154,9 @@ class MenuApi {
     required String name,
     required String email,
     required String password,
+    required String birthDate,
+    required String gender,
+    required String phoneNumber,
   }) async {
     await _dio.post<dynamic>(
       "/users",
@@ -161,6 +164,9 @@ class MenuApi {
         "name": name,
         "email": email,
         "password": password,
+        "birthDate": birthDate,
+        "gender": gender,
+        "phoneNumber": phoneNumber,
       },
     );
   }

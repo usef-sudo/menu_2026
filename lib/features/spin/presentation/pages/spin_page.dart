@@ -67,10 +67,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
         ref.watch(restaurantsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Spin to Decide"),
-        centerTitle: true,
-      ),
+
       body: Column(
         children: <Widget>[
           Padding(
@@ -192,6 +189,14 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                       mode == SpinKind.category
                           ? "No categories to spin yet."
                           : "No restaurants to spin yet.",
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  );
+                }
+                if (items.length < 2) {
+                  return Center(
+                    child: Text(
+                      "Need at least 2 options to spin.",
                       style: theme.textTheme.bodyMedium,
                     ),
                   );

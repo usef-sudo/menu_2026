@@ -9,6 +9,24 @@ import "package:menu_2026/features/branches/presentation/controllers/nearby_bran
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/spin/presentation/pages/spin_page.dart";
 
+class HomeFilter {
+  const HomeFilter({this.maxDistanceKm, this.openOnly = false});
+
+  final double? maxDistanceKm;
+  final bool openOnly;
+
+  HomeFilter copyWith({double? maxDistanceKm, bool? openOnly}) {
+    return HomeFilter(
+      maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
+      openOnly: openOnly ?? this.openOnly,
+    );
+  }
+}
+
+final homeFilterProvider = StateProvider<HomeFilter>(
+  (Ref ref) => const HomeFilter(),
+);
+
 class HomeDiscoveryPage extends ConsumerWidget {
   const HomeDiscoveryPage({super.key});
 
@@ -29,15 +47,15 @@ class HomeDiscoveryPage extends ConsumerWidget {
         children: <Widget>[
           _DiscoverHeader(
             onSearch: (String value) {
+              final String query = value.trim();
               ref.read(restaurantsFilterProvider.notifier).state =
-                  RestaurantsFilter(search: value.trim());
+                  RestaurantsFilter(search: query.isNotEmpty ? query : null);
               ref.invalidate(restaurantsControllerProvider);
+              context.push("/search/results", extra: query);
             },
           ),
           const SizedBox(height: 24),
-          _CategoriesSection(
-            categoriesAsync: categoriesAsync,
-          ),
+          _CategoriesSection(categoriesAsync: categoriesAsync),
           const SizedBox(height: 24),
           _NearbySection(nearbyAsync: nearbyAsync),
           const SizedBox(height: 24),
@@ -54,8 +72,8 @@ class HomeDiscoveryPage extends ConsumerWidget {
                   Text(
                     "Offers",
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -63,8 +81,8 @@ class HomeDiscoveryPage extends ConsumerWidget {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: offers.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 12),
+                      separatorBuilder:
+                          (context, index) => const SizedBox(width: 12),
                       itemBuilder: (context, index) {
                         return Chip(label: Text(offers[index].title));
                       },
@@ -79,11 +97,9 @@ class HomeDiscoveryPage extends ConsumerWidget {
           ),
           _SpinCtaCard(
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SpinPage(),
-                ),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute<void>(builder: (_) => const SpinPage()));
             },
           ),
           const SizedBox(height: 32),
@@ -106,10 +122,7 @@ class _DiscoverHeader extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.lg),
         gradient: const LinearGradient(
-          colors: <Color>[
-            Color(0xFF8A4DFF),
-            Color(0xFFFF3F8E),
-          ],
+          colors: <Color>[Color(0xFF8A4DFF), Color(0xFFFF3F8E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -125,21 +138,30 @@ class _DiscoverHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              color: Colors.white.withValues(alpha: 0.15),
-            ),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              cursorColor: Colors.white,
+         TextField(
+              style: const TextStyle(color: Colors.black),
               textInputAction: TextInputAction.search,
               decoration: const InputDecoration(
+
+                fillColor: Colors.white,
+                filled: true,
                 hintText: "Search restaurants or categories",
-                hintStyle: TextStyle(color: Colors.white70),
-                prefixIcon: Icon(Icons.search, color: Colors.white),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                prefixIcon: Icon(Icons.search),
+
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  borderSide: BorderSide.none,
+                ),
+
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  borderSide: BorderSide.none,
+                ),
+
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onSubmitted: onSearch,
               onChanged: (String value) {
@@ -147,7 +169,7 @@ class _DiscoverHeader extends StatelessWidget {
                 onSearch(value.trim());
               },
             ),
-          ),
+
         ],
       ),
     );
@@ -182,15 +204,17 @@ class _CategoriesSection extends ConsumerWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
-                separatorBuilder: (BuildContext context, int index) =>
-                    const SizedBox(width: 12),
+                separatorBuilder:
+                    (BuildContext context, int index) =>
+                        const SizedBox(width: 12),
                 itemBuilder: (BuildContext context, int index) {
                   final CategoryEntity category = categories[index];
                   return _CategoryChip(
                     category: category,
                     onTap: () {
-                      ref.read(restaurantsFilterProvider.notifier).state =
-                          RestaurantsFilter(categoryId: category.id);
+                      ref
+                          .read(restaurantsFilterProvider.notifier)
+                          .state = RestaurantsFilter(categoryId: category.id);
                       ref
                           .read(restaurantsControllerProvider.notifier)
                           .refresh();
@@ -204,12 +228,14 @@ class _CategoriesSection extends ConsumerWidget {
               ),
             );
           },
-          loading: () => const SizedBox(
-            height: 96,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (Object error, StackTrace stack) =>
-              const Text("Unable to load categories"),
+          loading:
+              () => const SizedBox(
+                height: 96,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          error:
+              (Object error, StackTrace stack) =>
+                  const Text("Unable to load categories"),
         ),
       ],
     );
@@ -255,10 +281,7 @@ class _CategoryChip extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              _emoji,
-              style: const TextStyle(fontSize: 24),
-            ),
+            Text(_emoji, style: const TextStyle(fontSize: 24)),
             const SizedBox(height: 8),
             Text(
               category.nameEn,
@@ -281,37 +304,202 @@ class _NearbySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          "Nearby places",
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        nearbyAsync.when(
-          data: (List<NearbyBranchWithDistance> branches) {
-            if (branches.isEmpty) {
-              return const Text("No nearby places yet");
-            }
-            return Column(
-              children: branches
-                  .take(10)
-                  .map(
+    return Consumer(
+      builder: (BuildContext context, WidgetRef ref, _) {
+        final HomeFilter filter = ref.watch(homeFilterProvider);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text(
+                  "Nearby places",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      builder: (BuildContext context) {
+                        return _NearbyFilterSheet(initial: filter);
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.filter_list),
+                  label: const Text("Filter"),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            nearbyAsync.when(
+              data: (List<NearbyBranchWithDistance> branches) {
+                Iterable<NearbyBranchWithDistance> filtered = branches;
+                if (filter.maxDistanceKm != null) {
+                  filtered = filtered.where(
                     (NearbyBranchWithDistance b) =>
-                        _NearbyCard(branchWithDistance: b),
-                  )
-                  .toList(growable: false),
-            );
-          },
-          loading: () =>
-              const Center(child: CircularProgressIndicator.adaptive()),
-          error: (Object error, StackTrace stack) =>
-              const Text("Unable to load nearby places"),
-        ),
-      ],
+                        b.distanceKm <= filter.maxDistanceKm!,
+                  );
+                }
+                if (filter.openOnly) {
+                  filtered = filtered.where(
+                    (NearbyBranchWithDistance b) => b.branch.isOpen,
+                  );
+                }
+                final List<NearbyBranchWithDistance> list =
+                    filtered.toList(growable: false);
+                if (list.isEmpty) {
+                  return const Text("No nearby places match your filters");
+                }
+                return Column(
+                  children: list
+                      .take(10)
+                      .map(
+                        (NearbyBranchWithDistance b) =>
+                            _NearbyCard(branchWithDistance: b),
+                      )
+                      .toList(growable: false),
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator.adaptive(),
+              ),
+              error: (Object error, StackTrace stack) =>
+                  const Text("Unable to load nearby places"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _NearbyFilterSheet extends ConsumerStatefulWidget {
+  const _NearbyFilterSheet({required this.initial});
+
+  final HomeFilter initial;
+
+  @override
+  ConsumerState<_NearbyFilterSheet> createState() =>
+      _NearbyFilterSheetState();
+}
+
+class _NearbyFilterSheetState extends ConsumerState<_NearbyFilterSheet> {
+  late double _maxDistance;
+  late bool _enabled;
+  late bool _openOnly;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = widget.initial.maxDistanceKm != null;
+    _maxDistance = widget.initial.maxDistanceKm ?? 10;
+    _openOnly = widget.initial.openOnly;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final MediaQueryData mq = MediaQuery.of(context);
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: mq.viewInsets.bottom + 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text(
+            "Filter nearby places",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _enabled,
+            title: const Text("Limit by distance"),
+            subtitle: Text(
+              _enabled ? "Within ${_maxDistance.toStringAsFixed(1)} km" : "Any",
+            ),
+            onChanged: (bool value) {
+              setState(() {
+                _enabled = value;
+              });
+            },
+          ),
+          if (_enabled)
+            Slider(
+              value: _maxDistance,
+              min: 1,
+              max: 30,
+              divisions: 29,
+              label: "${_maxDistance.toStringAsFixed(1)} km",
+              onChanged: (double value) {
+                setState(() {
+                  _maxDistance = value;
+                });
+              },
+            ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _openOnly,
+            title: const Text("Open now only"),
+            onChanged: (bool value) {
+              setState(() {
+                _openOnly = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: <Widget>[
+              TextButton(
+                onPressed: () {
+                  ref.read(homeFilterProvider.notifier).state =
+                      const HomeFilter();
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Clear"),
+              ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(homeFilterProvider.notifier).state = HomeFilter(
+                    maxDistanceKm: _enabled ? _maxDistance : null,
+                    openOnly: _openOnly,
+                  );
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Apply"),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -401,10 +589,7 @@ class _SpinCtaCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.lg),
           gradient: const LinearGradient(
-            colors: <Color>[
-              Color(0xFFFF7B65),
-              Color(0xFFFF3F8E),
-            ],
+            colors: <Color>[Color(0xFFFF7B65), Color(0xFFFF3F8E)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -433,4 +618,3 @@ class _SpinCtaCard extends StatelessWidget {
     );
   }
 }
-

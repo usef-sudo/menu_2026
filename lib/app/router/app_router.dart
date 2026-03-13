@@ -6,6 +6,7 @@ import "package:menu_2026/features/auth/presentation/pages/register_page.dart";
 import "package:menu_2026/features/categories/presentation/pages/category_restaurants_page.dart";
 import "package:menu_2026/features/onboarding/presentation/pages/onboarding_page.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/restaurant_details_page.dart";
+import "package:menu_2026/features/restaurants/presentation/pages/search_results_page.dart";
 import "package:menu_2026/features/shell/presentation/pages/home_shell_page.dart";
 
 final appRouterProvider = Provider<GoRouter>((Ref ref) {
@@ -50,6 +51,13 @@ final appRouterProvider = Provider<GoRouter>((Ref ref) {
             categoryId: id,
             categoryName: name,
           );
+        },
+      ),
+      GoRoute(
+        path: "/search/results",
+        builder: (context, state) {
+          final String query = (state.extra as String?) ?? "";
+          return SearchResultsPage(query: query);
         },
       ),
     ],

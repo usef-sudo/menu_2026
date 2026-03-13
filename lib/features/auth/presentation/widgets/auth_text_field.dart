@@ -8,6 +8,8 @@ class AuthTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.validator,
+    this.readOnly = false,
+    this.onTap,
     super.key,
   });
 
@@ -17,6 +19,8 @@ class AuthTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
+   final bool readOnly;
+   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +28,8 @@ class AuthTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
       validator: validator,
     );

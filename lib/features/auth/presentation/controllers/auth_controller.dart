@@ -43,12 +43,18 @@ class AuthController extends AutoDisposeAsyncNotifier<void> {
     required String name,
     required String email,
     required String password,
+    required String birthDate,
+    required String gender,
+    required String phoneNumber,
   }) async {
     final result = await safeRequest<void>(() async {
       await ref.read(menuApiProvider).register(
             name: name,
             email: email,
             password: password,
+            birthDate: birthDate,
+            gender: gender,
+            phoneNumber: phoneNumber,
           );
     });
 
