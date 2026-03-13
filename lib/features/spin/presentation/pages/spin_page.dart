@@ -7,7 +7,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
+import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
+import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/spin/presentation/controllers/spin_controller.dart";
 
@@ -59,8 +61,10 @@ class _SpinPageState extends ConsumerState<SpinPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final SpinResult? result = ref.watch(spinControllerProvider);
-    final categoriesAsync = ref.watch(categoriesControllerProvider);
-    final restaurantsAsync = ref.watch(restaurantsControllerProvider);
+    final AsyncValue<List<CategoryEntity>> categoriesAsync =
+        ref.watch(categoriesControllerProvider);
+    final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
+        ref.watch(restaurantsControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -162,8 +166,8 @@ class _SpinPageState extends ConsumerState<SpinPage> {
   Widget _buildWheel(
     BuildContext context, {
     required SpinKind mode,
-    required AsyncValue categoriesAsync,
-    required AsyncValue restaurantsAsync,
+    required AsyncValue<List<CategoryEntity>> categoriesAsync,
+    required AsyncValue<List<RestaurantEntity>> restaurantsAsync,
   }) {
     final ThemeData theme = Theme.of(context);
 
@@ -174,14 +178,14 @@ class _SpinPageState extends ConsumerState<SpinPage> {
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Center(
+            child: Center(
           child: SizedBox(
             height: 280,
             child: categoriesAsync.when(
-              data: (categories) {
-                final items = mode == SpinKind.category
+              data: (List<CategoryEntity> categories) {
+                final List<dynamic> items = mode == SpinKind.category
                     ? categories
-                    : restaurantsAsync.valueOrNull ?? <dynamic>[];
+                    : (restaurantsAsync.valueOrNull ?? <RestaurantEntity>[]);
                 if (items.isEmpty) {
                   return Center(
                     child: Text(
@@ -192,7 +196,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                     ),
                   );
                 }
-                _segments = min(_segments, items.length);
+                _segments = min<int>(_segments, items.length);
                 return FortuneWheel(
                   selected: _selectedIndexController.stream,
                   animateFirst: false,
