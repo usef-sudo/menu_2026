@@ -5,8 +5,7 @@ import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
-import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
-import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
+import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/spin/presentation/pages/spin_page.dart";
 
@@ -15,14 +14,13 @@ class HomeDiscoveryPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final restaurantsAsync = ref.watch(restaurantsControllerProvider);
+    final nearbyAsync = ref.watch(nearbyBranchesControllerProvider);
     final categoriesAsync = ref.watch(categoriesControllerProvider);
     final offersAsync = ref.watch(offersControllerProvider);
-    final favoritesAsync = ref.watch(favoritesControllerProvider);
 
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.read(restaurantsControllerProvider.notifier).refresh();
+        ref.invalidate(nearbyBranchesControllerProvider);
         await ref.read(categoriesControllerProvider.notifier).refresh();
         ref.invalidate(offersControllerProvider);
       },
@@ -41,10 +39,7 @@ class HomeDiscoveryPage extends ConsumerWidget {
             categoriesAsync: categoriesAsync,
           ),
           const SizedBox(height: 24),
-          _TopRestaurantsSection(
-            restaurantsAsync: restaurantsAsync,
-            favoritesAsync: favoritesAsync,
-          ),
+          _NearbySection(nearbyAsync: nearbyAsync),
           const SizedBox(height: 24),
           // Optional horizontal offers carousel under top section.
           // For now, keep it light-weight and only show when offers exist.
@@ -278,14 +273,10 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _TopRestaurantsSection extends StatelessWidget {
-  const _TopRestaurantsSection({
-    required this.restaurantsAsync,
-    required this.favoritesAsync,
-  });
+class _NearbySection extends StatelessWidget {
+  const _NearbySection({required this.nearbyAsync});
 
-  final AsyncValue<List<RestaurantEntity>> restaurantsAsync;
-  final AsyncValue<Set<String>> favoritesAsync;
+  final AsyncValue<List<NearbyBranchWithDistance>> nearbyAsync;
 
   @override
   Widget build(BuildContext context) {
@@ -294,26 +285,23 @@ class _TopRestaurantsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          "Top Restaurants",
+          "Nearby places",
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 12),
-        restaurantsAsync.when(
-          data: (List<RestaurantEntity> restaurants) {
-            if (restaurants.isEmpty) {
-              return const Text("No restaurants yet");
+        nearbyAsync.when(
+          data: (List<NearbyBranchWithDistance> branches) {
+            if (branches.isEmpty) {
+              return const Text("No nearby places yet");
             }
-            final Set<String> favorites =
-                favoritesAsync.valueOrNull ?? <String>{};
             return Column(
-              children: restaurants
+              children: branches
+                  .take(10)
                   .map(
-                    (RestaurantEntity r) => _RestaurantCard(
-                      restaurant: r,
-                      isFavorite: favorites.contains(r.id),
-                    ),
+                    (NearbyBranchWithDistance b) =>
+                        _NearbyCard(branchWithDistance: b),
                   )
                   .toList(growable: false),
             );
@@ -321,27 +309,24 @@ class _TopRestaurantsSection extends StatelessWidget {
           loading: () =>
               const Center(child: CircularProgressIndicator.adaptive()),
           error: (Object error, StackTrace stack) =>
-              const Text("Unable to load restaurants"),
+              const Text("Unable to load nearby places"),
         ),
       ],
     );
   }
 }
 
-class _RestaurantCard extends StatelessWidget {
-  const _RestaurantCard({
-    required this.restaurant,
-    required this.isFavorite,
-  });
+class _NearbyCard extends StatelessWidget {
+  const _NearbyCard({required this.branchWithDistance});
 
-  final RestaurantEntity restaurant;
-  final bool isFavorite;
+  final NearbyBranchWithDistance branchWithDistance;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final branch = branchWithDistance.branch;
     return InkWell(
-      onTap: () => context.push("/restaurant/${restaurant.id}"),
+      onTap: () => context.push("/restaurant/${branch.restaurantId}"),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -355,99 +340,46 @@ class _RestaurantCard extends StatelessWidget {
             ),
           ],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Container(
-              height: 160,
-              color: Colors.grey.shade300,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.restaurant_rounded,
-                size: 40,
-                color: Colors.white,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          restaurant.nameEn,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      branch.nameEn,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      if (isFavorite)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.pink.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Icon(
-                                Icons.favorite,
-                                size: 14,
-                                color: Colors.pink.shade500,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                "Favorite",
-                                style: TextStyle(
-                                  color: Colors.pink.shade500,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            "Open",
-                            style: TextStyle(
-                              color: Colors.green.shade700,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
                   Text(
-                    restaurant.descriptionEn.isEmpty
-                        ? "Restaurant"
-                        : restaurant.descriptionEn,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
+                    "${branchWithDistance.distanceKm.toStringAsFixed(1)} km",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Row(
+                children: <Widget>[
+                  const Icon(Icons.place_outlined, size: 16),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      branch.address,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

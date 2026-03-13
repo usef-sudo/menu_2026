@@ -83,6 +83,31 @@ class MenuApi {
     return envelope.data;
   }
 
+  Future<List<BranchDto>> getNearbyBranches({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await _dio.get<dynamic>(
+      "/branches/nearby",
+      queryParameters: <String, dynamic>{
+        "lat": latitude,
+        "lng": longitude,
+      },
+    );
+    final envelope = ApiEnvelope.fromDynamic<List<BranchDto>>(response.data, (
+      dynamic data,
+    ) {
+      final list = data as List<dynamic>;
+      return list
+          .map(
+            (dynamic item) =>
+                BranchDto.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(growable: false);
+    });
+    return envelope.data;
+  }
+
   Future<List<OfferDto>> getOffers() async {
     final response = await _dio.get<dynamic>("/offers");
     final envelope = ApiEnvelope.fromDynamic<List<OfferDto>>(response.data, (

@@ -12,6 +12,7 @@ class BranchDto {
     required this.isOpen,
     required this.upVotes,
     required this.downVotes,
+    this.distanceKm,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class BranchDto {
   final bool isOpen;
   final int upVotes;
   final int downVotes;
+  final double? distanceKm;
 
   factory BranchDto.fromJson(Map<String, dynamic> json) {
     final dynamic isOpenRaw = json["isOpen"] ?? json["is_open"];
@@ -51,6 +53,8 @@ class BranchDto {
             (json["downVotes"] ?? json["down_votes"] ?? 0).toString(),
           ) ??
           0,
+      distanceKm:
+          double.tryParse((json["distanceKm"] ?? 0).toString()) ?? 0,
     );
   }
 
@@ -66,6 +70,7 @@ class BranchDto {
       isOpen: isOpen,
       upVotes: upVotes,
       downVotes: downVotes,
+      distanceKm: distanceKm,
     );
   }
 }
