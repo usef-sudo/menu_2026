@@ -1,10 +1,7 @@
-import "dart:math";
-
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
-import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
-import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
+import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
+import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 
 enum SpinKind {
   category,
@@ -36,53 +33,39 @@ class SpinController extends AutoDisposeNotifier<SpinResult?> {
   @override
   SpinResult? build() => null;
 
-  Future<void> spinRestaurant() async {
-    final restaurants = await ref.read(restaurantsControllerProvider.future);
+  void clearResult() {
+    state = null;
+  }
+
+  Future<void> spinRestaurantAt(List<RestaurantEntity> restaurants, int index) async {
     final branches = await ref.read(branchesControllerProvider.future);
-    final favorites = await ref.read(favoritesControllerProvider.future);
 
     if (restaurants.isEmpty || branches.isEmpty) {
       state = null;
       return;
     }
 
-    final random = Random();
-    final List<int> weighted = <int>[];
-    for (var i = 0; i < restaurants.length; i++) {
-      final restaurant = restaurants[i];
-      final BranchWithDistance? nearestBranch = branches
-          .where((BranchWithDistance b) => b.branch.restaurantId == restaurant.id)
-          .fold<BranchWithDistance?>(
-            null,
-            (BranchWithDistance? current, BranchWithDistance item) =>
-                current == null || item.distanceKm < current.distanceKm
-                    ? item
-                    : current,
-          );
-      if (nearestBranch == null) {
-        continue;
-      }
-      var weight = 1;
-      if (favorites.contains(restaurant.id)) {
-        weight += 2;
-      }
-      if (nearestBranch.distanceKm <= 3) {
-        weight += 1;
-      }
-      weighted.addAll(List<int>.filled(weight, i));
-    }
-
-    if (weighted.isEmpty) {
+    if (index < 0 || index >= restaurants.length) {
       state = null;
       return;
     }
 
-    final int index = weighted[random.nextInt(weighted.length)];
     final selected = restaurants[index];
-    final BranchWithDistance selectedBranch = branches.firstWhere(
-      (BranchWithDistance b) => b.branch.restaurantId == selected.id,
-      orElse: () => branches.first,
-    );
+    final BranchWithDistance? selectedBranch = branches
+        .where((BranchWithDistance b) => b.branch.restaurantId == selected.id)
+        .fold<BranchWithDistance?>(
+          null,
+          (BranchWithDistance? current, BranchWithDistance item) =>
+              current == null || item.distanceKm < current.distanceKm
+                  ? item
+                  : current,
+        );
+
+    if (selectedBranch == null) {
+      state = null;
+      return;
+    }
+
     state = SpinResult(
       name: selected.nameEn,
       kind: SpinKind.restaurant,
@@ -94,14 +77,12 @@ class SpinController extends AutoDisposeNotifier<SpinResult?> {
     );
   }
 
-  Future<void> spinCategory() async {
-    final categories = await ref.read(categoriesControllerProvider.future);
-    if (categories.isEmpty) {
+  Future<void> spinCategoryAt(List<CategoryEntity> categories, int index) async {
+    if (categories.isEmpty || index < 0 || index >= categories.length) {
       state = null;
       return;
     }
-    final random = Random();
-    final selected = categories[random.nextInt(categories.length)];
+    final selected = categories[index];
     state = SpinResult(
       name: selected.nameEn,
       kind: SpinKind.category,

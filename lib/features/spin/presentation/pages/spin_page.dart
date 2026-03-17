@@ -7,11 +7,12 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
+import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
-import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/spin/presentation/controllers/spin_controller.dart";
+import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
+import "package:menu_2026/features/spin/presentation/controllers/spin_filter_controller.dart";
 
 class SpinPage extends ConsumerStatefulWidget {
   const SpinPage({super.key});
@@ -27,8 +28,15 @@ class _SpinPageState extends ConsumerState<SpinPage> {
 
   bool _isSpinning = false;
   int _segments = 8;
-  int _currentIndex = 0;
   SpinKind _mode = SpinKind.category;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(() {
+      ref.read(selectedRestaurantIdProvider.notifier).state = null;
+    });
+  }
 
   @override
   void dispose() {
@@ -36,139 +44,239 @@ class _SpinPageState extends ConsumerState<SpinPage> {
     super.dispose();
   }
 
-  void _startSpin(int itemsLength) {
-    if (_isSpinning || itemsLength <= 0) {
-      return;
-    }
-    setState(() {
-      _isSpinning = true;
-    });
-    final int target = _random.nextInt(itemsLength);
+  void _startSpin(List<dynamic> items) {
+    if (_isSpinning || items.length < 2) return;
+
+    setState(() => _isSpinning = true);
+    final int target = _random.nextInt(items.length);
+    _segments = min<int>(_segments, items.length);
     _selectedIndexController.add(target % _segments);
+
     Future<void>.delayed(const Duration(seconds: 3), () {
-      setState(() {
-        _isSpinning = false;
-      });
+      if (!mounted) return;
+      setState(() => _isSpinning = false);
+      final int index = target % items.length;
       if (_mode == SpinKind.category) {
-        ref.read(spinControllerProvider.notifier).spinCategory();
+        ref.read(spinControllerProvider.notifier).spinCategoryAt(
+          items as List<CategoryEntity>,
+          index,
+        );
       } else {
-        ref.read(spinControllerProvider.notifier).spinRestaurant();
+        ref.read(spinControllerProvider.notifier).spinRestaurantAt(
+          items as List<RestaurantEntity>,
+          index,
+        );
       }
     });
+  }
+
+  static String _categoryEmoji(CategoryEntity c) {
+    final String name = c.nameEn.toLowerCase();
+    if (name.contains("burger")) return "🍔";
+    if (name.contains("shawarma")) return "🌯";
+    if (name.contains("pizza")) return "🍕";
+    if (name.contains("coffee") || name.contains("café")) return "☕";
+    if (name.contains("sushi") || name.contains("asian")) return "🍣";
+    if (name.contains("dessert")) return "🍰";
+    if (name.contains("breakfast") || name.contains("brunch")) return "🥐";
+    return "🍽";
+  }
+
+  static String _restaurantEmoji(RestaurantEntity r) {
+    final String name = r.nameEn.toLowerCase();
+    if (name.contains("burger")) return "🍔";
+    if (name.contains("java") || name.contains("coffee")) return "☕";
+    if (name.contains("sweet")) return "🍰";
+    if (name.contains("shawarma")) return "🌯";
+    if (name.contains("pizza")) return "🍕";
+    if (name.contains("sushi")) return "🍣";
+    if (name.contains("sunrise")) return "🥐";
+    return "🍽";
   }
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final SpinResult? result = ref.watch(spinControllerProvider);
-    final AsyncValue<List<CategoryEntity>> categoriesAsync = ref.watch(
-      categoriesControllerProvider,
-    );
-    final AsyncValue<List<RestaurantEntity>> restaurantsAsync = ref.watch(
-      restaurantsControllerProvider,
-    );
+    final categoriesAsync = ref.watch(spinFilteredCategoriesProvider);
+    final restaurantsAsync = ref.watch(spinFilteredRestaurantsProvider);
+    final selectedCategoryIds = ref.watch(spinSelectedCategoryIdsProvider);
+    final allCategoriesAsync = ref.watch(categoriesControllerProvider);
 
     return Scaffold(
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  "Not sure what to eat?",
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    "Not sure what to eat?",
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Use the wheel to pick a category for you with What to eat? or a restaurant by Where to eat?",
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(32),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Spin the wheel for a category (What to eat?) or a restaurant (Where to eat?)",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text("What to eat?"),
-                          selected: _mode == SpinKind.category,
-                          onSelected: (bool value) {
-                            if (value) {
-                              setState(() {
-                                _mode = SpinKind.category;
-                              });
-                            }
-                          },
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text("What to eat?"),
+                            selected: _mode == SpinKind.category,
+                            onSelected: (bool value) {
+                              if (value) setState(() => _mode = SpinKind.category);
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text("Where to eat?"),
-                          selected: _mode == SpinKind.restaurant,
-                          onSelected: (bool value) {
-                            if (value) {
-                              setState(() {
-                                _mode = SpinKind.restaurant;
-                              });
-                            }
-                          },
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text("Where to eat?"),
+                            selected: _mode == SpinKind.restaurant,
+                            onSelected: (bool value) {
+                              if (value) setState(() => _mode = SpinKind.restaurant);
+                            },
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    "Filter by category (optional)",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  allCategoriesAsync.when(
+                    data: (List<CategoryEntity> categories) {
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: <Widget>[
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: const Text("All"),
+                                selected: selectedCategoryIds.isEmpty,
+                                onSelected: (_) {
+                                  ref.read(spinSelectedCategoryIdsProvider.notifier).state = <String>[];
+                                },
+                              ),
+                            ),
+                            ...categories.map(
+                              (CategoryEntity c) {
+                                final bool isSelected =
+                                    selectedCategoryIds.contains(c.id);
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
+                                    label: Text(c.nameEn),
+                                    selected: isSelected,
+                                    onSelected: (bool value) {
+                                      final List<String> current =
+                                          ref.read(spinSelectedCategoryIdsProvider);
+                                      if (value) {
+                                        ref.read(spinSelectedCategoryIdsProvider.notifier).state =
+                                            <String>[...current, c.id];
+                                      } else {
+                                        ref.read(spinSelectedCategoryIdsProvider.notifier).state =
+                                            current.where((String id) => id != c.id).toList(growable: false);
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox(height: 36),
+                    error: (Object e, StackTrace s) => const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildWheel(
-                context,
-                mode: _mode,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildWheel(
+                  theme: theme,
+                  mode: _mode,
+                  categoriesAsync: categoriesAsync,
+                  restaurantsAsync: restaurantsAsync,
+                ),
+              ),
+            ),
+            if (result != null)
+              _ResultCard(
+                result: result,
+                onClearResult: () {
+                  ref.read(spinControllerProvider.notifier).clearResult();
+                },
+              ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _buildSpinButton(
+                theme: theme,
                 categoriesAsync: categoriesAsync,
                 restaurantsAsync: restaurantsAsync,
               ),
             ),
-          ),
-          if (result != null) _ResultCard(result: result),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: GradientPrimaryButton(
-              label: _isSpinning ? "Spinning..." : "Spin now",
-              onPressed: _isSpinning
-                  ? null
-                  : () {
-                      final int itemsLength = _mode == SpinKind.category
-                          ? (categoriesAsync.valueOrNull?.length ?? 0)
-                          : (restaurantsAsync.valueOrNull?.length ?? 0);
-                      _startSpin(itemsLength);
-                    },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildWheel(
-    BuildContext context, {
+  Widget _buildSpinButton({
+    required ThemeData theme,
+    required AsyncValue<List<CategoryEntity>> categoriesAsync,
+    required AsyncValue<List<RestaurantEntity>> restaurantsAsync,
+  }) {
+    final int itemsLength = _mode == SpinKind.category
+        ? (categoriesAsync.valueOrNull?.length ?? 0)
+        : (restaurantsAsync.valueOrNull?.length ?? 0);
+
+    return GradientPrimaryButton(
+      label: _isSpinning ? "Spinning..." : "Spin now",
+      onPressed: _isSpinning || itemsLength < 2
+          ? null
+          : () {
+              final List<dynamic> items = _mode == SpinKind.category
+                  ? (categoriesAsync.valueOrNull ?? <CategoryEntity>[])
+                  : (restaurantsAsync.valueOrNull ?? <RestaurantEntity>[]);
+              _startSpin(items);
+            },
+    );
+  }
+
+  Widget _buildWheel({
+    required ThemeData theme,
     required SpinKind mode,
     required AsyncValue<List<CategoryEntity>> categoriesAsync,
     required AsyncValue<List<RestaurantEntity>> restaurantsAsync,
   }) {
-    final ThemeData theme = Theme.of(context);
-
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -178,88 +286,121 @@ class _SpinPageState extends ConsumerState<SpinPage> {
         padding: const EdgeInsets.all(16),
         child: Center(
           child: SizedBox(
-            height: 280,
-            child: categoriesAsync.when(
-              data: (List<CategoryEntity> categories) {
-                final List<dynamic> items = mode == SpinKind.category
-                    ? categories
-                    : (restaurantsAsync.valueOrNull ?? <RestaurantEntity>[]);
-                if (items.isEmpty) {
-                  return Center(
-                    child: Text(
-                      mode == SpinKind.category
-                          ? "No categories to spin yet."
-                          : "No restaurants to spin yet.",
-                      style: theme.textTheme.bodyMedium,
+            height: 300,
+            child: mode == SpinKind.category
+                ? categoriesAsync.when(
+                    data: (List<CategoryEntity> items) => _wheelContent(
+                      theme: theme,
+                      items: items,
+                      getEmoji: _categoryEmoji,
+                      emptyMessage: "No categories. Try removing filters.",
                     ),
-                  );
-                }
-                if (items.length < 2) {
-                  return Center(
-                    child: Text(
-                      "Need at least 2 options to spin.",
-                      style: theme.textTheme.bodyMedium,
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator.adaptive()),
+                    error: (Object e, StackTrace s) => _errorContent(theme),
+                  )
+                : restaurantsAsync.when(
+                    data: (List<RestaurantEntity> items) => _wheelContent(
+                      theme: theme,
+                      items: items,
+                      getEmoji: _restaurantEmoji,
+                      emptyMessage: "No restaurants. Try different categories.",
                     ),
-                  );
-                }
-                _segments = min<int>(_segments, items.length);
-                return FortuneWheel(
-                  selected: _selectedIndexController.stream,
-                  animateFirst: false,
-                  indicators: const <FortuneIndicator>[
-                    FortuneIndicator(
-                      alignment: Alignment.topCenter,
-                      child: TriangleIndicator(color: Colors.amber),
-                    ),
-                  ],
-                  items: List.generate(_segments, (int index) {
-                    final item = items[index % items.length];
-                    final String label = mode == SpinKind.category
-                        ? item.nameEn as String
-                        : item.nameEn as String;
-                    return FortuneItem(
-                      child: Transform.rotate(
-                        angle: pi / 2,
-                        child: Text(
-                          label,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      style: FortuneItemStyle(
-                        color: index.isEven
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.secondary,
-                        borderColor: Colors.white,
-                        borderWidth: 2,
-                      ),
-                    );
-                  }),
-                );
-              },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator.adaptive()),
-              error: (_, __) => Center(
-                child: Text(
-                  "Unable to load options to spin.",
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator.adaptive()),
+                    error: (Object e, StackTrace s) => _errorContent(theme),
+                  ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _wheelContent<T>({
+    required ThemeData theme,
+    required List<T> items,
+    required String Function(T) getEmoji,
+    required String emptyMessage,
+  }) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text(emptyMessage, style: theme.textTheme.bodyMedium),
+      );
+    }
+    if (items.length < 2) {
+      return Center(
+        child: Text(
+          "Need at least 2 options to spin.",
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    _segments = min<int>(_segments, items.length);
+    const List<Color> segmentColors = <Color>[
+      Color(0xFF8A4DFF),
+      Color(0xFF6B3FAF),
+      Color(0xFFFF3F8E),
+      Color(0xFFE8357A),
+      Color(0xFF8A4DFF),
+      Color(0xFF6B3FAF),
+      Color(0xFFFF3F8E),
+      Color(0xFFE8357A),
+    ];
+
+    return FortuneWheel(
+      selected: _selectedIndexController.stream,
+      animateFirst: false,
+      indicators: const <FortuneIndicator>[
+        FortuneIndicator(
+          alignment: Alignment.topCenter,
+          child: TriangleIndicator(color: Color(0xFFFFD700)),
+        ),
+      ],
+      items: List.generate(_segments, (int index) {
+        final T item = items[index % items.length];
+        return FortuneItem(
+          child: Center(
+            child: Text(
+              getEmoji(item),
+              style: const TextStyle(fontSize: 32),
+            ),
+          ),
+          style: FortuneItemStyle(
+            color: segmentColors[index % segmentColors.length],
+            borderColor: Colors.white,
+            borderWidth: 2,
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _errorContent(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+          const SizedBox(height: 12),
+          Text(
+            "Unable to load options.",
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
       ),
     );
   }
 }
 
 class _ResultCard extends StatelessWidget {
-  const _ResultCard({required this.result});
+  const _ResultCard({
+    required this.result,
+    required this.onClearResult,
+  });
 
   final SpinResult result;
+  final VoidCallback onClearResult;
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +422,7 @@ class _ResultCard extends StatelessWidget {
                     : "Where to eat...",
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -299,7 +441,12 @@ class _ResultCard extends StatelessWidget {
               ],
               if (result.reason != null) ...<Widget>[
                 const SizedBox(height: 8),
-                Text(result.reason!, style: theme.textTheme.bodySmall),
+                Text(
+                  result.reason!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
               ],
               const SizedBox(height: 12),
               Row(
@@ -321,15 +468,13 @@ class _ResultCard extends StatelessWidget {
                       child: Text(
                         result.kind == SpinKind.category
                             ? "Explore this category"
-                            : "View restaurant details",
+                            : "View restaurant",
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   TextButton(
-                    onPressed: () {
-                      // Trigger a new spin via the page button.
-                    },
+                    onPressed: onClearResult,
                     child: const Text("Spin again"),
                   ),
                 ],
