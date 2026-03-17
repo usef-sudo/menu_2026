@@ -48,24 +48,21 @@ class _SpinPageState extends ConsumerState<SpinPage> {
     if (_isSpinning || items.length < 2) return;
 
     setState(() => _isSpinning = true);
-    final int target = _random.nextInt(items.length);
-    _segments = min<int>(_segments, items.length);
-    _selectedIndexController.add(target % _segments);
+    _segments = min<int>(8, items.length);
+    final int target = _random.nextInt(_segments);
+    _selectedIndexController.add(target);
 
     Future<void>.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       setState(() => _isSpinning = false);
-      final int index = target % items.length;
       if (_mode == SpinKind.category) {
-        ref.read(spinControllerProvider.notifier).spinCategoryAt(
-          items as List<CategoryEntity>,
-          index,
-        );
+        ref
+            .read(spinControllerProvider.notifier)
+            .spinCategoryAt(items as List<CategoryEntity>, target);
       } else {
-        ref.read(spinControllerProvider.notifier).spinRestaurantAt(
-          items as List<RestaurantEntity>,
-          index,
-        );
+        ref
+            .read(spinControllerProvider.notifier)
+            .spinRestaurantAt(items as List<RestaurantEntity>, target);
       }
     });
   }
@@ -103,6 +100,12 @@ class _SpinPageState extends ConsumerState<SpinPage> {
     final selectedCategoryIds = ref.watch(spinSelectedCategoryIdsProvider);
     final allCategoriesAsync = ref.watch(categoriesControllerProvider);
 
+    ref.listen<List<String>>(spinSelectedCategoryIdsProvider, (_, List<String> next) {
+      if (_mode == SpinKind.restaurant && ref.read(spinControllerProvider) != null) {
+        ref.read(spinControllerProvider.notifier).clearResult();
+      }
+    });
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -138,19 +141,29 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                         Expanded(
                           child: ChoiceChip(
                             label: const Text("What to eat?"),
+                            selectedColor: Colors.white,
+                            backgroundColor: Colors.grey[300],
                             selected: _mode == SpinKind.category,
                             onSelected: (bool value) {
-                              if (value) setState(() => _mode = SpinKind.category);
+                              if (value) {
+                                setState(() => _mode = SpinKind.category);
+                                ref.read(spinControllerProvider.notifier).clearResult();
+                              }
                             },
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: ChoiceChip(
+                            selectedColor: Colors.white,
+                            backgroundColor: Colors.grey[300],
                             label: const Text("Where to eat?"),
                             selected: _mode == SpinKind.restaurant,
                             onSelected: (bool value) {
-                              if (value) setState(() => _mode = SpinKind.restaurant);
+                              if (value) {
+                                setState(() => _mode = SpinKind.restaurant);
+                                ref.read(spinControllerProvider.notifier).clearResult();
+                              }
                             },
                           ),
                         ),
@@ -163,7 +176,9 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                       "Filter by category (optional)",
                       style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.8,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -179,40 +194,59 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                                   label: const Text("All"),
                                   selected: selectedCategoryIds.isEmpty,
                                   onSelected: (_) {
-                                    ref.read(spinSelectedCategoryIdsProvider.notifier).state = <String>[];
+                                    ref
+                                            .read(
+                                              spinSelectedCategoryIdsProvider
+                                                  .notifier,
+                                            )
+                                            .state =
+                                        <String>[];
                                   },
                                 ),
                               ),
-                              ...categories.map(
-                                (CategoryEntity c) {
-                                  final bool isSelected =
-                                      selectedCategoryIds.contains(c.id);
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: FilterChip(
-                                      label: Text(c.nameEn),
-                                      selected: isSelected,
-                                      onSelected: (bool value) {
-                                        final List<String> current =
-                                            ref.read(spinSelectedCategoryIdsProvider);
-                                        if (value) {
-                                          ref.read(spinSelectedCategoryIdsProvider.notifier).state =
-                                              <String>[...current, c.id];
-                                        } else {
-                                          ref.read(spinSelectedCategoryIdsProvider.notifier).state =
-                                              current.where((String id) => id != c.id).toList(growable: false);
-                                        }
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
+                              ...categories.map((CategoryEntity c) {
+                                final bool isSelected = selectedCategoryIds
+                                    .contains(c.id);
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
+                                    label: Text(c.nameEn),
+                                    selected: isSelected,
+                                    onSelected: (bool value) {
+                                      final List<String> current = ref.read(
+                                        spinSelectedCategoryIdsProvider,
+                                      );
+                                      if (value) {
+                                        ref
+                                            .read(
+                                              spinSelectedCategoryIdsProvider
+                                                  .notifier,
+                                            )
+                                            .state = <String>[
+                                          ...current,
+                                          c.id,
+                                        ];
+                                      } else {
+                                        ref
+                                            .read(
+                                              spinSelectedCategoryIdsProvider
+                                                  .notifier,
+                                            )
+                                            .state = current
+                                            .where((String id) => id != c.id)
+                                            .toList(growable: false);
+                                      }
+                                    },
+                                  ),
+                                );
+                              }),
                             ],
                           ),
                         );
                       },
                       loading: () => const SizedBox(height: 36),
-                      error: (Object e, StackTrace s) => const SizedBox.shrink(),
+                      error: (Object e, StackTrace s) =>
+                          const SizedBox.shrink(),
                     ),
                   ],
                 ],
@@ -297,8 +331,9 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                       getEmoji: _categoryEmoji,
                       emptyMessage: "No categories. Try removing filters.",
                     ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator.adaptive()),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
                     error: (Object e, StackTrace s) => _errorContent(theme),
                   )
                 : restaurantsAsync.when(
@@ -308,8 +343,9 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                       getEmoji: _restaurantEmoji,
                       emptyMessage: "No restaurants. Try different categories.",
                     ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator.adaptive()),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
                     error: (Object e, StackTrace s) => _errorContent(theme),
                   ),
           ),
@@ -338,7 +374,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
       );
     }
 
-    _segments = min<int>(_segments, items.length);
+    _segments = min<int>(8, items.length);
     const List<Color> segmentColors = <Color>[
       Color(0xFF8A4DFF),
       Color(0xFF6B3FAF),
@@ -363,10 +399,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
         final T item = items[index % items.length];
         return FortuneItem(
           child: Center(
-            child: Text(
-              getEmoji(item),
-              style: const TextStyle(fontSize: 32),
-            ),
+            child: Text(getEmoji(item), style: const TextStyle(fontSize: 32)),
           ),
           style: FortuneItemStyle(
             color: segmentColors[index % segmentColors.length],
@@ -385,10 +418,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
         children: <Widget>[
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text(
-            "Unable to load options.",
-            style: theme.textTheme.bodyMedium,
-          ),
+          Text("Unable to load options.", style: theme.textTheme.bodyMedium),
         ],
       ),
     );
@@ -396,10 +426,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
 }
 
 class _ResultCard extends StatelessWidget {
-  const _ResultCard({
-    required this.result,
-    required this.onClearResult,
-  });
+  const _ResultCard({required this.result, required this.onClearResult});
 
   final SpinResult result;
   final VoidCallback onClearResult;
