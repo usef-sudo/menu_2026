@@ -6,20 +6,24 @@ class AppSettings {
   const AppSettings({
     required this.themeMode,
     required this.localeCode,
+    required this.hasSelectedLanguage,
   });
 
   final ThemeMode themeMode;
   final String localeCode;
+  final bool hasSelectedLanguage;
 
   Locale get locale => Locale(localeCode);
 
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? localeCode,
+    bool? hasSelectedLanguage,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       localeCode: localeCode ?? this.localeCode,
+      hasSelectedLanguage: hasSelectedLanguage ?? this.hasSelectedLanguage,
     );
   }
 }
@@ -27,12 +31,15 @@ class AppSettings {
 class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
   static const String _themeKey = "app_theme_mode";
   static const String _localeKey = "app_locale_code";
+  static const String _hasSelectedLanguageKey = "app_has_selected_language";
 
   @override
   Future<AppSettings> build() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String themeString = prefs.getString(_themeKey) ?? "system";
     final String localeCode = prefs.getString(_localeKey) ?? "en";
+    final bool hasSelectedLanguage =
+        prefs.getBool(_hasSelectedLanguageKey) ?? false;
 
     final ThemeMode themeMode;
     switch (themeString) {
@@ -49,6 +56,7 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
     return AppSettings(
       themeMode: themeMode,
       localeCode: localeCode,
+      hasSelectedLanguage: hasSelectedLanguage,
     );
   }
 
@@ -74,7 +82,13 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_localeKey, code);
-    state = AsyncData(current.copyWith(localeCode: code));
+    await prefs.setBool(_hasSelectedLanguageKey, true);
+    state = AsyncData(
+      current.copyWith(
+        localeCode: code,
+        hasSelectedLanguage: true,
+      ),
+    );
   }
 }
 

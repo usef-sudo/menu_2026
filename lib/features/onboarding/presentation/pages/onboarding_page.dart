@@ -70,7 +70,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void _handlePrimaryAction(BuildContext context) {
     final bool isLast = _currentIndex == _slides.length - 1;
     if (isLast) {
-      context.go("/auth/register");
+      context.go("/auth/login");
     } else {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),

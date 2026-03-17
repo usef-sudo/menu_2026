@@ -4,6 +4,7 @@ import "package:menu_2026/features/auth/presentation/pages/forgot_password_page.
 import "package:menu_2026/features/auth/presentation/pages/login_page.dart";
 import "package:menu_2026/features/auth/presentation/pages/register_page.dart";
 import "package:menu_2026/features/categories/presentation/pages/category_restaurants_page.dart";
+import "package:menu_2026/features/onboarding/presentation/pages/app_entry_page.dart";
 import "package:menu_2026/features/onboarding/presentation/pages/onboarding_page.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/restaurant_details_page.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/search_results_page.dart";
@@ -13,7 +14,11 @@ final appRouterProvider = Provider<GoRouter>((Ref ref) {
   return GoRouter(
     initialLocation: "/",
     routes: <RouteBase>[
-      GoRoute(path: "/", builder: (context, state) => const OnboardingPage()),
+      GoRoute(path: "/", builder: (context, state) => const AppEntryPage()),
+      GoRoute(
+        path: "/onboarding",
+        builder: (context, state) => const OnboardingPage(),
+      ),
       GoRoute(
         path: "/auth/login",
         builder: (context, state) => const LoginPage(),
