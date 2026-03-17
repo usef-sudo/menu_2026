@@ -98,7 +98,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final SpinResult? result = ref.watch(spinControllerProvider);
-    final categoriesAsync = ref.watch(spinFilteredCategoriesProvider);
+    final categoriesAsync = ref.watch(categoriesControllerProvider);
     final restaurantsAsync = ref.watch(spinFilteredRestaurantsProvider);
     final selectedCategoryIds = ref.watch(spinSelectedCategoryIdsProvider);
     final allCategoriesAsync = ref.watch(categoriesControllerProvider);
@@ -157,62 +157,64 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Filter by category (optional)",
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  if (_mode == SpinKind.restaurant) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      "Filter by category (optional)",
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  allCategoriesAsync.when(
-                    data: (List<CategoryEntity> categories) {
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: <Widget>[
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: FilterChip(
-                                label: const Text("All"),
-                                selected: selectedCategoryIds.isEmpty,
-                                onSelected: (_) {
-                                  ref.read(spinSelectedCategoryIdsProvider.notifier).state = <String>[];
+                    const SizedBox(height: 8),
+                    allCategoriesAsync.when(
+                      data: (List<CategoryEntity> categories) {
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: <Widget>[
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: const Text("All"),
+                                  selected: selectedCategoryIds.isEmpty,
+                                  onSelected: (_) {
+                                    ref.read(spinSelectedCategoryIdsProvider.notifier).state = <String>[];
+                                  },
+                                ),
+                              ),
+                              ...categories.map(
+                                (CategoryEntity c) {
+                                  final bool isSelected =
+                                      selectedCategoryIds.contains(c.id);
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: FilterChip(
+                                      label: Text(c.nameEn),
+                                      selected: isSelected,
+                                      onSelected: (bool value) {
+                                        final List<String> current =
+                                            ref.read(spinSelectedCategoryIdsProvider);
+                                        if (value) {
+                                          ref.read(spinSelectedCategoryIdsProvider.notifier).state =
+                                              <String>[...current, c.id];
+                                        } else {
+                                          ref.read(spinSelectedCategoryIdsProvider.notifier).state =
+                                              current.where((String id) => id != c.id).toList(growable: false);
+                                        }
+                                      },
+                                    ),
+                                  );
                                 },
                               ),
-                            ),
-                            ...categories.map(
-                              (CategoryEntity c) {
-                                final bool isSelected =
-                                    selectedCategoryIds.contains(c.id);
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: FilterChip(
-                                    label: Text(c.nameEn),
-                                    selected: isSelected,
-                                    onSelected: (bool value) {
-                                      final List<String> current =
-                                          ref.read(spinSelectedCategoryIdsProvider);
-                                      if (value) {
-                                        ref.read(spinSelectedCategoryIdsProvider.notifier).state =
-                                            <String>[...current, c.id];
-                                      } else {
-                                        ref.read(spinSelectedCategoryIdsProvider.notifier).state =
-                                            current.where((String id) => id != c.id).toList(growable: false);
-                                      }
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox(height: 36),
-                    error: (Object e, StackTrace s) => const SizedBox.shrink(),
-                  ),
+                            ],
+                          ),
+                        );
+                      },
+                      loading: () => const SizedBox(height: 36),
+                      error: (Object e, StackTrace s) => const SizedBox.shrink(),
+                    ),
+                  ],
                 ],
               ),
             ),
