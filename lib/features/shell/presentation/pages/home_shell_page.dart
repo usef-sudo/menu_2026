@@ -31,10 +31,17 @@ class _HomeShellPageState extends State<HomeShellPage> {
         title: const Text("Menu"),
         actions: <Widget>[
           IconButton(
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute<void>(builder: (_) => const OffersPage())),
-            icon: const Icon(Icons.local_offer_outlined),
+            tooltip: 'Hot Deals 🔥',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const OffersPage(),
+              ),
+            ),
+            icon: const Icon(
+              Icons.local_fire_department_outlined,
+              color: Colors.deepOrange,
+              size: 30,
+            ),
           ),
         ],
       ),

@@ -6,6 +6,7 @@ import "package:menu_2026/features/auth/data/models/login_response_dto.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/categories/data/models/category_dto.dart";
 import "package:menu_2026/features/offers/data/models/offer_dto.dart";
+import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
 import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
@@ -34,6 +35,11 @@ class MenuApi {
   Future<List<RestaurantDto>> getRestaurants({
     String? categoryId,
     String? search,
+    int? minCostLevel,
+    int? maxCostLevel,
+    bool? openOnly,
+    String? sort,
+    List<String>? facilityIds,
   }) async {
     final response = await _dio.get<dynamic>(
       "/restaurants",
@@ -41,6 +47,12 @@ class MenuApi {
         if (categoryId != null && categoryId.isNotEmpty)
           "categoryId": categoryId,
         if (search != null && search.isNotEmpty) "search": search,
+        if (minCostLevel != null) "minCostLevel": minCostLevel,
+        if (maxCostLevel != null) "maxCostLevel": maxCostLevel,
+        if (openOnly != null) "openOnly": openOnly,
+        if (sort != null && sort.isNotEmpty) "sort": sort,
+        if (facilityIds != null && facilityIds.isNotEmpty)
+          "facilityIds": facilityIds.join(","),
       },
     );
     final envelope = ApiEnvelope.fromDynamic<List<RestaurantDto>>(
@@ -136,6 +148,18 @@ class MenuApi {
       "upVotes": int.tryParse((payload["upVotes"] ?? 0).toString()) ?? 0,
       "downVotes": int.tryParse((payload["downVotes"] ?? 0).toString()) ?? 0,
     };
+  }
+
+  Future<List<FacilityDto>> getFacilities() async {
+    final Response<dynamic> response =
+        await _dio.get<dynamic>("/facilities");
+    final List<dynamic> data = response.data as List<dynamic>;
+    return data
+        .map(
+          (dynamic item) =>
+              FacilityDto.fromJson(item as Map<String, dynamic>),
+        )
+        .toList(growable: false);
   }
 
   Future<void> voteForBranch(String branchId, int vote) async {

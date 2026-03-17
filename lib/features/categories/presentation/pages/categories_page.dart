@@ -6,11 +6,44 @@ import "package:menu_2026/features/categories/domain/entities/category_entity.da
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 
-class CategoriesPage extends ConsumerWidget {
+class CategoriesPage extends ConsumerStatefulWidget {
   const CategoriesPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CategoriesPage> createState() => _CategoriesPageState();
+}
+
+class _CategoriesPageState extends ConsumerState<CategoriesPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CategoryEntity> _filterCategories(List<CategoryEntity> categories) {
+    if (_searchQuery.isEmpty) return categories;
+    return categories
+        .where(
+          (CategoryEntity c) =>
+              c.nameEn.toLowerCase().contains(_searchQuery) ||
+              c.nameAr.contains(_searchQuery),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AsyncValue<List<CategoryEntity>> categoriesAsync = ref.watch(
       categoriesControllerProvider,
     );
@@ -19,12 +52,28 @@ class CategoriesPage extends ConsumerWidget {
       body: SafeArea(
         child: categoriesAsync.when(
           data: (List<CategoryEntity> categories) {
+            final List<CategoryEntity> filtered = _filterCategories(categories);
             return ListView(
               padding: const EdgeInsets.all(16),
               children: <Widget>[
                 const _Header(),
+                const SizedBox(height: 16),
+                _SearchBar(controller: _searchController),
                 const SizedBox(height: 24),
-                _CategoriesGrid(categories: categories),
+                filtered.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 48),
+                        child: Text(
+                          _searchQuery.isEmpty
+                              ? "No categories yet"
+                              : "No categories match \"$_searchQuery\"",
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                        ),
+                      )
+                    : _CategoriesGrid(categories: filtered),
               ],
             );
           },
@@ -34,6 +83,42 @@ class CategoriesPage extends ConsumerWidget {
               const Center(child: Text("Unable to load categories")),
         ),
       ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: "Search categories...",
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (_, TextEditingValue value, __) {
+            if (value.text.isEmpty) return const SizedBox.shrink();
+            return IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () => controller.clear(),
+            );
+          },
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      style: theme.textTheme.bodyLarge,
     );
   }
 }

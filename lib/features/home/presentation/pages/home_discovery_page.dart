@@ -3,8 +3,12 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:cached_network_image/cached_network_image.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
+import "package:menu_2026/features/home/presentation/widgets/places_widgets.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
+import "package:menu_2026/features/facilities/domain/entities/facility_entity.dart";
+import "package:menu_2026/features/facilities/presentation/controllers/facilities_controller.dart";
 import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
 import "package:menu_2026/features/offers/domain/entities/offer_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
@@ -66,12 +70,6 @@ final homeFilterProvider = StateProvider<HomeFilter>(
   (Ref ref) => const HomeFilter(),
 );
 
-enum HomePlacesSort { nearby, mostVoted, recommended }
-
-final homePlacesSortProvider = StateProvider<HomePlacesSort>(
-  (Ref ref) => HomePlacesSort.nearby,
-);
-
 class HomeDiscoveryPage extends ConsumerWidget {
   const HomeDiscoveryPage({super.key});
 
@@ -110,6 +108,8 @@ class HomeDiscoveryPage extends ConsumerWidget {
                     backgroundColor: Colors.transparent,
                     builder: (BuildContext context) => _SuperFilterSheet(
                       initial: filter,
+                      initialRestaurantsFilter:
+                          ref.read(restaurantsFilterProvider),
                       onApply: (HomeFilter f) {
                         ref.read(homeFilterProvider.notifier).state = f;
                         Navigator.of(context).pop();
@@ -117,6 +117,9 @@ class HomeDiscoveryPage extends ConsumerWidget {
                       onReset: () {
                         ref.read(homeFilterProvider.notifier).state =
                             const HomeFilter();
+                        ref.read(restaurantsFilterProvider.notifier).state =
+                            const RestaurantsFilter();
+                        ref.read(restaurantsControllerProvider.notifier).refresh();
                         Navigator.of(context).pop();
                       },
                     ),
@@ -125,10 +128,10 @@ class HomeDiscoveryPage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               _OffersBannerSection(offersAsync: offersAsync),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               const _PlacesFilterChips(),
-              const SizedBox(height: 24),
-              _NearbySection(nearbyAsync: nearbyAsync),
+              const SizedBox(height: 16),
+              _PlacesResults(nearbyAsync: nearbyAsync),
             ],
           ),
           Positioned(
@@ -220,6 +223,23 @@ class _PlacesFilterChips extends ConsumerWidget {
   }
 }
 
+class _PlacesResults extends ConsumerWidget {
+  const _PlacesResults({required this.nearbyAsync});
+
+  final AsyncValue<List<NearbyBranchWithDistance>> nearbyAsync;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final HomePlacesSort selected = ref.watch(homePlacesSortProvider);
+    return switch (selected) {
+      HomePlacesSort.nearby => _NearbySection(nearbyAsync: nearbyAsync),
+      HomePlacesSort.mostVoted => _MostVotedSection(nearbyAsync: nearbyAsync),
+      HomePlacesSort.recommended =>
+        _RecommendedSection(nearbyAsync: nearbyAsync),
+    };
+  }
+}
+
 class _OffersBannerSection extends ConsumerStatefulWidget {
   const _OffersBannerSection({required this.offersAsync});
 
@@ -232,7 +252,6 @@ class _OffersBannerSection extends ConsumerStatefulWidget {
 
 class _OffersBannerSectionState extends ConsumerState<_OffersBannerSection> {
   late final PageController _controller;
-  int _index = 0;
 
   @override
   void initState() {
@@ -248,18 +267,12 @@ class _OffersBannerSectionState extends ConsumerState<_OffersBannerSection> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
     return widget.offersAsync.when(
       data: (offers) {
         final List<OfferEntity> offersWithImages = offers
             .where((o) => o.imageUrl.isNotEmpty)
             .toList(growable: false);
         if (offersWithImages.isEmpty) return const SizedBox.shrink();
-
-        final int dotsCount = offersWithImages.length > 6
-            ? 6
-            : offersWithImages.length;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +312,6 @@ class _OffersBannerSectionState extends ConsumerState<_OffersBannerSection> {
               child: PageView.builder(
                 controller: _controller,
                 itemCount: offersWithImages.length,
-                onPageChanged: (int value) => setState(() => _index = value),
                 itemBuilder: (BuildContext context, int i) {
                   final OfferEntity offer = offersWithImages[i];
                   return Padding(
@@ -511,119 +523,43 @@ class _NearbySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Consumer(
-      builder: (BuildContext context, WidgetRef ref, _) {
-        final HomeFilter filter = ref.watch(homeFilterProvider);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text(
-                  "Nearby places",
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.align_horizontal_left),
-                  label: const Text("View All"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            nearbyAsync.when(
-              data: (List<NearbyBranchWithDistance> branches) {
-                Iterable<NearbyBranchWithDistance> filtered = branches;
-                if (filter.maxDistanceKm != null) {
-                  filtered = filtered.where(
-                    (NearbyBranchWithDistance b) =>
-                        b.distanceKm <= filter.maxDistanceKm!,
-                  );
-                }
-                if (filter.openOnly) {
-                  filtered = filtered.where(
-                    (NearbyBranchWithDistance b) => b.branch.isOpen,
-                  );
-                }
-                final List<NearbyBranchWithDistance> list = filtered.toList(
-                  growable: true,
-                );
-                final HomePlacesSort sort = ref.watch(homePlacesSortProvider);
-                switch (sort) {
-                  case HomePlacesSort.nearby:
-                    list.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
-                    break;
-                  case HomePlacesSort.mostVoted:
-                    int score(NearbyBranchWithDistance x) =>
-                        x.branch.upVotes - x.branch.downVotes;
-                    list.sort((a, b) => score(b).compareTo(score(a)));
-                    break;
-                  case HomePlacesSort.recommended:
-                    double score(NearbyBranchWithDistance x) {
-                      final int votes = x.branch.upVotes - x.branch.downVotes;
-                      final double openBoost = x.branch.isOpen ? 2.0 : 0.0;
-                      return votes.toDouble() +
-                          openBoost -
-                          (x.distanceKm * 0.25);
-                    }
-                    list.sort((a, b) => score(b).compareTo(score(a)));
-                    break;
-                }
-                if (list.isEmpty) {
-                  return const Text("No nearby places match your filters");
-                }
-                return Column(
-                  children: list
-                      .take(10)
-                      .map(
-                        (NearbyBranchWithDistance b) =>
-                            _NearbyCard(branchWithDistance: b),
-                      )
-                      .toList(growable: false),
-                );
-              },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator.adaptive()),
-              error: (Object error, StackTrace stack) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      "Unable to load nearby places",
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    if (error.toString().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          error.toString(),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () =>
-                          ref.invalidate(nearbyBranchesControllerProvider),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text("Retry"),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+    return PlacesListSection(
+      title: "Nearby places",
+      nearbyAsync: nearbyAsync,
+      sort: HomePlacesSort.nearby,
+      emptyText: "No nearby places match your filters",
+    );
+  }
+}
+
+class _MostVotedSection extends StatelessWidget {
+  const _MostVotedSection({required this.nearbyAsync});
+
+  final AsyncValue<List<NearbyBranchWithDistance>> nearbyAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    return PlacesListSection(
+      title: "Most voted",
+      nearbyAsync: nearbyAsync,
+      sort: HomePlacesSort.mostVoted,
+      emptyText: "No places to rank yet",
+    );
+  }
+}
+
+class _RecommendedSection extends StatelessWidget {
+  const _RecommendedSection({required this.nearbyAsync});
+
+  final AsyncValue<List<NearbyBranchWithDistance>> nearbyAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    return PlacesListSection(
+      title: "Recommended for you",
+      nearbyAsync: nearbyAsync,
+      sort: HomePlacesSort.recommended,
+      emptyText: "No recommendations available",
     );
   }
 }
@@ -631,11 +567,13 @@ class _NearbySection extends StatelessWidget {
 class _SuperFilterSheet extends ConsumerStatefulWidget {
   const _SuperFilterSheet({
     required this.initial,
+    this.initialRestaurantsFilter,
     required this.onApply,
     required this.onReset,
   });
 
   final HomeFilter initial;
+  final RestaurantsFilter? initialRestaurantsFilter;
   final ValueChanged<HomeFilter> onApply;
   final VoidCallback onReset;
 
@@ -651,15 +589,8 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
   late int? _priceMax;
   late double? _minRating;
   late String? _categoryId;
-  late List<String> _dietaryOptions;
 
-  static const List<String> _dietaryChoices = <String>[
-    "Vegetarian",
-    "Vegan",
-    "Halal",
-    "Gluten-free",
-    "Dairy-free",
-  ];
+  List<String> _selectedFacilityIds = <String>[];
 
   @override
   void initState() {
@@ -667,11 +598,13 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
     _maxDistanceKm = widget.initial.maxDistanceKm ?? 10;
     _distanceEnabled = widget.initial.maxDistanceKm != null;
     _openOnly = widget.initial.openOnly;
-    _priceMin = widget.initial.priceMin;
-    _priceMax = widget.initial.priceMax;
+    _priceMin = widget.initial.priceMin ?? widget.initialRestaurantsFilter?.minCostLevel;
+    _priceMax = widget.initial.priceMax ?? widget.initialRestaurantsFilter?.maxCostLevel;
     _minRating = widget.initial.minRating;
-    _categoryId = widget.initial.categoryId;
-    _dietaryOptions = List<String>.from(widget.initial.dietaryOptions);
+    _categoryId = widget.initial.categoryId ?? widget.initialRestaurantsFilter?.categoryId;
+    _selectedFacilityIds = List<String>.from(
+      widget.initialRestaurantsFilter?.facilityIds ?? <String>[],
+    );
   }
 
   int get _activeCount {
@@ -681,7 +614,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
     if (_priceMin != null || _priceMax != null) n++;
     if (_minRating != null && _minRating! > 0) n++;
     if (_categoryId != null && _categoryId!.isNotEmpty) n++;
-    if (_dietaryOptions.isNotEmpty) n++;
+    if (_selectedFacilityIds.isNotEmpty) n++;
     return n;
   }
 
@@ -692,7 +625,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
     priceMax: _priceMax,
     minRating: _minRating,
     categoryId: _categoryId,
-    dietaryOptions: _dietaryOptions,
+        dietaryOptions: const <String>[],
   );
 
   @override
@@ -700,9 +633,10 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
     final ThemeData theme = Theme.of(context);
     final MediaQueryData mq = MediaQuery.of(context);
     final int active = _activeCount;
-    final AsyncValue<List<CategoryEntity>> categoriesAsync = ref.watch(
-      categoriesControllerProvider,
-    );
+    final AsyncValue<List<CategoryEntity>> categoriesAsync =
+        ref.watch(categoriesControllerProvider);
+    final AsyncValue<List<FacilityEntity>> facilitiesAsync =
+        ref.watch(facilitiesControllerProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -882,32 +816,44 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: "Dietary Options",
-                    value: _dietaryOptions.isEmpty
+                    title: "Facilities",
+                    value: _selectedFacilityIds.isEmpty
                         ? null
-                        : "${_dietaryOptions.length} selected",
-                    child: Column(
-                      children: _dietaryChoices
-                          .map(
-                            (String option) => CheckboxListTile(
-                              value: _dietaryOptions.contains(option),
-                              title: Text(option),
-                              onChanged: (bool? checked) {
-                                setState(() {
-                                  if (checked == true) {
-                                    _dietaryOptions = List<String>.from(
-                                      _dietaryOptions,
-                                    )..add(option);
-                                  } else {
-                                    _dietaryOptions = List<String>.from(
-                                      _dietaryOptions,
-                                    )..remove(option);
-                                  }
-                                });
-                              },
-                            ),
-                          )
-                          .toList(growable: false),
+                        : "${_selectedFacilityIds.length} selected",
+                    child: facilitiesAsync.when(
+                      data: (List<FacilityEntity> facilities) {
+                        if (facilities.isEmpty) {
+                          return const Text("No facilities configured yet");
+                        }
+                        return Column(
+                          children: facilities
+                              .map(
+                                (FacilityEntity f) => CheckboxListTile(
+                                  value: _selectedFacilityIds.contains(f.id),
+                                  title: Text(f.nameEn),
+                                  onChanged: (bool? checked) {
+                                    setState(() {
+                                      if (checked == true) {
+                                        _selectedFacilityIds = <String>{
+                                          ..._selectedFacilityIds,
+                                          f.id,
+                                        }.toList();
+                                      } else {
+                                        _selectedFacilityIds = List<String>.from(
+                                          _selectedFacilityIds,
+                                        )..remove(f.id);
+                                      }
+                                    });
+                                  },
+                                ),
+                              )
+                              .toList(growable: false),
+                        );
+                      },
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (_, __) =>
+                          const Text("Unable to load facilities"),
                     ),
                   ),
                 ],
@@ -925,7 +871,25 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                     borderRadius: BorderRadius.circular(AppRadii.lg),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(AppRadii.lg),
-                      onTap: () => widget.onApply(_currentFilter),
+                      onTap: () {
+                        // Update branch filters
+                        widget.onApply(_currentFilter);
+                        // Also update restaurants filter so restaurant lists use same settings
+                        ref.read(restaurantsFilterProvider.notifier).state =
+                            RestaurantsFilter(
+                          categoryId: _categoryId,
+                          minCostLevel: _priceMin,
+                          maxCostLevel: _priceMax,
+                          openOnly: _openOnly,
+                          facilityIds: _selectedFacilityIds,
+                          sort: _minRating != null && _minRating! > 0
+                              ? "votes"
+                              : "newest",
+                        );
+                        ref
+                            .read(restaurantsControllerProvider.notifier)
+                            .refresh();
+                      },
                       child: Ink(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
@@ -1006,75 +970,7 @@ class _FilterExpansionTile extends StatelessWidget {
   }
 }
 
-class _NearbyCard extends StatelessWidget {
-  const _NearbyCard({required this.branchWithDistance});
-
-  final NearbyBranchWithDistance branchWithDistance;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final branch = branchWithDistance.branch;
-    return InkWell(
-      onTap: () => context.push("/restaurant/${branch.restaurantId}"),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      branch.nameEn,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    "${branchWithDistance.distanceKm.toStringAsFixed(1)} km",
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: <Widget>[
-                  const Icon(Icons.place_outlined, size: 16),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      branch.address,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Card moved to `NearbyRestaurantCard` in `places_widgets.dart`.
 
 class _SpinCtaCard extends StatelessWidget {
   const _SpinCtaCard({required this.onTap});

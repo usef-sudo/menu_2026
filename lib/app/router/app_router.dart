@@ -6,6 +6,8 @@ import "package:menu_2026/features/auth/presentation/pages/register_page.dart";
 import "package:menu_2026/features/categories/presentation/pages/category_restaurants_page.dart";
 import "package:menu_2026/features/onboarding/presentation/pages/app_entry_page.dart";
 import "package:menu_2026/features/onboarding/presentation/pages/onboarding_page.dart";
+import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
+import "package:menu_2026/features/home/presentation/pages/places_list_page.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/restaurant_details_page.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/search_results_page.dart";
 import "package:menu_2026/features/shell/presentation/pages/home_shell_page.dart";
@@ -38,6 +40,15 @@ final appRouterProvider = Provider<GoRouter>((Ref ref) {
       GoRoute(
         path: "/home",
         builder: (context, state) => const HomeShellPage(),
+      ),
+      GoRoute(
+        path: "/places",
+        builder: (context, state) {
+          final sort = homePlacesSortFromQuery(
+            state.uri.queryParameters["sort"],
+          );
+          return PlacesListPage(initialSort: sort);
+        },
       ),
       GoRoute(
         path: "/restaurant/:id",

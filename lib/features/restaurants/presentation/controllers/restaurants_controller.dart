@@ -4,9 +4,22 @@ import "package:menu_2026/core/network/safe_request.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 
 class RestaurantsFilter {
-  const RestaurantsFilter({this.categoryId, this.search});
+  const RestaurantsFilter({
+    this.categoryId,
+    this.search,
+    this.minCostLevel,
+    this.maxCostLevel,
+    this.openOnly,
+    this.sort,
+    this.facilityIds = const <String>[],
+  });
   final String? categoryId;
   final String? search;
+  final int? minCostLevel;
+  final int? maxCostLevel;
+  final bool? openOnly;
+  final String? sort;
+  final List<String> facilityIds;
 }
 
 final restaurantsFilterProvider = StateProvider<RestaurantsFilter>(
@@ -25,7 +38,15 @@ class RestaurantsController
     final result = await safeRequest<List<RestaurantEntity>>(() async {
       final dtos = await ref
           .read(menuApiProvider)
-          .getRestaurants(categoryId: filter.categoryId, search: filter.search);
+          .getRestaurants(
+            categoryId: filter.categoryId,
+            search: filter.search,
+            minCostLevel: filter.minCostLevel,
+            maxCostLevel: filter.maxCostLevel,
+            openOnly: filter.openOnly,
+            sort: filter.sort,
+            facilityIds: filter.facilityIds,
+          );
       return dtos.map((dto) => dto.toEntity()).toList(growable: false);
     });
     return result.when(
