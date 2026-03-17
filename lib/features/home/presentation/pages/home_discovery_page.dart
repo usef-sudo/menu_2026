@@ -1,10 +1,12 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:cached_network_image/cached_network_image.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
+import "package:menu_2026/features/offers/domain/entities/offer_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/spin/presentation/pages/spin_page.dart";
@@ -64,13 +66,18 @@ final homeFilterProvider = StateProvider<HomeFilter>(
   (Ref ref) => const HomeFilter(),
 );
 
+enum HomePlacesSort { nearby, mostVoted, recommended }
+
+final homePlacesSortProvider = StateProvider<HomePlacesSort>(
+  (Ref ref) => HomePlacesSort.nearby,
+);
+
 class HomeDiscoveryPage extends ConsumerWidget {
   const HomeDiscoveryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nearbyAsync = ref.watch(nearbyBranchesControllerProvider);
-    final categoriesAsync = ref.watch(categoriesControllerProvider);
     final offersAsync = ref.watch(offersControllerProvider);
 
     final HomeFilter filter = ref.watch(homeFilterProvider);
@@ -78,7 +85,6 @@ class HomeDiscoveryPage extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(nearbyBranchesControllerProvider);
-        await ref.read(categoriesControllerProvider.notifier).refresh();
         ref.invalidate(offersControllerProvider);
       },
       child: Stack(
@@ -89,8 +95,11 @@ class HomeDiscoveryPage extends ConsumerWidget {
               _DiscoverHeader(
                 onSearch: (String value) {
                   final String query = value.trim();
-                  ref.read(restaurantsFilterProvider.notifier).state =
-                      RestaurantsFilter(search: query.isNotEmpty ? query : null);
+                  ref
+                      .read(restaurantsFilterProvider.notifier)
+                      .state = RestaurantsFilter(
+                    search: query.isNotEmpty ? query : null,
+                  );
                   ref.invalidate(restaurantsControllerProvider);
                   context.push("/search/results", extra: query);
                 },
@@ -114,46 +123,12 @@ class HomeDiscoveryPage extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 24),
-              _CategoriesSection(categoriesAsync: categoriesAsync),
+              const SizedBox(height: 16),
+              _OffersBannerSection(offersAsync: offersAsync),
+              const SizedBox(height: 18),
+              const _PlacesFilterChips(),
               const SizedBox(height: 24),
               _NearbySection(nearbyAsync: nearbyAsync),
-              const SizedBox(height: 24),
-              offersAsync.when(
-                data: (offers) {
-                  if (offers.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        "Offers",
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 60,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: offers.length,
-                          separatorBuilder:
-                              (context, index) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            return Chip(
-                                label: Text(offers[index].title));
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (error, stack) => const SizedBox.shrink(),
-              ),
             ],
           ),
           Positioned(
@@ -174,11 +149,276 @@ class HomeDiscoveryPage extends ConsumerWidget {
   }
 }
 
-class _DiscoverHeader extends StatelessWidget {
-  const _DiscoverHeader({
-    required this.onSearch,
-    required this.onFilterTap,
+class _PlacesFilterChips extends ConsumerWidget {
+  const _PlacesFilterChips();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final HomePlacesSort selected = ref.watch(homePlacesSortProvider);
+
+    Widget chip({
+      required String label,
+      required IconData icon,
+      required HomePlacesSort value,
+    }) {
+      final bool isSelected = selected == value;
+      return FilterChip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? theme.colorScheme.onPrimary : null,
+            ),
+            const SizedBox(width: 6),
+            Text(label),
+          ],
+        ),
+        selected: isSelected,
+        selectedColor: theme.colorScheme.primary,
+        checkmarkColor: theme.colorScheme.onPrimary,
+        labelStyle: TextStyle(
+          color: isSelected ? theme.colorScheme.onPrimary : null,
+          fontWeight: FontWeight.w600,
+        ),
+        onSelected: (_) =>
+            ref.read(homePlacesSortProvider.notifier).state = value,
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: <Widget>[
+              chip(
+                label: "Nearby",
+                icon: Icons.near_me_outlined,
+                value: HomePlacesSort.nearby,
+              ),
+              chip(
+                label: "Most voted",
+                icon: Icons.trending_up_rounded,
+                value: HomePlacesSort.mostVoted,
+              ),
+              chip(
+                label: "Recommended",
+                icon: Icons.auto_awesome_rounded,
+                value: HomePlacesSort.recommended,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OffersBannerSection extends ConsumerStatefulWidget {
+  const _OffersBannerSection({required this.offersAsync});
+
+  final AsyncValue<List<OfferEntity>> offersAsync;
+
+  @override
+  ConsumerState<_OffersBannerSection> createState() =>
+      _OffersBannerSectionState();
+}
+
+class _OffersBannerSectionState extends ConsumerState<_OffersBannerSection> {
+  late final PageController _controller;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(viewportFraction: 0.92);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return widget.offersAsync.when(
+      data: (offers) {
+        final List<OfferEntity> offersWithImages = offers
+            .where((o) => o.imageUrl.isNotEmpty)
+            .toList(growable: false);
+        if (offersWithImages.isEmpty) return const SizedBox.shrink();
+
+        final int dotsCount = offersWithImages.length > 6
+            ? 6
+            : offersWithImages.length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //   children: <Widget>[
+            //     Text(
+            //       "Featured",
+            //       style: theme.textTheme.titleMedium?.copyWith(
+            //         fontWeight: FontWeight.w700,
+            //       ),
+            //     ),
+            //     Row(
+            //       children: List.generate(
+            //         dotsCount,
+            //         (int i) => AnimatedContainer(
+            //           duration: const Duration(milliseconds: 200),
+            //           margin: const EdgeInsets.only(left: 6),
+            //           width: i == (_index % dotsCount) ? 16 : 6,
+            //           height: 6,
+            //           decoration: BoxDecoration(
+            //             color: i == (_index % dotsCount)
+            //                 ? theme.colorScheme.primary
+            //                 : theme.colorScheme.outline.withValues(alpha: 0.35),
+            //             borderRadius: BorderRadius.circular(999),
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
+            // const SizedBox(height: 12),
+            //
+            SizedBox(
+              height: 180,
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: offersWithImages.length,
+                onPageChanged: (int value) => setState(() => _index = value),
+                itemBuilder: (BuildContext context, int i) {
+                  final OfferEntity offer = offersWithImages[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _OfferBannerCard(
+                      imageUrl: offer.imageUrl,
+                      title: offer.title,
+                      subtitle: offer.description,
+                      onTap: () =>
+                          context.push("/restaurant/${offer.restaurantId}"),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox(
+        height: 180,
+        child: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _OfferBannerCard extends StatelessWidget {
+  const _OfferBannerCard({
+    required this.imageUrl,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
   });
+
+  final String imageUrl;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(AppRadii.lg),
+      elevation: 10,
+      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.15),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) =>
+                  Container(color: theme.colorScheme.surfaceContainerHighest),
+              errorWidget: (context, url, error) => Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    Colors.black.withValues(alpha: 0.0),
+                    Colors.black.withValues(alpha: 0.55),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 14,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (subtitle.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DiscoverHeader extends StatelessWidget {
+  const _DiscoverHeader({required this.onSearch, required this.onFilterTap});
 
   final ValueChanged<String> onSearch;
   final VoidCallback onFilterTap;
@@ -232,7 +472,8 @@ class _DiscoverHeader extends StatelessWidget {
                     ),
                   ),
                   onSubmitted: onSearch,
-                  onChanged: (String value) => onSearch(value.trim()),
+                  // Only trigger search when the user presses enter.
+                  onChanged: null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -261,125 +502,7 @@ class _DiscoverHeader extends StatelessWidget {
   }
 }
 
-class _CategoriesSection extends ConsumerWidget {
-  const _CategoriesSection({required this.categoriesAsync});
-
-  final AsyncValue<List<CategoryEntity>> categoriesAsync;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          "Categories",
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        categoriesAsync.when(
-          data: (List<CategoryEntity> categories) {
-            if (categories.isEmpty) {
-              return const Text("No categories yet");
-            }
-            return SizedBox(
-              height: 96,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
-                separatorBuilder:
-                    (BuildContext context, int index) =>
-                        const SizedBox(width: 12),
-                itemBuilder: (BuildContext context, int index) {
-                  final CategoryEntity category = categories[index];
-                  return _CategoryChip(
-                    category: category,
-                    onTap: () {
-                      ref
-                          .read(restaurantsFilterProvider.notifier)
-                          .state = RestaurantsFilter(categoryId: category.id);
-                      ref
-                          .read(restaurantsControllerProvider.notifier)
-                          .refresh();
-                      context.push(
-                        "/categories/${category.id}",
-                        extra: category.nameEn,
-                      );
-                    },
-                  );
-                },
-              ),
-            );
-          },
-          loading:
-              () => const SizedBox(
-                height: 96,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-          error:
-              (Object error, StackTrace stack) =>
-                  const Text("Unable to load categories"),
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.category, required this.onTap});
-
-  final CategoryEntity category;
-  final VoidCallback onTap;
-
-  String get _emoji {
-    final String name = category.nameEn.toLowerCase();
-    if (name.contains("burger")) return "🍔";
-    if (name.contains("shawarma")) return "🌯";
-    if (name.contains("pizza")) return "🍕";
-    if (name.contains("coffee")) return "☕️";
-    if (name.contains("dessert")) return "🍰";
-    return "🍽️";
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: Container(
-        width: 96,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(_emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(height: 8),
-            Text(
-              category.nameEn,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Categories section intentionally removed from Home. We now use banners + chips.
 
 class _NearbySection extends StatelessWidget {
   const _NearbySection({required this.nearbyAsync});
@@ -405,9 +528,7 @@ class _NearbySection extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () {
-
-                  },
+                  onPressed: () {},
                   icon: const Icon(Icons.align_horizontal_left),
                   label: const Text("View All"),
                 ),
@@ -428,8 +549,30 @@ class _NearbySection extends StatelessWidget {
                     (NearbyBranchWithDistance b) => b.branch.isOpen,
                   );
                 }
-                final List<NearbyBranchWithDistance> list =
-                    filtered.toList(growable: false);
+                final List<NearbyBranchWithDistance> list = filtered.toList(
+                  growable: true,
+                );
+                final HomePlacesSort sort = ref.watch(homePlacesSortProvider);
+                switch (sort) {
+                  case HomePlacesSort.nearby:
+                    list.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+                    break;
+                  case HomePlacesSort.mostVoted:
+                    int score(NearbyBranchWithDistance x) =>
+                        x.branch.upVotes - x.branch.downVotes;
+                    list.sort((a, b) => score(b).compareTo(score(a)));
+                    break;
+                  case HomePlacesSort.recommended:
+                    double score(NearbyBranchWithDistance x) {
+                      final int votes = x.branch.upVotes - x.branch.downVotes;
+                      final double openBoost = x.branch.isOpen ? 2.0 : 0.0;
+                      return votes.toDouble() +
+                          openBoost -
+                          (x.distanceKm * 0.25);
+                    }
+                    list.sort((a, b) => score(b).compareTo(score(a)));
+                    break;
+                }
                 if (list.isEmpty) {
                   return const Text("No nearby places match your filters");
                 }
@@ -443,9 +586,8 @@ class _NearbySection extends StatelessWidget {
                       .toList(growable: false),
                 );
               },
-              loading: () => const Center(
-                child: CircularProgressIndicator.adaptive(),
-              ),
+              loading: () =>
+                  const Center(child: CircularProgressIndicator.adaptive()),
               error: (Object error, StackTrace stack) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Column(
@@ -470,8 +612,8 @@ class _NearbySection extends StatelessWidget {
                       ),
                     const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: () => ref
-                          .invalidate(nearbyBranchesControllerProvider),
+                      onPressed: () =>
+                          ref.invalidate(nearbyBranchesControllerProvider),
                       icon: const Icon(Icons.refresh),
                       label: const Text("Retry"),
                     ),
@@ -485,7 +627,6 @@ class _NearbySection extends StatelessWidget {
     );
   }
 }
-
 
 class _SuperFilterSheet extends ConsumerStatefulWidget {
   const _SuperFilterSheet({
@@ -545,22 +686,23 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
   }
 
   HomeFilter get _currentFilter => HomeFilter(
-        maxDistanceKm: _distanceEnabled ? _maxDistanceKm : null,
-        openOnly: _openOnly,
-        priceMin: _priceMin,
-        priceMax: _priceMax,
-        minRating: _minRating,
-        categoryId: _categoryId,
-        dietaryOptions: _dietaryOptions,
-      );
+    maxDistanceKm: _distanceEnabled ? _maxDistanceKm : null,
+    openOnly: _openOnly,
+    priceMin: _priceMin,
+    priceMax: _priceMax,
+    minRating: _minRating,
+    categoryId: _categoryId,
+    dietaryOptions: _dietaryOptions,
+  );
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final MediaQueryData mq = MediaQuery.of(context);
     final int active = _activeCount;
-    final AsyncValue<List<CategoryEntity>> categoriesAsync =
-        ref.watch(categoriesControllerProvider);
+    final AsyncValue<List<CategoryEntity>> categoriesAsync = ref.watch(
+      categoriesControllerProvider,
+    );
 
     return Container(
       decoration: const BoxDecoration(
@@ -621,17 +763,17 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                           hint: const Text("Min"),
                           items: <DropdownMenuItem<int?>>[
                             const DropdownMenuItem<int?>(
-                                value: null, child: Text("Any")),
-                            ...List<int>.generate(5, (int i) => i + 1)
-                                .map(
-                                  (int v) => DropdownMenuItem<int?>(
-                                    value: v,
-                                    child: Text("$v\$"),
-                                  ),
-                                ),
+                              value: null,
+                              child: Text("Any"),
+                            ),
+                            ...List<int>.generate(5, (int i) => i + 1).map(
+                              (int v) => DropdownMenuItem<int?>(
+                                value: v,
+                                child: Text("$v\$"),
+                              ),
+                            ),
                           ],
-                          onChanged: (int? v) =>
-                              setState(() => _priceMin = v),
+                          onChanged: (int? v) => setState(() => _priceMin = v),
                         ),
                         const SizedBox(width: 16),
                         DropdownButton<int?>(
@@ -639,17 +781,17 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                           hint: const Text("Max"),
                           items: <DropdownMenuItem<int?>>[
                             const DropdownMenuItem<int?>(
-                                value: null, child: Text("Any")),
-                            ...List<int>.generate(5, (int i) => i + 1)
-                                .map(
-                                  (int v) => DropdownMenuItem<int?>(
-                                    value: v,
-                                    child: Text("$v\$"),
-                                  ),
-                                ),
+                              value: null,
+                              child: Text("Any"),
+                            ),
+                            ...List<int>.generate(5, (int i) => i + 1).map(
+                              (int v) => DropdownMenuItem<int?>(
+                                value: v,
+                                child: Text("$v\$"),
+                              ),
+                            ),
                           ],
-                          onChanged: (int? v) =>
-                              setState(() => _priceMax = v),
+                          onChanged: (int? v) => setState(() => _priceMax = v),
                         ),
                       ],
                     ),
@@ -753,13 +895,13 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                               onChanged: (bool? checked) {
                                 setState(() {
                                   if (checked == true) {
-                                    _dietaryOptions =
-                                        List<String>.from(_dietaryOptions)
-                                          ..add(option);
+                                    _dietaryOptions = List<String>.from(
+                                      _dietaryOptions,
+                                    )..add(option);
                                   } else {
-                                    _dietaryOptions =
-                                        List<String>.from(_dietaryOptions)
-                                          ..remove(option);
+                                    _dietaryOptions = List<String>.from(
+                                      _dietaryOptions,
+                                    )..remove(option);
                                   }
                                 });
                               },
@@ -794,8 +936,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
-                          borderRadius:
-                              BorderRadius.circular(AppRadii.lg),
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
                         ),
                         child: Center(
                           child: Text(
@@ -859,10 +1000,7 @@ class _FilterExpansionTile extends StatelessWidget {
           : null,
       trailing: const Icon(Icons.expand_more),
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: child,
-        ),
+        Padding(padding: const EdgeInsets.only(bottom: 12), child: child),
       ],
     );
   }
