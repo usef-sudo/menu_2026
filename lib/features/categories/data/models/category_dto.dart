@@ -17,10 +17,11 @@ class CategoryDto {
 
   factory CategoryDto.fromJson(Map<String, dynamic> json) {
     final dynamic active = json["isActive"] ?? json["is_active"];
+    final String fallbackName = (json["name"] ?? "").toString();
     return CategoryDto(
       id: (json["id"] ?? "").toString(),
-      nameEn: (json["nameEn"] ?? json["name_en"] ?? "").toString(),
-      nameAr: (json["nameAr"] ?? json["name_ar"] ?? "").toString(),
+      nameEn: (json["nameEn"] ?? json["name_en"] ?? fallbackName).toString(),
+      nameAr: (json["nameAr"] ?? json["name_ar"] ?? fallbackName).toString(),
       imageUrl: (json["imageUrl"] ?? json["image_url"] ?? json["image"] ?? "")
           .toString(),
       isActive: active == null

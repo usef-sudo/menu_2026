@@ -61,13 +61,14 @@ class _SpinPageState extends ConsumerState<SpinPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final SpinResult? result = ref.watch(spinControllerProvider);
-    final AsyncValue<List<CategoryEntity>> categoriesAsync =
-        ref.watch(categoriesControllerProvider);
-    final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
-        ref.watch(restaurantsControllerProvider);
+    final AsyncValue<List<CategoryEntity>> categoriesAsync = ref.watch(
+      categoriesControllerProvider,
+    );
+    final AsyncValue<List<RestaurantEntity>> restaurantsAsync = ref.watch(
+      restaurantsControllerProvider,
+    );
 
     return Scaffold(
-
       body: Column(
         children: <Widget>[
           Padding(
@@ -83,7 +84,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Use the wheel to pick a category or a nearby place and let Menu decide for you.",
+                  "Use the wheel to pick a category for you with What to eat? or a restaurant by Where to eat?",
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
@@ -175,7 +176,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16),
-            child: Center(
+        child: Center(
           child: SizedBox(
             height: 280,
             child: categoriesAsync.when(
@@ -208,9 +209,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                   indicators: const <FortuneIndicator>[
                     FortuneIndicator(
                       alignment: Alignment.topCenter,
-                      child: TriangleIndicator(
-                        color: Colors.amber,
-                      ),
+                      child: TriangleIndicator(color: Colors.amber),
                     ),
                   ],
                   items: List.generate(_segments, (int index) {
@@ -300,10 +299,7 @@ class _ResultCard extends StatelessWidget {
               ],
               if (result.reason != null) ...<Widget>[
                 const SizedBox(height: 8),
-                Text(
-                  result.reason!,
-                  style: theme.textTheme.bodySmall,
-                ),
+                Text(result.reason!, style: theme.textTheme.bodySmall),
               ],
               const SizedBox(height: 12),
               Row(
@@ -345,4 +341,3 @@ class _ResultCard extends StatelessWidget {
     );
   }
 }
-

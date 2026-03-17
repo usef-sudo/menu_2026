@@ -571,9 +571,9 @@ class _BranchBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.42,
+      initialChildSize: 0.65,
       minChildSize: 0.28,
-      maxChildSize: 0.82,
+      maxChildSize: 0.9,
       builder: (BuildContext context, ScrollController scrollController) {
         return Container(
           decoration: BoxDecoration(
@@ -836,7 +836,7 @@ class _BranchPanelContent extends ConsumerWidget {
                   padding: const EdgeInsets.all(12),
                 ),
               ),
-            ],
+          ],
           ),
         ],
       ),
