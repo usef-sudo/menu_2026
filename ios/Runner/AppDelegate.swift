@@ -8,7 +8,13 @@ import GoogleMaps
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GMSServices.provideAPIKey("AIzaSyAnmyzeZvgW2u5GfQRWC2feZlfLcAOQffI")
+    if let key = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String, !key.isEmpty {
+      GMSServices.provideAPIKey(key)
+    } else {
+      #if DEBUG
+      assertionFailure("Missing GMSApiKey: copy ios/Secrets.xcconfig.example to ios/Secrets.xcconfig")
+      #endif
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

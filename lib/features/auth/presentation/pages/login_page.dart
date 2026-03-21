@@ -61,7 +61,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
 
     if (success) {
-      context.go("/home");
+      if (widget.isAdmin) {
+        context.go("/admin");
+      } else {
+        context.go("/home");
+      }
     }
   }
 

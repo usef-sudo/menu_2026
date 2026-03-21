@@ -25,9 +25,10 @@ class AuthController extends AutoDisposeAsyncNotifier<void> {
           return false;
         }
 
-        await ref
-            .read(sessionControllerProvider.notifier)
-            .saveToken(payload.token);
+        await ref.read(sessionControllerProvider.notifier).saveSession(
+              token: payload.token,
+              role: payload.role,
+            );
         if (payload.refreshToken.isNotEmpty) {
           await ref
               .read(tokenStoreProvider)

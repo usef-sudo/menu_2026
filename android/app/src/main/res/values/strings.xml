@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Menu</string>
+    <!-- Shown by the system when requesting location (Geolocator). -->
+    <string name="location_permission_rationale">Your location is used to show nearby restaurants and distances on the map.</string>
+</resources>

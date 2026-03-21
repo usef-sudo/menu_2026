@@ -73,14 +73,23 @@ class _RestaurantDetailsPageState
                       facilities: details.facilities,
                       isLoggedIn: isLoggedIn,
                       isFavorite: favorites.contains(details.id),
-                      onFavoriteTap: () {
+                      onFavoriteTap: () async {
                         if (!isLoggedIn) {
                           context.push("/auth/login");
                           return;
                         }
-                        ref
+                        final bool success = await ref
                             .read(favoritesControllerProvider.notifier)
                             .toggle(details.id);
+                        if (!success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Could not update favorite. Please try again.",
+                              ),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),

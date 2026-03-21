@@ -5,6 +5,7 @@ class TokenStore {
 
   static const String _accessTokenKey = "menu_access_token";
   static const String _refreshTokenKey = "menu_refresh_token";
+  static const String _userRoleKey = "menu_user_role";
 
   final FlutterSecureStorage _storage;
 
@@ -24,8 +25,21 @@ class TokenStore {
     return _storage.read(key: _refreshTokenKey);
   }
 
+  Future<void> saveUserRole(String? role) async {
+    if (role == null || role.isEmpty) {
+      await _storage.delete(key: _userRoleKey);
+      return;
+    }
+    await _storage.write(key: _userRoleKey, value: role);
+  }
+
+  Future<String?> readUserRole() async {
+    return _storage.read(key: _userRoleKey);
+  }
+
   Future<void> clear() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _userRoleKey);
   }
 }

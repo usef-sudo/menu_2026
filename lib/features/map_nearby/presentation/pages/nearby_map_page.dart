@@ -7,6 +7,7 @@ import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
+import "package:menu_2026/features/map_nearby/presentation/controllers/location_controller.dart";
 import "package:menu_2026/features/map_nearby/presentation/controllers/map_filter_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
@@ -44,6 +45,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
   @override
   Widget build(BuildContext context) {
     final branchesAsync = ref.watch(mapFilteredBranchesProvider);
+    final locationAsync = ref.watch(locationControllerProvider);
     final ThemeData theme = Theme.of(context);
     final bool isMobile = MediaQuery.sizeOf(context).width < 768;
     final categoriesAsync = ref.watch(categoriesControllerProvider);
@@ -78,8 +80,10 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
           );
         }
 
-        final BranchEntity first = filtered.first.branch;
-        final LatLng center = LatLng(first.latitude, first.longitude);
+        final UserLocation? userLoc = locationAsync.valueOrNull;
+        final LatLng center = userLoc != null
+            ? LatLng(userLoc.latitude, userLoc.longitude)
+            : LatLng(filtered.first.branch.latitude, filtered.first.branch.longitude);
         final Set<Marker> markers = _buildMarkers(filtered, theme);
 
         return Scaffold(
@@ -96,6 +100,14 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                 rotateGesturesEnabled: true,
                 onMapCreated: (GoogleMapController controller) {
                   _mapController = controller;
+                  if (userLoc != null) {
+                    controller.animateCamera(
+                      CameraUpdate.newLatLngZoom(
+                        LatLng(userLoc.latitude, userLoc.longitude),
+                        14,
+                      ),
+                    );
+                  }
                 },
                 initialCameraPosition: CameraPosition(
                   target: center,

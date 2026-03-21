@@ -42,3 +42,4 @@ flutter test
 - `docs/DESIGN_SYSTEM.md`
 - `docs/MIGRATION_CHECKLIST.md`
 - `docs/RELEASE_HARDENING.md`
+- `docs/DEPLOYMENT_ENV.md` — production dart-define, Maps keys, Sentry, legal URLs

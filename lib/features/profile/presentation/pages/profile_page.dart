@@ -2,15 +2,27 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
+import "package:menu_2026/core/legal/legal_urls.dart";
 import "package:menu_2026/core/settings/app_settings_controller.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
 import "package:menu_2026/features/favorites/presentation/pages/favorites_page.dart";
 import "package:menu_2026/features/map_nearby/presentation/pages/nearby_map_page.dart";
 import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
+import "package:url_launcher/url_launcher.dart";
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
+
+  static Future<void> _openLegalUrl(BuildContext context, String url) async {
+    final Uri uri = Uri.parse(url);
+    final bool ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not open link")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,6 +30,7 @@ class ProfilePage extends ConsumerWidget {
     final favorites = ref.watch(favoritesControllerProvider);
     final stats = ref.watch(profileStatsControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
+    final bool isAdmin = session.valueOrNull?.isAdmin ?? false;
     final int favoritesCount = favorites.valueOrNull?.length ?? 0;
     final int visitedCount =
         isLoggedIn ? (stats.valueOrNull?.visitedCount ?? 0) : 0;
@@ -66,6 +79,14 @@ class ProfilePage extends ConsumerWidget {
               );
             },
           ),
+          if (isAdmin) ...<Widget>[
+            _ProfileTile(
+              icon: Icons.admin_panel_settings_outlined,
+              label: "Admin dashboard",
+              subtitle: "Manage categories and content",
+              onTap: () => context.push("/admin"),
+            ),
+          ],
           const SizedBox(height: 24),
         ],
         Text(
@@ -92,6 +113,26 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
         const _DarkModeTile(),
+        const SizedBox(height: 24),
+        Text(
+          "Legal",
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 12),
+        _ProfileTile(
+          icon: Icons.privacy_tip_outlined,
+          label: "Privacy policy",
+          subtitle: "How we handle your data",
+          onTap: () => _openLegalUrl(context, LegalUrls.privacyPolicy),
+        ),
+        _ProfileTile(
+          icon: Icons.article_outlined,
+          label: "Terms of service",
+          subtitle: "Rules for using the app",
+          onTap: () => _openLegalUrl(context, LegalUrls.termsOfService),
+        ),
         if (isLoggedIn) ...<Widget>[
           _ProfileTile(
             icon: Icons.person_outline,

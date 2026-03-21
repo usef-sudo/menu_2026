@@ -16,8 +16,14 @@ class MenuApi {
   MenuApi(this._dio);
   final Dio _dio;
 
-  Future<List<CategoryDto>> getCategories() async {
-    final response = await _dio.get<dynamic>("/categories");
+  Future<List<CategoryDto>> getCategories({bool activeOnly = true}) async {
+    final response = await _dio.get<dynamic>(
+      "/categories",
+      queryParameters: <String, dynamic>{
+        "active": activeOnly ? "true" : "false",
+        "limit": 200,
+      },
+    );
     final envelope = ApiEnvelope.fromDynamic<List<CategoryDto>>(response.data, (
       dynamic data,
     ) {
@@ -30,6 +36,72 @@ class MenuApi {
           .toList(growable: false);
     });
     return envelope.data;
+  }
+
+  CategoryDto _categoryDtoFromEnvelopeData(dynamic body) {
+    dynamic data = body;
+    if (body is Map<String, dynamic> && body.containsKey("data")) {
+      data = body["data"];
+    }
+    return CategoryDto.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  /// Admin only (requires JWT with role admin).
+  Future<CategoryDto> adminCreateCategory({
+    required String nameEn,
+    required String nameAr,
+    String? descriptionEn,
+    String? descriptionAr,
+    String? icon,
+    int displayOrder = 0,
+    bool isActive = true,
+  }) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/categories",
+      data: <String, dynamic>{
+        "nameEn": nameEn,
+        "nameAr": nameAr,
+        if (descriptionEn != null && descriptionEn.isNotEmpty)
+          "descriptionEn": descriptionEn,
+        if (descriptionAr != null && descriptionAr.isNotEmpty)
+          "descriptionAr": descriptionAr,
+        if (icon != null && icon.isNotEmpty) "icon": icon,
+        "displayOrder": displayOrder,
+        "isActive": isActive,
+      },
+    );
+    return _categoryDtoFromEnvelopeData(response.data);
+  }
+
+  /// Admin only.
+  Future<CategoryDto> adminUpdateCategory(
+    String id, {
+    String? nameEn,
+    String? nameAr,
+    String? descriptionEn,
+    String? descriptionAr,
+    String? icon,
+    int? displayOrder,
+    bool? isActive,
+  }) async {
+    final Map<String, dynamic> payload = <String, dynamic>{};
+    if (nameEn != null) payload["nameEn"] = nameEn;
+    if (nameAr != null) payload["nameAr"] = nameAr;
+    if (descriptionEn != null) payload["descriptionEn"] = descriptionEn;
+    if (descriptionAr != null) payload["descriptionAr"] = descriptionAr;
+    if (icon != null) payload["icon"] = icon;
+    if (displayOrder != null) payload["displayOrder"] = displayOrder;
+    if (isActive != null) payload["isActive"] = isActive;
+    final Response<dynamic> response = await _dio.put<dynamic>(
+      "/categories/$id",
+      data: payload,
+    );
+    return _categoryDtoFromEnvelopeData(response.data);
+  }
+
+  /// Admin only.
+  Future<void> adminDeleteCategory(String id) async {
+    await _dio.delete<dynamic>("/categories/$id");
   }
 
   Future<List<RestaurantDto>> getRestaurants({
@@ -210,8 +282,13 @@ class MenuApi {
 
   Future<Set<String>> getFavoriteRestaurantIds() async {
     final Response<dynamic> response = await _dio.get<dynamic>("/favorites");
-    final List<dynamic> data = response.data as List<dynamic>;
-    return data
+    dynamic raw = response.data;
+    if (raw is Map<String, dynamic> && raw.containsKey("data")) {
+      raw = raw["data"];
+    }
+    final List<dynamic> list =
+        raw is List<dynamic> ? raw : <dynamic>[];
+    return list
         .map(
           (dynamic item) => (item as Map<String, dynamic>)["restaurantId"]
               ?.toString(),

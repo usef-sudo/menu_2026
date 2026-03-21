@@ -11,41 +11,53 @@ class FavoritesController extends AutoDisposeAsyncNotifier<Set<String>> {
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final Set<String> localIds =
-        prefs.getStringList(_key)?.toSet() ?? <String>{};
 
     if (!isLoggedIn) {
-      return localIds;
+      // Clear cached favorites when logged out so stale data
+      // does not bleed into the next user's session.
+      await prefs.remove(_key);
+      return <String>{};
     }
 
     final Set<String> remoteIds =
         await ref.read(menuApiProvider).getFavoriteRestaurantIds();
-    final Set<String> merged = <String>{...remoteIds, ...localIds};
-    await prefs.setStringList(_key, merged.toList(growable: false));
-    return merged;
+    await prefs.setStringList(_key, remoteIds.toList(growable: false));
+    return remoteIds;
   }
 
-  Future<void> toggle(String restaurantId) async {
+  Future<bool> toggle(String restaurantId) async {
     final session = ref.read(sessionControllerProvider).valueOrNull;
     if (session == null || !session.isAuthenticated) {
-      return;
+      return false;
     }
 
-    final Set<String> current =
+    final Set<String> previous =
         Set<String>.from(state.valueOrNull ?? <String>{});
-    final bool willFavorite = !current.contains(restaurantId);
+    final bool willFavorite = !previous.contains(restaurantId);
+    final Set<String> next = Set<String>.from(previous);
 
     if (willFavorite) {
-      current.add(restaurantId);
-      await ref.read(menuApiProvider).addFavorite(restaurantId);
+      next.add(restaurantId);
+      try {
+        await ref.read(menuApiProvider).addFavorite(restaurantId);
+      } catch (_) {
+        state = AsyncData(previous);
+        return false;
+      }
     } else {
-      current.remove(restaurantId);
-      await ref.read(menuApiProvider).removeFavorite(restaurantId);
+      next.remove(restaurantId);
+      try {
+        await ref.read(menuApiProvider).removeFavorite(restaurantId);
+      } catch (_) {
+        state = AsyncData(previous);
+        return false;
+      }
     }
 
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_key, current.toList(growable: false));
-    state = AsyncData(current);
+    await prefs.setStringList(_key, next.toList(growable: false));
+    state = AsyncData(next);
+    return true;
   }
 
   bool isFavorite(String restaurantId) {
