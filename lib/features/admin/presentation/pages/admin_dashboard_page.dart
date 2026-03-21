@@ -43,6 +43,48 @@ class AdminDashboardPage extends ConsumerWidget {
                 context.push("/admin/categories");
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.local_offer_outlined),
+              title: const Text("Facilities"),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push("/admin/facilities");
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.map_outlined),
+              title: const Text("Areas"),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push("/admin/areas");
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.restaurant_outlined),
+              title: const Text("Restaurants"),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push("/admin/restaurants");
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.storefront_outlined),
+              title: const Text("Branches"),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push("/admin/branches");
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text("Users"),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push("/admin/users");
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout),
@@ -78,17 +120,49 @@ class AdminDashboardPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "Use the menu to manage categories and other content.",
+                "Use the drawer to open each section.",
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => context.push("/admin/categories"),
-                icon: const Icon(Icons.category_outlined),
-                label: const Text("Manage categories"),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: <Widget>[
+                  FilledButton.icon(
+                    onPressed: () => context.push("/admin/categories"),
+                    icon: const Icon(Icons.category_outlined),
+                    label: const Text("Categories"),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => context.push("/admin/facilities"),
+                    icon: const Icon(Icons.local_offer_outlined),
+                    label: const Text("Facilities"),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => context.push("/admin/areas"),
+                    icon: const Icon(Icons.map_outlined),
+                    label: const Text("Areas"),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => context.push("/admin/restaurants"),
+                    icon: const Icon(Icons.restaurant_outlined),
+                    label: const Text("Restaurants"),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => context.push("/admin/branches"),
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: const Text("Branches"),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => context.push("/admin/users"),
+                    icon: const Icon(Icons.people_outline),
+                    label: const Text("Users"),
+                  ),
+                ],
               ),
             ],
           ),

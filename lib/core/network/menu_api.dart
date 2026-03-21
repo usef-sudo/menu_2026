@@ -2,15 +2,17 @@ import "package:dio/dio.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/network/api_envelope.dart";
 import "package:menu_2026/core/network/dio_client.dart";
+import "package:menu_2026/features/admin/data/admin_user_dto.dart";
+import "package:menu_2026/features/admin/data/area_dto.dart";
 import "package:menu_2026/features/auth/data/models/login_response_dto.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/categories/data/models/category_dto.dart";
-import "package:menu_2026/features/offers/data/models/offer_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
+import "package:menu_2026/features/offers/data/models/offer_dto.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
-import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
+import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
 
 class MenuApi {
   MenuApi(this._dio);
@@ -104,6 +106,484 @@ class MenuApi {
     await _dio.delete<dynamic>("/categories/$id");
   }
 
+  /// Admin only — body `categoryIds` in display order.
+  Future<void> adminReorderCategories(List<String> categoryIds) async {
+    await _dio.post<dynamic>(
+      "/categories/reorder",
+      data: <String, dynamic>{"categoryIds": categoryIds},
+    );
+  }
+
+  CategoryDto _categoryFromWithImageResponse(dynamic data) {
+    if (data is Map<String, dynamic> && data.containsKey("data")) {
+      return CategoryDto.fromJson(
+        Map<String, dynamic>.from(data["data"]! as Map<dynamic, dynamic>),
+      );
+    }
+    if (data is Map<String, dynamic>) {
+      return CategoryDto.fromJson(data);
+    }
+    throw StateError("Unexpected category response");
+  }
+
+  /// Admin only — multipart; `imageBytes` required.
+  Future<CategoryDto> adminCreateCategoryWithImage({
+    required String nameEn,
+    required String nameAr,
+    required List<int> imageBytes,
+    required String filename,
+    String? descriptionEn,
+    String? descriptionAr,
+    String? icon,
+    int displayOrder = 0,
+    bool isActive = true,
+  }) async {
+    final FormData form = FormData.fromMap(<String, dynamic>{
+      "nameEn": nameEn,
+      "nameAr": nameAr,
+      "displayOrder": displayOrder.toString(),
+      "isActive": isActive.toString(),
+      if (descriptionEn != null && descriptionEn.isNotEmpty)
+        "descriptionEn": descriptionEn,
+      if (descriptionAr != null && descriptionAr.isNotEmpty)
+        "descriptionAr": descriptionAr,
+      if (icon != null && icon.isNotEmpty) "icon": icon,
+      "image": MultipartFile.fromBytes(imageBytes, filename: filename),
+    });
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/categories/with-image",
+      data: form,
+    );
+    return _categoryFromWithImageResponse(response.data);
+  }
+
+  /// Admin only — optional new image bytes.
+  Future<CategoryDto> adminUpdateCategoryWithImage(
+    String id, {
+    String? nameEn,
+    String? nameAr,
+    String? descriptionEn,
+    String? descriptionAr,
+    String? icon,
+    int? displayOrder,
+    bool? isActive,
+    List<int>? imageBytes,
+    String? imageFilename,
+  }) async {
+    final Map<String, dynamic> map = <String, dynamic>{};
+    if (nameEn != null) map["nameEn"] = nameEn;
+    if (nameAr != null) map["nameAr"] = nameAr;
+    if (descriptionEn != null) map["descriptionEn"] = descriptionEn;
+    if (descriptionAr != null) map["descriptionAr"] = descriptionAr;
+    if (icon != null) map["icon"] = icon;
+    if (displayOrder != null) map["displayOrder"] = displayOrder.toString();
+    if (isActive != null) map["isActive"] = isActive.toString();
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      map["image"] = MultipartFile.fromBytes(
+        imageBytes,
+        filename: imageFilename ?? "image.jpg",
+      );
+    }
+    final FormData form = FormData.fromMap(map);
+    final Response<dynamic> response = await _dio.put<dynamic>(
+      "/categories/$id/with-image",
+      data: form,
+    );
+    return _categoryFromWithImageResponse(response.data);
+  }
+
+  // —— Facilities (admin writes) ——
+  Future<FacilityDto> adminCreateFacility({
+    required String nameEn,
+    required String nameAr,
+    String? icon,
+  }) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/facilities",
+      data: <String, dynamic>{
+        "nameEn": nameEn,
+        "nameAr": nameAr,
+        if (icon != null && icon.isNotEmpty) "icon": icon,
+      },
+    );
+    return FacilityDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<FacilityDto> adminUpdateFacility(
+    String id, {
+    String? nameEn,
+    String? nameAr,
+    String? icon,
+  }) async {
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (nameEn != null) body["nameEn"] = nameEn;
+    if (nameAr != null) body["nameAr"] = nameAr;
+    if (icon != null) body["icon"] = icon;
+    final Response<dynamic> response =
+        await _dio.put<dynamic>("/facilities/$id", data: body);
+    return FacilityDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteFacility(String id) async {
+    await _dio.delete<dynamic>("/facilities/$id");
+  }
+
+  // —— Areas (admin writes) ——
+  Future<List<AreaDto>> getAreas() async {
+    final Response<dynamic> response = await _dio.get<dynamic>("/areas");
+    final List<dynamic> list = response.data as List<dynamic>;
+    return list
+        .map(
+          (dynamic e) => AreaDto.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
+        .toList(growable: false);
+  }
+
+  Future<AreaDto> adminCreateArea({
+    required String nameEn,
+    required String nameAr,
+  }) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/areas",
+      data: <String, dynamic>{"nameEn": nameEn, "nameAr": nameAr},
+    );
+    return AreaDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<AreaDto> adminUpdateArea(
+    String id, {
+    String? nameEn,
+    String? nameAr,
+  }) async {
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (nameEn != null) body["nameEn"] = nameEn;
+    if (nameAr != null) body["nameAr"] = nameAr;
+    final Response<dynamic> response =
+        await _dio.put<dynamic>("/areas/$id", data: body);
+    return AreaDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteArea(String id) async {
+    await _dio.delete<dynamic>("/areas/$id");
+  }
+
+  // —— Restaurants (admin) ——
+  Future<RestaurantDto> adminCreateRestaurant({
+    required String nameEn,
+    required String nameAr,
+    String? descriptionEn,
+    String? descriptionAr,
+    String? logoUrl,
+    String? phone,
+    List<String>? categoryIds,
+  }) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/restaurants",
+      data: <String, dynamic>{
+        "nameEn": nameEn,
+        "nameAr": nameAr,
+        if (descriptionEn != null) "descriptionEn": descriptionEn,
+        if (descriptionAr != null) "descriptionAr": descriptionAr,
+        if (logoUrl != null) "logoUrl": logoUrl,
+        if (phone != null) "phone": phone,
+        if (categoryIds != null) "categoryIds": categoryIds,
+      },
+    );
+    return RestaurantDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<RestaurantDto> adminUpdateRestaurant(
+    String id, {
+    String? nameEn,
+    String? nameAr,
+    String? descriptionEn,
+    String? descriptionAr,
+    String? logoUrl,
+    String? phone,
+    List<String>? categoryIds,
+  }) async {
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (nameEn != null) body["nameEn"] = nameEn;
+    if (nameAr != null) body["nameAr"] = nameAr;
+    if (descriptionEn != null) body["descriptionEn"] = descriptionEn;
+    if (descriptionAr != null) body["descriptionAr"] = descriptionAr;
+    if (logoUrl != null) body["logoUrl"] = logoUrl;
+    if (phone != null) body["phone"] = phone;
+    if (categoryIds != null) body["categoryIds"] = categoryIds;
+    final Response<dynamic> response =
+        await _dio.put<dynamic>("/restaurants/$id", data: body);
+    return RestaurantDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteRestaurant(String id) async {
+    await _dio.delete<dynamic>("/restaurants/$id");
+  }
+
+  Future<void> adminAssignRestaurantCategories(
+    String restaurantId,
+    List<String> categoryIds,
+  ) async {
+    await _dio.post<dynamic>(
+      "/restaurant-categories/$restaurantId/assign",
+      data: <String, dynamic>{"categoryIds": categoryIds},
+    );
+  }
+
+  Future<void> adminUnassignRestaurantCategory(
+    String restaurantId,
+    String categoryId,
+  ) async {
+    await _dio.delete<dynamic>(
+      "/restaurant-categories/$restaurantId/$categoryId",
+    );
+  }
+
+  // —— Branches (admin) ——
+  Future<BranchDto> adminCreateBranch({
+    required String restaurantId,
+    required String nameEn,
+    required String nameAr,
+    String? areaId,
+    String? address,
+    String? latitude,
+    String? longitude,
+    int? costLevel,
+    int? isOpen,
+    String? openTime,
+    String? closeTime,
+    List<String>? facilityIds,
+  }) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/branches",
+      data: <String, dynamic>{
+        "restaurantId": restaurantId,
+        "nameEn": nameEn,
+        "nameAr": nameAr,
+        if (areaId != null && areaId.isNotEmpty) "areaId": areaId,
+        if (address != null) "address": address,
+        if (latitude != null) "latitude": latitude,
+        if (longitude != null) "longitude": longitude,
+        if (costLevel != null) "costLevel": costLevel,
+        if (isOpen != null) "isOpen": isOpen,
+        if (openTime != null) "openTime": openTime,
+        if (closeTime != null) "closeTime": closeTime,
+        if (facilityIds != null) "facilityIds": facilityIds,
+      },
+    );
+    return BranchDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BranchDto> adminUpdateBranch(
+    String id, {
+    String? restaurantId,
+    String? areaId,
+    String? nameEn,
+    String? nameAr,
+    String? address,
+    String? latitude,
+    String? longitude,
+    int? costLevel,
+    int? isOpen,
+    String? openTime,
+    String? closeTime,
+  }) async {
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (restaurantId != null) body["restaurantId"] = restaurantId;
+    if (areaId != null) body["areaId"] = areaId;
+    if (nameEn != null) body["nameEn"] = nameEn;
+    if (nameAr != null) body["nameAr"] = nameAr;
+    if (address != null) body["address"] = address;
+    if (latitude != null) body["latitude"] = latitude;
+    if (longitude != null) body["longitude"] = longitude;
+    if (costLevel != null) body["costLevel"] = costLevel;
+    if (isOpen != null) body["isOpen"] = isOpen;
+    if (openTime != null) body["openTime"] = openTime;
+    if (closeTime != null) body["closeTime"] = closeTime;
+    final Response<dynamic> response =
+        await _dio.put<dynamic>("/branches/$id", data: body);
+    return BranchDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteBranch(String id) async {
+    await _dio.delete<dynamic>("/branches/$id");
+  }
+
+  Future<List<String>> adminGetBranchFacilityIds(String branchId) async {
+    final Response<dynamic> response =
+        await _dio.get<dynamic>("/branches/$branchId/facilities");
+    final List<dynamic> list = response.data as List<dynamic>;
+    return list.map((dynamic e) => e.toString()).toList(growable: false);
+  }
+
+  Future<void> adminAssignBranchFacilities(
+    String branchId,
+    List<String> facilityIds,
+  ) async {
+    await _dio.post<dynamic>(
+      "/branches/$branchId/facilities",
+      data: <String, dynamic>{"facilityIds": facilityIds},
+    );
+  }
+
+  Future<void> adminUnassignBranchFacility(
+    String branchId,
+    String facilityId,
+  ) async {
+    await _dio.delete<dynamic>("/branches/$branchId/facilities/$facilityId");
+  }
+
+  /// Uploads file to `/upload/single`, then registers URL on the branch.
+  Future<void> adminUploadMenuImage({
+    required String branchId,
+    required List<int> imageBytes,
+    required String filename,
+    int displayOrder = 0,
+  }) async {
+    final FormData uploadForm = FormData.fromMap(<String, dynamic>{
+      "file": MultipartFile.fromBytes(imageBytes, filename: filename),
+    });
+    final Response<dynamic> uploadRes =
+        await _dio.post<dynamic>("/upload/single", data: uploadForm);
+    final dynamic root = uploadRes.data;
+    final dynamic data =
+        root is Map<String, dynamic> && root["data"] != null
+            ? root["data"]
+            : root;
+    final String url = (data is Map && data["url"] != null)
+        ? data["url"].toString()
+        : "";
+    if (url.isEmpty) {
+      throw StateError("Upload did not return a URL");
+    }
+    await _dio.post<dynamic>(
+      "/branches/$branchId/menu-images",
+      data: <String, dynamic>{
+        "imageUrl": url,
+        "displayOrder": displayOrder,
+      },
+    );
+  }
+
+  Future<void> adminDeleteMenuImage(String imageId) async {
+    await _dio.delete<dynamic>("/menu-images/$imageId");
+  }
+
+  Future<void> adminReorderMenuImages(
+    String branchId,
+    List<String> imageIds,
+  ) async {
+    await _dio.post<dynamic>(
+      "/branches/$branchId/menu-images/reorder",
+      data: <String, dynamic>{"imageIds": imageIds},
+    );
+  }
+
+  // —— Restaurant photos (admin) ——
+  Future<void> adminCreateRestaurantPhoto({
+    required String restaurantId,
+    required String imageUrl,
+    String? caption,
+    int displayOrder = 0,
+  }) async {
+    await _dio.post<dynamic>(
+      "/restaurants/$restaurantId/photos",
+      data: <String, dynamic>{
+        "imageUrl": imageUrl,
+        if (caption != null) "caption": caption,
+        "displayOrder": displayOrder,
+      },
+    );
+  }
+
+  Future<void> adminDeleteRestaurantPhoto(String photoId) async {
+    await _dio.delete<dynamic>("/restaurant-photos/$photoId");
+  }
+
+  // —— Offers (admin) ——
+  Future<List<OfferDto>> adminGetAllOffers() async {
+    final Response<dynamic> response = await _dio.get<dynamic>("/offers/all");
+    final List<dynamic> list = response.data as List<dynamic>;
+    return list
+        .map(
+          (dynamic e) =>
+              OfferDto.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
+        .toList(growable: false);
+  }
+
+  Future<OfferDto> adminCreateOffer({
+    required String restaurantId,
+    required String title,
+    String? description,
+    String? imageUrl,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/offers",
+      data: <String, dynamic>{
+        "restaurantId": restaurantId,
+        "title": title,
+        if (description != null) "description": description,
+        if (imageUrl != null) "imageUrl": imageUrl,
+        if (startDate != null) "startDate": startDate,
+        if (endDate != null) "endDate": endDate,
+      },
+    );
+    return OfferDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<OfferDto> adminUpdateOffer(
+    String id, {
+    String? restaurantId,
+    String? title,
+    String? description,
+    String? imageUrl,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (restaurantId != null) body["restaurantId"] = restaurantId;
+    if (title != null) body["title"] = title;
+    if (description != null) body["description"] = description;
+    if (imageUrl != null) body["imageUrl"] = imageUrl;
+    if (startDate != null) body["startDate"] = startDate;
+    if (endDate != null) body["endDate"] = endDate;
+    final Response<dynamic> response =
+        await _dio.put<dynamic>("/offers/$id", data: body);
+    return OfferDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteOffer(String id) async {
+    await _dio.delete<dynamic>("/offers/$id");
+  }
+
+  // —— Users (admin) ——
+  Future<List<AdminUserDto>> adminListUsers({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final Response<dynamic> response = await _dio.get<dynamic>(
+      "/users",
+      queryParameters: <String, dynamic>{
+        "limit": limit,
+        "offset": offset,
+      },
+    );
+    final List<dynamic> list = response.data as List<dynamic>;
+    return list
+        .map(
+          (dynamic e) =>
+              AdminUserDto.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
+        .toList(growable: false);
+  }
+
+  Future<AdminUserDto> adminGetUser(String id) async {
+    final Response<dynamic> response = await _dio.get<dynamic>("/users/$id");
+    return AdminUserDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<List<RestaurantDto>> getRestaurants({
     String? categoryId,
     String? search,
@@ -112,6 +592,8 @@ class MenuApi {
     bool? openOnly,
     String? sort,
     List<String>? facilityIds,
+    int? limit,
+    int? offset,
   }) async {
     final response = await _dio.get<dynamic>(
       "/restaurants",
@@ -125,6 +607,8 @@ class MenuApi {
         if (sort != null && sort.isNotEmpty) "sort": sort,
         if (facilityIds != null && facilityIds.isNotEmpty)
           "facilityIds": facilityIds.join(","),
+        if (limit != null) "limit": limit,
+        if (offset != null) "offset": offset,
       },
     );
     final envelope = ApiEnvelope.fromDynamic<List<RestaurantDto>>(
@@ -140,6 +624,12 @@ class MenuApi {
       },
     );
     return envelope.data;
+  }
+
+  Future<BranchDto> getBranch(String id) async {
+    final Response<dynamic> response =
+        await _dio.get<dynamic>("/branches/$id");
+    return BranchDto.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<List<BranchDto>> getBranches({

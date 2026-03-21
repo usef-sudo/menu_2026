@@ -16,6 +16,8 @@ class BranchDto {
     this.openTime,
     this.closeTime,
     this.facilities = const <String>[],
+    this.areaId,
+    this.costLevel,
   });
 
   final String id;
@@ -32,6 +34,8 @@ class BranchDto {
   final String? openTime;
   final String? closeTime;
   final List<String> facilities;
+  final String? areaId;
+  final int? costLevel;
 
   factory BranchDto.fromJson(Map<String, dynamic> json) {
     final dynamic isOpenRaw = json["isOpen"] ?? json["is_open"];
@@ -66,6 +70,10 @@ class BranchDto {
       facilities: ((json["facilities"] as List<dynamic>?) ?? <dynamic>[])
           .map((dynamic item) => item.toString())
           .toList(growable: false),
+      areaId: (json["areaId"] ?? json["area_id"])?.toString(),
+      costLevel: int.tryParse(
+        (json["costLevel"] ?? json["cost_level"] ?? "").toString(),
+      ),
     );
   }
 

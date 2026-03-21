@@ -7,6 +7,8 @@ class OfferDto {
     required this.title,
     required this.description,
     required this.imageUrl,
+    this.startDate,
+    this.endDate,
   });
 
   final String id;
@@ -14,6 +16,8 @@ class OfferDto {
   final String title;
   final String description;
   final String imageUrl;
+  final String? startDate;
+  final String? endDate;
 
   factory OfferDto.fromJson(Map<String, dynamic> json) {
     return OfferDto(
@@ -24,6 +28,8 @@ class OfferDto {
       description: (json["description"] ?? "").toString(),
       imageUrl: (json["imageUrl"] ?? json["image_url"] ?? json["image"] ?? "")
           .toString(),
+      startDate: (json["startDate"] ?? json["start_date"])?.toString(),
+      endDate: (json["endDate"] ?? json["end_date"])?.toString(),
     );
   }
 
