@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
 import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
 import "package:menu_2026/features/home/presentation/widgets/places_widgets.dart";
@@ -25,14 +26,15 @@ class _PlacesListPageState extends ConsumerState<PlacesListPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     final nearbyAsync = ref.watch(nearbyBranchesControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(switch (_sort) {
-          HomePlacesSort.nearby => "Nearby",
-          HomePlacesSort.mostVoted => "Most voted",
-          HomePlacesSort.recommended => "Recommended",
+          HomePlacesSort.nearby => l10n.homeNearby,
+          HomePlacesSort.mostVoted => l10n.homeMostVoted,
+          HomePlacesSort.recommended => l10n.homeRecommended,
         }),
       ),
       body: RefreshIndicator(
@@ -46,19 +48,19 @@ class _PlacesListPageState extends ConsumerState<PlacesListPage> {
                 children: <Widget>[
                   _chip(
                     theme,
-                    "Nearby",
+                    l10n.homeNearby,
                     Icons.near_me_outlined,
                     HomePlacesSort.nearby,
                   ),
                   _chip(
                     theme,
-                    "Most voted",
+                    l10n.homeMostVoted,
                     Icons.trending_up_rounded,
                     HomePlacesSort.mostVoted,
                   ),
                   _chip(
                     theme,
-                    "Recommended",
+                    l10n.homeRecommended,
                     Icons.auto_awesome_rounded,
                     HomePlacesSort.recommended,
                   ),
@@ -70,7 +72,7 @@ class _PlacesListPageState extends ConsumerState<PlacesListPage> {
               title: "",
               nearbyAsync: nearbyAsync,
               sort: _sort,
-              emptyText: "No places found",
+              emptyText: l10n.placesListEmpty,
               showViewAll: false,
             ),
           ],

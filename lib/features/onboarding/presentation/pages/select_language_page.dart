@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/settings/app_settings_controller.dart";
 
 class SelectLanguagePage extends ConsumerWidget {
@@ -10,6 +11,7 @@ class SelectLanguagePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       body: Container(
@@ -28,14 +30,14 @@ class SelectLanguagePage extends ConsumerWidget {
               children: <Widget>[
                 const SizedBox(height: 16),
                 Text(
-                  "Choose your language",
+                  l10n.chooseLanguageTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "You can change this anytime from settings.",
+                  l10n.chooseLanguageSubtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     height: 1.4,
@@ -46,7 +48,7 @@ class SelectLanguagePage extends ConsumerWidget {
                   child: ListView(
                     children: <Widget>[
                       _LanguageCard(
-                        title: "English",
+                        title: l10n.languageEnglish,
                         subtitle: "EN",
                         icon: Icons.language_rounded,
                         gradient: const LinearGradient(
@@ -58,7 +60,7 @@ class SelectLanguagePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 14),
                       _LanguageCard(
-                        title: "العربية",
+                        title: l10n.languageArabic,
                         subtitle: "AR",
                         icon: Icons.translate_rounded,
                         gradient: const LinearGradient(
@@ -73,7 +75,7 @@ class SelectLanguagePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "By continuing you agree to a better food decision-making.",
+                  l10n.languageFooterAgreement,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                   ),

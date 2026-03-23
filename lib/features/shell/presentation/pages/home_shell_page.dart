@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/features/categories/presentation/pages/categories_page.dart";
 import "package:menu_2026/features/home/presentation/pages/home_discovery_page.dart";
 import "package:menu_2026/features/map_nearby/presentation/pages/nearby_map_page.dart";
@@ -26,12 +27,13 @@ class _HomeShellPageState extends State<HomeShellPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Menu"),
+        title: Text(l10n.appTitle),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Hot Deals 🔥',
+            tooltip: l10n.shellHotDealsTooltip,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => const OffersPage(),
@@ -49,20 +51,26 @@ class _HomeShellPageState extends State<HomeShellPage> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const <NavigationDestination>[
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: "Home"),
+        destinations: <NavigationDestination>[
           NavigationDestination(
-            icon: Icon(Icons.category_outlined),
-            label: "Categories",
-          ),
-          NavigationDestination(icon: Icon(Icons.map_outlined), label: "Map"),
-          NavigationDestination(
-            icon: Icon(Icons.casino_outlined),
-            label: "Spin",
+            icon: const Icon(Icons.home_outlined),
+            label: l10n.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: "Profile",
+            icon: const Icon(Icons.category_outlined),
+            label: l10n.navCategories,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.map_outlined),
+            label: l10n.navMap,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.casino_outlined),
+            label: l10n.navSpin,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            label: l10n.navProfile,
           ),
         ],
       ),

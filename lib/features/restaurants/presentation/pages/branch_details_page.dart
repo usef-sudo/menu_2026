@@ -1,13 +1,14 @@
+import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
-import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/menu_images_controller.dart";
+import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
-import "package:cached_network_image/cached_network_image.dart";
+import "package:menu_2026/features/restaurants/presentation/controllers/menu_images_controller.dart";
 import "package:menu_2026/features/voting/presentation/controllers/voting_controller.dart";
 import "package:url_launcher/url_launcher.dart";
 
@@ -18,12 +19,19 @@ class BranchDetailsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final String lang = Localizations.localeOf(context).languageCode;
+    final String branchTitle =
+        (lang == "ar" && branch.branch.nameAr.isNotEmpty)
+            ? branch.branch.nameAr
+            : (branch.branch.nameEn.isNotEmpty
+                ? branch.branch.nameEn
+                : branch.branch.nameAr);
     final AsyncValue<Map<String, int>> votes =
         ref.watch(votingControllerProvider(branch.branch.id));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(branch.branch.nameEn),
+        title: Text(branchTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -79,7 +87,7 @@ class _AddressCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  "Address",
+                  context.l10n.branchAddressLabel,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 4),
@@ -127,11 +135,12 @@ class _OpeningHoursCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final String? open = branch.branch.openTime;
     final String? close = branch.branch.closeTime;
     final String text = (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
         ? "$open - $close"
-        : "Hours not available";
+        : l10n.branchHoursNotAvailable;
     return _InfoCard(
       child: Row(
         children: <Widget>[
@@ -140,7 +149,7 @@ class _OpeningHoursCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text("Opening Hours"),
+              Text(l10n.branchOpeningHours),
               const SizedBox(height: 4),
               Text(text),
             ],
@@ -159,19 +168,20 @@ class _FacilitiesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     final List<String> facilities = branch.branch.facilities;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          "Services & Facilities",
+          l10n.branchServicesFacilities,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
         if (facilities.isEmpty)
-          const Text("No facilities information")
+          Text(l10n.branchNoFacilities)
         else
           Wrap(
             spacing: 8,
@@ -201,6 +211,7 @@ class _VotesSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return _InfoCard(
       child: votes.when(
         data: (Map<String, int> v) {
@@ -213,14 +224,14 @@ class _VotesSummaryCard extends StatelessWidget {
                 children: <Widget>[
                   const Icon(Icons.thumb_up_alt_outlined, color: Colors.green),
                   const SizedBox(height: 4),
-                  Text("$up Upvotes"),
+                  Text(l10n.voteCountUp(up)),
                 ],
               ),
               Column(
                 children: <Widget>[
                   const Icon(Icons.thumb_down_alt_outlined, color: Colors.red),
                   const SizedBox(height: 4),
-                  Text("$down Downvotes"),
+                  Text(l10n.voteCountDown(down)),
                 ],
               ),
             ],
@@ -229,7 +240,7 @@ class _VotesSummaryCard extends StatelessWidget {
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),
         error: (Object error, StackTrace stack) =>
-            const Text("Votes unavailable"),
+            Text(l10n.branchVotesUnavailable),
       ),
     );
   }
@@ -254,7 +265,7 @@ class _NavigateButton extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
         onPressed: onPressed,
-        child: const Text("Navigate with Google Maps"),
+        child: Text(context.l10n.branchNavigateGoogleMaps),
       ),
     );
   }
@@ -267,6 +278,7 @@ class _ViewMenuButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final AsyncValue<List<MenuImageEntity>> imagesAsync =
         ref.watch(menuImagesControllerProvider(branchId));
 
@@ -289,7 +301,9 @@ class _ViewMenuButton extends ConsumerWidget {
                   }
                 : null,
             icon: const Icon(Icons.menu_book_rounded),
-            label: Text(hasMenu ? "View Menu" : "Menu not available"),
+            label: Text(
+              hasMenu ? l10n.branchViewMenu : l10n.branchMenuUnavailable,
+            ),
           ),
         );
       },
@@ -331,13 +345,14 @@ class _BranchMenuFullScreenViewerState
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          "Menu",
+          l10n.tabMenu,
           style: theme.textTheme.titleMedium?.copyWith(
             color: Colors.white,
           ),
@@ -398,6 +413,7 @@ class _VoteButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final session = ref.watch(sessionControllerProvider);
     final bool isAuth =
         session.valueOrNull?.isAuthenticated ?? false;
@@ -405,8 +421,8 @@ class _VoteButtons extends ConsumerWidget {
     Future<void> handleVote(int value) async {
       if (!isAuth) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please log in to vote."),
+          SnackBar(
+            content: Text(l10n.voteLoginRequired),
           ),
         );
         context.go("/auth/login");
@@ -424,7 +440,7 @@ class _VoteButtons extends ConsumerWidget {
           child: OutlinedButton.icon(
             onPressed: () => handleVote(1),
             icon: const Icon(Icons.thumb_up_alt_outlined, color: Colors.green),
-            label: const Text("Upvote"),
+            label: Text(l10n.voteUp),
           ),
         ),
         const SizedBox(width: 12),
@@ -432,7 +448,7 @@ class _VoteButtons extends ConsumerWidget {
           child: OutlinedButton.icon(
             onPressed: () => handleVote(-1),
             icon: const Icon(Icons.thumb_down_alt_outlined, color: Colors.red),
-            label: const Text("Downvote"),
+            label: Text(l10n.voteDown),
           ),
         ),
       ],

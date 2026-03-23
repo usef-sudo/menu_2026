@@ -1,22 +1,24 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
-import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
 import "package:menu_2026/features/offers/domain/entities/offer_entity.dart";
+import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
 
 class OffersPage extends ConsumerWidget {
   const OffersPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final offersAsync = ref.watch(offersControllerProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text("Offers")),
+      appBar: AppBar(title: Text(l10n.offersPageTitle)),
       body: offersAsync.when(
         data: (List<OfferEntity> offers) {
           if (offers.isEmpty) {
-            return const Center(child: Text("No active offers right now"));
+            return Center(child: Text(l10n.offersEmpty));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -29,7 +31,7 @@ class OffersPage extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
-            const Center(child: Text("Unable to load offers")),
+            Center(child: Text(l10n.offersLoadError)),
       ),
     );
   }
@@ -43,6 +45,7 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return InkWell(
       onTap: () {
         if (offer.restaurantId.isNotEmpty) {
@@ -97,7 +100,7 @@ class _OfferCard extends StatelessWidget {
                   ],
                   const SizedBox(height: 12),
                   Text(
-                    "View restaurant",
+                    l10n.offersViewRestaurant,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w600,

@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
@@ -31,6 +32,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
         ref.watch(restaurantsControllerProvider);
 
@@ -44,7 +46,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
               child: restaurantsAsync.when(
                 data: (List<RestaurantEntity> restaurants) {
                   if (restaurants.isEmpty) {
-                    return const Center(child: Text("No restaurants found"));
+                    return Center(child: Text(l10n.restaurantsNoneFound));
                   }
                   return ListView.builder(
                     itemCount: restaurants.length,
@@ -57,7 +59,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
                 loading: () =>
                     const Center(child: CircularProgressIndicator.adaptive()),
                 error: (Object error, StackTrace stack) =>
-                    const Center(child: Text("Unable to load restaurants")),
+                    Center(child: Text(l10n.restaurantsLoadError)),
               ),
             ),
           ),
@@ -75,6 +77,7 @@ class _SearchHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 48, bottom: 24),
       width: double.infinity,
@@ -101,7 +104,9 @@ class _SearchHeader extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            query.isEmpty ? "All restaurants" : "Results for \"$query\"",
+            query.isEmpty
+                ? l10n.searchAllRestaurants
+                : l10n.searchResultsFor(query),
             style: theme.textTheme.headlineSmall?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -121,6 +126,19 @@ class _RestaurantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
+    final String name = (lang == "ar" && restaurant.nameAr.isNotEmpty)
+        ? restaurant.nameAr
+        : (restaurant.nameEn.isNotEmpty
+            ? restaurant.nameEn
+            : restaurant.nameAr);
+    final String description =
+        (lang == "ar" && restaurant.descriptionAr.isNotEmpty)
+            ? restaurant.descriptionAr
+            : (restaurant.descriptionEn.isNotEmpty
+                ? restaurant.descriptionEn
+                : restaurant.descriptionAr);
     return InkWell(
       onTap: () => context.push("/restaurant/${restaurant.id}"),
       child: Container(
@@ -156,16 +174,14 @@ class _RestaurantCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    restaurant.nameEn,
+                    name,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    restaurant.descriptionEn.isEmpty
-                        ? "Restaurant"
-                        : restaurant.descriptionEn,
+                    description.isEmpty ? l10n.restaurantDetails : description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,

@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
@@ -12,23 +13,24 @@ class FavoritesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
 
     if (!isLoggedIn) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Favorites")),
+        appBar: AppBar(title: Text(l10n.favoritesPageTitle)),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               const Icon(Icons.favorite_border, size: 40),
               const SizedBox(height: 12),
-              const Text("Sign in to view your favorites"),
+              Text(l10n.favoritesSignInPrompt),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => context.push("/auth/login"),
-                child: const Text("Sign in"),
+                child: Text(l10n.favoritesSignInButton),
               ),
             ],
           ),
@@ -40,7 +42,7 @@ class FavoritesPage extends ConsumerWidget {
     final restaurantsAsync = ref.watch(restaurantsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Favorites")),
+      appBar: AppBar(title: Text(l10n.favoritesPageTitle)),
       body: favoritesAsync.when(
         data: (Set<String> favoriteIds) {
           if (favoriteIds.isEmpty) {
@@ -76,9 +78,9 @@ class FavoritesPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        const Text(
-                          "Favorites",
-                          style: TextStyle(
+                        Text(
+                          l10n.favoritesPageTitle,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -86,7 +88,7 @@ class FavoritesPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "${favoriteRestaurants.length} saved places",
+                          l10n.favoritesSavedCount(favoriteRestaurants.length),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -121,17 +123,18 @@ class _EmptyFavorites extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const <Widget>[
-          Icon(Icons.favorite_border, size: 40),
-          SizedBox(height: 12),
-          Text("You have no favorites yet"),
-          SizedBox(height: 4),
+        children: <Widget>[
+          const Icon(Icons.favorite_border, size: 40),
+          const SizedBox(height: 12),
+          Text(l10n.favoritesEmpty),
+          const SizedBox(height: 4),
           Text(
-            "Add restaurants from the details page.",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            l10n.favoritesEmptyHint,
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
         ],
       ),
@@ -147,6 +150,18 @@ class _FavoriteRestaurantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
+    final String name = (lang == "ar" && restaurant.nameAr.isNotEmpty)
+        ? restaurant.nameAr
+        : (restaurant.nameEn.isNotEmpty
+            ? restaurant.nameEn
+            : restaurant.nameAr);
+    final String description = (lang == "ar" && restaurant.descriptionAr.isNotEmpty)
+        ? restaurant.descriptionAr
+        : (restaurant.descriptionEn.isNotEmpty
+            ? restaurant.descriptionEn
+            : restaurant.descriptionAr);
     return InkWell(
       onTap: () => context.push("/restaurant/${restaurant.id}"),
       child: Container(
@@ -185,7 +200,7 @@ class _FavoriteRestaurantCard extends StatelessWidget {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          restaurant.nameEn,
+                          name,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -201,7 +216,7 @@ class _FavoriteRestaurantCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
-                          "Open",
+                          l10n.openNow,
                           style: TextStyle(
                             color: Colors.green.shade700,
                             fontSize: 12,
@@ -213,9 +228,7 @@ class _FavoriteRestaurantCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    restaurant.descriptionEn.isEmpty
-                        ? "Restaurant"
-                        : restaurant.descriptionEn,
+                    description.isEmpty ? l10n.restaurantDetails : description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,

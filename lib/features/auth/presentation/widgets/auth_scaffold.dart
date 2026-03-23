@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
 
 class AuthScaffold extends StatelessWidget {
@@ -34,6 +35,7 @@ class AuthScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -77,7 +79,7 @@ class AuthScaffold extends StatelessWidget {
                           const SizedBox(height: 8),
                           TextButton(
                             onPressed: onAdminPressed,
-                            child: const Text("Admin login"),
+                            child: Text(l10n.adminLoginButton),
                           ),
                         ],
                       ],
@@ -91,7 +93,7 @@ class AuthScaffold extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                       ),
-                      child: const Text("Continue as Guest"),
+                      child: Text(l10n.continueAsGuest),
                     ),
                   ),
                   if (footer != null) ...<Widget>[

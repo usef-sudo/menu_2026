@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
@@ -93,7 +94,7 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Unable to load categories",
+                    context.l10n.categoriesLoadError,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.grey.shade600,
@@ -121,6 +122,7 @@ class _HeaderWithSearch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
@@ -143,7 +145,7 @@ class _HeaderWithSearch extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            "Categories",
+            l10n.categoriesPageTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -152,7 +154,7 @@ class _HeaderWithSearch extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "Explore restaurants by category",
+            l10n.categoriesExploreSubtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.white.withValues(alpha: 0.85),
             ),
@@ -163,7 +165,7 @@ class _HeaderWithSearch extends StatelessWidget {
             focusNode: searchFocusNode,
             style: theme.textTheme.bodyLarge?.copyWith(color: Colors.black87),
             decoration: InputDecoration(
-              hintText: "Search categories...",
+              hintText: l10n.categoriesSearchHint,
               hintStyle: TextStyle(color: Colors.grey.shade500),
               prefixIcon: Icon(
                 Icons.search_rounded,
@@ -208,6 +210,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(48),
@@ -222,8 +225,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               searchQuery.isEmpty
-                  ? "No categories yet"
-                  : "No categories match \"$searchQuery\"",
+                  ? l10n.categoriesEmptyYet
+                  : l10n.categoriesNoMatch(searchQuery),
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: Colors.grey.shade600,
@@ -233,7 +236,7 @@ class _EmptyState extends StatelessWidget {
             if (searchQuery.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                "Try a different search term",
+                l10n.categoriesTryDifferentSearch,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: Colors.grey.shade500,
                 ),
@@ -269,7 +272,15 @@ class _CategoriesGrid extends ConsumerWidget {
               ref.read(restaurantsFilterProvider.notifier).state =
                   RestaurantsFilter(categoryId: category.id);
               ref.read(restaurantsControllerProvider.notifier).refresh();
-              context.push("/categories/${category.id}", extra: category.nameEn);
+              final String lang =
+                  Localizations.localeOf(context).languageCode;
+              final String routeTitle =
+                  (lang == "ar" && category.nameAr.isNotEmpty)
+                      ? category.nameAr
+                      : (category.nameEn.isNotEmpty
+                          ? category.nameEn
+                          : category.nameAr);
+              context.push("/categories/${category.id}", extra: routeTitle);
             },
           );
         },
@@ -300,9 +311,11 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final String displayName = category.nameEn.isNotEmpty
-        ? category.nameEn
-        : category.nameAr;
+    final String lang = Localizations.localeOf(context).languageCode;
+    final String displayName =
+        (lang == "ar" && category.nameAr.isNotEmpty)
+            ? category.nameAr
+            : (category.nameEn.isNotEmpty ? category.nameEn : category.nameAr);
 
     return Material(
       color: Colors.transparent,

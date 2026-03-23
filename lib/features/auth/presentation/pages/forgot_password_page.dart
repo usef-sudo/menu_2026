@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/features/auth/presentation/controllers/auth_controller.dart";
 import "package:menu_2026/features/auth/presentation/widgets/auth_scaffold.dart";
 import "package:menu_2026/features/auth/presentation/widgets/auth_text_field.dart";
@@ -43,12 +44,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       _submitting = false;
     });
 
+    final l10n = context.l10n;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success
-              ? "If an account exists, you'll receive an email shortly."
-              : "Could not request password reset.",
+          success ? l10n.forgotSuccessSnack : l10n.forgotFailSnack,
         ),
       ),
     );
@@ -59,13 +59,15 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AuthScaffold(
-      title: "Menu",
-      subtitle: "Discover & Explore",
-      cardTitle: "Reset Password",
-      primaryButtonLabel: _submitting ? "Sending..." : "Send reset link",
+      title: l10n.appTitle,
+      subtitle: l10n.authDiscoverExplore,
+      cardTitle: l10n.forgotCardTitle,
+      primaryButtonLabel:
+          _submitting ? l10n.forgotSending : l10n.forgotSubmit,
       onPrimaryPressed: _submitting ? () {} : _submit,
-      bottomTextButtonLabel: "Back to login",
+      bottomTextButtonLabel: l10n.forgotBackToLogin,
       onBottomTextButtonPressed: () => context.go("/auth/login"),
       onContinueAsGuest: () => context.go("/home"),
       form: Form(
@@ -74,11 +76,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           children: <Widget>[
             AuthTextField(
               controller: _emailController,
-              label: "Email",
+              label: l10n.emailLabel,
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Enter your email" : null,
+                  value == null || value.isEmpty ? l10n.enterEmail : null,
             ),
           ],
         ),

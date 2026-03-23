@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/features/auth/presentation/controllers/auth_controller.dart";
 import "package:menu_2026/features/auth/presentation/widgets/auth_scaffold.dart";
 import "package:menu_2026/features/auth/presentation/widgets/auth_text_field.dart";
@@ -52,10 +53,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       _submitting = false;
     });
 
+    final l10n = context.l10n;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success ? "Login successful" : "Login failed. Check credentials.",
+          success ? l10n.loginSuccess : l10n.loginFailed,
         ),
       ),
     );
@@ -72,15 +74,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final bool isAdmin = widget.isAdmin;
+    final l10n = context.l10n;
     return AuthScaffold(
-      title: "Menu",
-      subtitle: "Discover & Explore",
-      cardTitle: isAdmin ? "Admin Login" : "Welcome Back",
-      primaryButtonLabel: _submitting ? "Logging In..." : "Login",
+      title: l10n.appTitle,
+      subtitle: l10n.authDiscoverExplore,
+      cardTitle: isAdmin ? l10n.loginAdminTitle : l10n.loginWelcomeBack,
+      primaryButtonLabel:
+          _submitting ? l10n.loginLoggingIn : l10n.loginButton,
       onPrimaryPressed: _submitting ? () {} : _submit,
       bottomTextButtonLabel: isAdmin
-          ? "User login"
-          : "Don't have an account? Sign Up",
+          ? l10n.userLogin
+          : l10n.dontHaveAccount,
       onBottomTextButtonPressed: () {
         if (isAdmin) {
           context.go("/auth/login");
@@ -97,27 +101,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           children: <Widget>[
             AuthTextField(
               controller: _emailController,
-              label: "Email",
+              label: l10n.emailLabel,
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Enter your email" : null,
+                  value == null || value.isEmpty ? l10n.enterEmail : null,
             ),
             const SizedBox(height: 12),
             AuthTextField(
               controller: _passwordController,
-              label: "Password",
+              label: l10n.passwordLabel,
               icon: Icons.lock_outline_rounded,
               obscureText: true,
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Enter your password" : null,
+                  value == null || value.isEmpty ? l10n.enterPassword : null,
             ),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => context.go("/auth/forgot"),
-                child: const Text("Forgot password?"),
+                child: Text(l10n.forgotPassword),
               ),
             ),
           ],

@@ -2,6 +2,7 @@ import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:google_maps_flutter/google_maps_flutter.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
@@ -44,6 +45,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final branchesAsync = ref.watch(mapFilteredBranchesProvider);
     final locationAsync = ref.watch(locationControllerProvider);
     final ThemeData theme = Theme.of(context);
@@ -67,9 +69,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    openOnly
-                        ? "No open branches nearby"
-                        : "No branches nearby yet",
+                    openOnly ? l10n.mapNoOpenBranches : l10n.mapNoBranchesYet,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -84,7 +84,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
         final LatLng center = userLoc != null
             ? LatLng(userLoc.latitude, userLoc.longitude)
             : LatLng(filtered.first.branch.latitude, filtered.first.branch.longitude);
-        final Set<Marker> markers = _buildMarkers(filtered, theme);
+        final Set<Marker> markers = _buildMarkers(context, filtered, theme);
 
         return Scaffold(
           backgroundColor: theme.colorScheme.surface,
@@ -191,7 +191,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
               ),
               const SizedBox(height: 16),
               Text(
-                "Loading map…",
+                l10n.mapLoading,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
@@ -209,7 +209,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                   size: 48, color: theme.colorScheme.error),
               const SizedBox(height: 16),
               Text(
-                "Unable to load map data",
+                l10n.mapLoadError,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
@@ -222,15 +222,26 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
   }
 
   Set<Marker> _buildMarkers(
-      List<BranchWithDistance> filtered, ThemeData theme) {
+    BuildContext context,
+    List<BranchWithDistance> filtered,
+    ThemeData theme,
+  ) {
+    final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
     return filtered.map((BranchWithDistance item) {
       final bool isSelected = _selectedBranch?.branch.id == item.branch.id;
+      final String markerTitle =
+          (lang == "ar" && item.branch.nameAr.isNotEmpty)
+              ? item.branch.nameAr
+              : (item.branch.nameEn.isNotEmpty
+                  ? item.branch.nameEn
+                  : item.branch.nameAr);
       return Marker(
         markerId: MarkerId(item.branch.id),
         position: LatLng(item.branch.latitude, item.branch.longitude),
         infoWindow: InfoWindow(
-          title: item.branch.nameEn,
-          snippet: "${item.distanceKm.toStringAsFixed(1)} km away",
+          title: markerTitle,
+          snippet: l10n.distanceKm(item.distanceKm.toStringAsFixed(1)),
         ),
         icon: BitmapDescriptor.defaultMarkerWithHue(
           isSelected ? BitmapDescriptor.hueAzure : BitmapDescriptor.hueRed,
@@ -277,8 +288,9 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
+        final dialogL10n = context.l10n;
         return AlertDialog(
-          title: const Text("Filter Categories"),
+          title: Text(dialogL10n.mapFilterCategoriesTitle),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return SingleChildScrollView(
@@ -287,7 +299,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CheckboxListTile(
-                      title: const Text("All"),
+                      title: Text(dialogL10n.commonAll),
                       value: tempIds.isEmpty,
                       onChanged: (bool? value) {
                         setState(() {
@@ -301,7 +313,16 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                           children: categories
                               .map(
                                 (CategoryEntity c) => CheckboxListTile(
-                                  title: Text(c.nameEn),
+                                  title: Text(
+                                    (Localizations.localeOf(context)
+                                                .languageCode ==
+                                            "ar" &&
+                                        c.nameAr.isNotEmpty)
+                                        ? c.nameAr
+                                        : (c.nameEn.isNotEmpty
+                                            ? c.nameEn
+                                            : c.nameAr),
+                                  ),
                                   value: tempIds.contains(c.id),
                                   onChanged: (bool? value) {
                                     setState(() {
@@ -327,7 +348,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                     ),
                     const Divider(),
                     CheckboxListTile(
-                      title: const Text("Open now only"),
+                      title: Text(dialogL10n.filterOpenNowOnly),
                       value: tempOpenOnly,
                       onChanged: (bool? value) =>
                           setState(() => tempOpenOnly = value ?? false),
@@ -340,7 +361,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: Text(dialogL10n.commonCancel),
             ),
             FilledButton(
               onPressed: () {
@@ -350,7 +371,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                 setState(() => _selectedBranch = null);
                 Navigator.pop(context);
               },
-              child: const Text("Apply Filters"),
+              child: Text(dialogL10n.mapApplyFilters),
             ),
           ],
         );
@@ -378,6 +399,12 @@ class _MapAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final String subtitle = openOnly
+        ? l10n.mapOpenBranchesAroundYou(total)
+        : l10n.mapBranchesAroundYou(total);
+    final String filtered =
+        hasCategoryFilter ? l10n.mapFilteredSuffix : "";
     return Material(
       color: theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -407,14 +434,14 @@ class _MapAppBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Restaurants Map",
+                    l10n.mapTitle,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    "$total ${openOnly ? "open " : ""}branches around you${hasCategoryFilter ? " (filtered)" : ""}",
+                    "$subtitle$filtered",
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -441,7 +468,7 @@ class _MapAppBar extends StatelessWidget {
                       if (!isMobile) ...[
                         const SizedBox(width: 8),
                         Text(
-                          "Filter",
+                          l10n.mapFilterAction,
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.w600,
@@ -477,6 +504,8 @@ class _FilterChipsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
     return Positioned(
       top: MediaQuery.paddingOf(context).top + 80,
       left: 16,
@@ -495,7 +524,7 @@ class _FilterChipsPanel extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Categories",
+                    l10n.categoriesPageTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -516,7 +545,7 @@ class _FilterChipsPanel extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       FilterChip(
-                        label: const Text("All"),
+                        label: Text(l10n.commonAll),
                         selected: selectedCategoryIds.isEmpty,
                         selectedColor: theme.colorScheme.primary,
                         checkmarkColor: theme.colorScheme.onPrimary,
@@ -533,7 +562,13 @@ class _FilterChipsPanel extends StatelessWidget {
                           final isSelected =
                               selectedCategoryIds.contains(c.id);
                           return FilterChip(
-                            label: Text(c.nameEn),
+                            label: Text(
+                              (lang == "ar" && c.nameAr.isNotEmpty)
+                                  ? c.nameAr
+                                  : (c.nameEn.isNotEmpty
+                                      ? c.nameEn
+                                      : c.nameAr),
+                            ),
                             selected: isSelected,
                             selectedColor: theme.colorScheme.primary,
                             checkmarkColor: theme.colorScheme.onPrimary,
@@ -630,6 +665,7 @@ class _BranchSidePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Positioned(
       right: 16,
       top: MediaQuery.paddingOf(context).top + 88,
@@ -652,7 +688,7 @@ class _BranchSidePanel extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        "Restaurant details",
+                        l10n.mapSheetRestaurantDetails,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -700,7 +736,13 @@ class _BranchPanelContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
     final BranchEntity b = branch.branch;
+    final String branchName =
+        (lang == "ar" && b.nameAr.isNotEmpty)
+            ? b.nameAr
+            : (b.nameEn.isNotEmpty ? b.nameEn : b.nameAr);
     final AsyncValue<RestaurantDetailsState> detailsAsync =
         ref.watch(restaurantDetailsControllerProvider(b.restaurantId));
     final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
@@ -740,7 +782,7 @@ class _BranchPanelContent extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            b.nameEn,
+            branchName,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
             ),
@@ -775,7 +817,7 @@ class _BranchPanelContent extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(AppRadii.pill),
                 ),
                 child: Text(
-                  b.isOpen ? "Open" : "Closed",
+                  b.isOpen ? l10n.openNow : l10n.closed,
                   style: TextStyle(
                     color: b.isOpen
                         ? Colors.green.shade700
@@ -820,7 +862,7 @@ class _BranchPanelContent extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "${branch.distanceKm.toStringAsFixed(1)} km away",
+            l10n.distanceKm(branch.distanceKm.toStringAsFixed(1)),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.w600,
@@ -833,7 +875,7 @@ class _BranchPanelContent extends ConsumerWidget {
                 child: FilledButton.icon(
                   onPressed: onViewDetails,
                   icon: const Icon(Icons.info_outline_rounded, size: 20),
-                  label: const Text("View details"),
+                  label: Text(l10n.mapViewDetails),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -843,7 +885,7 @@ class _BranchPanelContent extends ConsumerWidget {
               IconButton.filled(
                 onPressed: onNavigate,
                 icon: const Icon(Icons.navigation_rounded),
-                tooltip: "Navigate",
+                tooltip: l10n.mapNavigateTooltip,
                 style: IconButton.styleFrom(
                   padding: const EdgeInsets.all(12),
                 ),

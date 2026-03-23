@@ -1,17 +1,18 @@
+import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
-import "package:cached_network_image/cached_network_image.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
-import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
-import "package:menu_2026/features/home/presentation/widgets/places_widgets.dart";
+import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/facilities/domain/entities/facility_entity.dart";
 import "package:menu_2026/features/facilities/presentation/controllers/facilities_controller.dart";
-import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
+import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
+import "package:menu_2026/features/home/presentation/widgets/places_widgets.dart";
 import "package:menu_2026/features/offers/domain/entities/offer_entity.dart";
-import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
+import "package:menu_2026/features/offers/presentation/controllers/offers_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/spin/presentation/pages/spin_page.dart";
 
@@ -158,6 +159,7 @@ class _PlacesFilterChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     final HomePlacesSort selected = ref.watch(homePlacesSortProvider);
 
     Widget chip({
@@ -201,17 +203,17 @@ class _PlacesFilterChips extends ConsumerWidget {
             runSpacing: 10,
             children: <Widget>[
               chip(
-                label: "Nearby",
+                label: l10n.homeNearby,
                 icon: Icons.near_me_outlined,
                 value: HomePlacesSort.nearby,
               ),
               chip(
-                label: "Most voted",
+                label: l10n.homeMostVoted,
                 icon: Icons.trending_up_rounded,
                 value: HomePlacesSort.mostVoted,
               ),
               chip(
-                label: "Recommended",
+                label: l10n.homeRecommended,
                 icon: Icons.auto_awesome_rounded,
                 value: HomePlacesSort.recommended,
               ),
@@ -438,6 +440,7 @@ class _DiscoverHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -452,7 +455,7 @@ class _DiscoverHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            "Discover",
+            l10n.homeDiscover,
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -465,20 +468,20 @@ class _DiscoverHeader extends StatelessWidget {
                 child: TextField(
                   style: const TextStyle(color: Colors.black),
                   textInputAction: TextInputAction.search,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     fillColor: Colors.white,
                     filled: true,
-                    hintText: "Search restaurants or categories",
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(
+                    hintText: l10n.homeSearchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(20)),
                       borderSide: BorderSide.none,
                     ),
-                    enabledBorder: OutlineInputBorder(
+                    enabledBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(20)),
                       borderSide: BorderSide.none,
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(20)),
                       borderSide: BorderSide.none,
                     ),
@@ -523,11 +526,12 @@ class _NearbySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PlacesListSection(
-      title: "Nearby places",
+      title: l10n.homeNearbyPlaces,
       nearbyAsync: nearbyAsync,
       sort: HomePlacesSort.nearby,
-      emptyText: "No nearby places match your filters",
+      emptyText: l10n.homeNearbyEmpty,
     );
   }
 }
@@ -539,11 +543,12 @@ class _MostVotedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PlacesListSection(
-      title: "Most voted",
+      title: l10n.homeMostVotedTitle,
       nearbyAsync: nearbyAsync,
       sort: HomePlacesSort.mostVoted,
-      emptyText: "No places to rank yet",
+      emptyText: l10n.homeMostVotedEmpty,
     );
   }
 }
@@ -555,11 +560,12 @@ class _RecommendedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PlacesListSection(
-      title: "Recommended for you",
+      title: l10n.homeRecommendedTitle,
       nearbyAsync: nearbyAsync,
       sort: HomePlacesSort.recommended,
-      emptyText: "No recommendations available",
+      emptyText: l10n.homeRecommendedEmpty,
     );
   }
 }
@@ -632,6 +638,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final MediaQueryData mq = MediaQuery.of(context);
+    final l10n = context.l10n;
     final int active = _activeCount;
     final AsyncValue<List<CategoryEntity>> categoriesAsync =
         ref.watch(categoriesControllerProvider);
@@ -657,14 +664,16 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        "Filters",
+                        l10n.filtersTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "$active active filter${active == 1 ? "" : "s"}",
+                        active == 1
+                            ? l10n.filtersActiveOne
+                            : l10n.filtersActiveMany(active),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF8A4DFF),
                           fontWeight: FontWeight.w500,
@@ -686,7 +695,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
               child: Column(
                 children: <Widget>[
                   _FilterExpansionTile(
-                    title: "Price Range",
+                    title: l10n.filterPriceRange,
                     value: _priceMin != null || _priceMax != null
                         ? "${_priceMin ?? 1}\$ - ${_priceMax ?? 5}\$"
                         : null,
@@ -694,11 +703,11 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                       children: <Widget>[
                         DropdownButton<int?>(
                           value: _priceMin,
-                          hint: const Text("Min"),
+                          hint: Text(l10n.filterMin),
                           items: <DropdownMenuItem<int?>>[
-                            const DropdownMenuItem<int?>(
+                            DropdownMenuItem<int?>(
                               value: null,
-                              child: Text("Any"),
+                              child: Text(l10n.filterAny),
                             ),
                             ...List<int>.generate(5, (int i) => i + 1).map(
                               (int v) => DropdownMenuItem<int?>(
@@ -712,11 +721,11 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                         const SizedBox(width: 16),
                         DropdownButton<int?>(
                           value: _priceMax,
-                          hint: const Text("Max"),
+                          hint: Text(l10n.filterMax),
                           items: <DropdownMenuItem<int?>>[
-                            const DropdownMenuItem<int?>(
+                            DropdownMenuItem<int?>(
                               value: null,
-                              child: Text("Any"),
+                              child: Text(l10n.filterAny),
                             ),
                             ...List<int>.generate(5, (int i) => i + 1).map(
                               (int v) => DropdownMenuItem<int?>(
@@ -731,7 +740,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: "Minimum Rating",
+                    title: l10n.filterMinRating,
                     value: _minRating != null && _minRating! > 0
                         ? "${_minRating!.toStringAsFixed(1)}+"
                         : null,
@@ -741,23 +750,25 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                       max: 5,
                       divisions: 10,
                       label: _minRating == null || _minRating == 0
-                          ? "Any"
+                          ? l10n.filterAny
                           : _minRating!.toStringAsFixed(1),
                       onChanged: (double v) =>
                           setState(() => _minRating = v == 0 ? null : v),
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: "Distance",
+                    title: l10n.filterDistance,
                     value: _distanceEnabled
-                        ? "Within ${_maxDistanceKm.toStringAsFixed(0)} km"
+                        ? l10n.filterWithinKm(
+                            _maxDistanceKm.toStringAsFixed(0),
+                          )
                         : null,
                     child: Column(
                       children: <Widget>[
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           value: _distanceEnabled,
-                          title: const Text("Limit by distance"),
+                          title: Text(l10n.filterLimitByDistance),
                           onChanged: (bool v) =>
                               setState(() => _distanceEnabled = v),
                         ),
@@ -767,7 +778,9 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                             min: 1,
                             max: 30,
                             divisions: 29,
-                            label: "${_maxDistanceKm.toStringAsFixed(0)} km",
+                            label: l10n.filterKmShort(
+                              _maxDistanceKm.toStringAsFixed(0),
+                            ),
                             onChanged: (double v) =>
                                 setState(() => _maxDistanceKm = v),
                           ),
@@ -775,18 +788,18 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: "Availability",
-                    value: _openOnly ? "Open now only" : null,
+                    title: l10n.filterAvailability,
+                    value: _openOnly ? l10n.filterOpenNowOnly : null,
                     child: SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       value: _openOnly,
-                      title: const Text("Open now only"),
+                      title: Text(l10n.filterOpenNowOnly),
                       onChanged: (bool v) => setState(() => _openOnly = v),
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: "Cuisine Type",
-                    value: _categoryId != null ? "Selected" : null,
+                    title: l10n.filterCuisineType,
+                    value: _categoryId != null ? l10n.filterCuisineSelected : null,
                     child: categoriesAsync.when(
                       data: (List<CategoryEntity> list) {
                         return Column(
@@ -794,7 +807,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                             RadioListTile<String?>(
                               value: null,
                               groupValue: _categoryId,
-                              title: const Text("Any"),
+                              title: Text(l10n.filterAny),
                               onChanged: (String? v) =>
                                   setState(() => _categoryId = v),
                             ),
@@ -812,18 +825,20 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                       },
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Text("Unable to load"),
+                      error: (_, __) => Text(l10n.unableToLoad),
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: "Facilities",
+                    title: l10n.filterFacilities,
                     value: _selectedFacilityIds.isEmpty
                         ? null
-                        : "${_selectedFacilityIds.length} selected",
+                        : l10n.filterFacilitiesCount(
+                            _selectedFacilityIds.length,
+                          ),
                     child: facilitiesAsync.when(
                       data: (List<FacilityEntity> facilities) {
                         if (facilities.isEmpty) {
-                          return const Text("No facilities configured yet");
+                          return Text(l10n.filterNoFacilities);
                         }
                         return Column(
                           children: facilities
@@ -853,7 +868,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
                       error: (_, __) =>
-                          const Text("Unable to load facilities"),
+                          Text(l10n.unableToLoadFacilities),
                     ),
                   ),
                 ],
@@ -904,7 +919,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                         ),
                         child: Center(
                           child: Text(
-                            "Apply Filters ($active)",
+                            l10n.filterApply(active),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
@@ -921,7 +936,7 @@ class _SuperFilterSheetState extends ConsumerState<_SuperFilterSheet> {
                   height: 48,
                   child: TextButton(
                     onPressed: widget.onReset,
-                    child: const Text("Reset All"),
+                    child: Text(l10n.filterResetAll),
                   ),
                 ),
               ],
@@ -979,6 +994,7 @@ class _SpinCtaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadii.lg),
       onTap: onTap,
@@ -995,21 +1011,21 @@ class _SpinCtaCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const <Widget>[
+          children: <Widget>[
             Row(
               children: <Widget>[
-                Icon(Icons.casino_rounded, color: Colors.white),
-                SizedBox(width: 12),
+                const Icon(Icons.casino_rounded, color: Colors.white),
+                const SizedBox(width: 12),
                 Text(
-                  "Spin to Decide Where to Eat",
-                  style: TextStyle(
+                  l10n.homeSpinBanner,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            Icon(Icons.chevron_right, color: Colors.white),
+            const Icon(Icons.chevron_right, color: Colors.white),
           ],
         ),
       ),

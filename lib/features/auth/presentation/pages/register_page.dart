@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/features/auth/presentation/controllers/auth_controller.dart";
 import "package:menu_2026/features/auth/presentation/widgets/auth_scaffold.dart";
 import "package:menu_2026/features/auth/presentation/widgets/auth_text_field.dart";
@@ -59,10 +60,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       _submitting = false;
     });
 
+    final l10n = context.l10n;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success ? "Account created. You can now log in." : "Sign up failed.",
+          success ? l10n.registerSuccess : l10n.registerFailed,
         ),
       ),
     );
@@ -74,13 +76,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AuthScaffold(
-      title: "Menu",
-      subtitle: "Discover & Explore",
-      cardTitle: "Create Account",
-      primaryButtonLabel: _submitting ? "Signing Up..." : "Sign Up",
+      title: l10n.appTitle,
+      subtitle: l10n.authDiscoverExplore,
+      cardTitle: l10n.registerTitle,
+      primaryButtonLabel:
+          _submitting ? l10n.registerSigningUp : l10n.registerButton,
       onPrimaryPressed: _submitting ? () {} : _submit,
-      bottomTextButtonLabel: "Already have an account? Login",
+      bottomTextButtonLabel: l10n.registerHaveAccount,
       onBottomTextButtonPressed: () => context.go("/auth/login"),
       onContinueAsGuest: () => context.go("/home"),
       showAdminButton: true,
@@ -91,15 +95,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           children: <Widget>[
             AuthTextField(
               controller: _nameController,
-              label: "Full Name",
+              label: l10n.registerName,
               icon: Icons.person_outline_rounded,
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Enter your name" : null,
+                  value == null || value.isEmpty ? l10n.enterName : null,
             ),
             const SizedBox(height: 12),
             AuthTextField(
               controller: _birthDateController,
-              label: "Birth Date",
+              label: l10n.registerBirthDateLabel,
               icon: Icons.cake_outlined,
               readOnly: true,
               onTap: () async {
@@ -117,27 +121,29 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 }
               },
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Select your birth date" : null,
+                  value == null || value.isEmpty
+                      ? l10n.registerSelectBirthDate
+                      : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _selectedGender,
-              decoration: const InputDecoration(
-                labelText: "Gender",
-                prefixIcon: Icon(Icons.wc_outlined),
+              decoration: InputDecoration(
+                labelText: l10n.registerGender,
+                prefixIcon: const Icon(Icons.wc_outlined),
               ),
-              items: const <DropdownMenuItem<String>>[
+              items: <DropdownMenuItem<String>>[
                 DropdownMenuItem<String>(
                   value: "male",
-                  child: Text("Male"),
+                  child: Text(l10n.genderMale),
                 ),
                 DropdownMenuItem<String>(
                   value: "female",
-                  child: Text("Female"),
+                  child: Text(l10n.genderFemale),
                 ),
                 DropdownMenuItem<String>(
                   value: "other",
-                  child: Text("Other"),
+                  child: Text(l10n.genderOther),
                 ),
               ],
               onChanged: (String? value) {
@@ -146,34 +152,40 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 });
               },
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Select your gender" : null,
+                  value == null || value.isEmpty
+                      ? l10n.registerSelectGender
+                      : null,
             ),
             const SizedBox(height: 12),
             AuthTextField(
               controller: _emailController,
-              label: "Email",
+              label: l10n.emailLabel,
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Enter your email" : null,
+                  value == null || value.isEmpty ? l10n.enterEmail : null,
             ),
             const SizedBox(height: 12),
             AuthTextField(
               controller: _phoneController,
-              label: "Phone Number",
+              label: l10n.registerPhoneNumberLabel,
               icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               validator: (String? value) =>
-                  value == null || value.isEmpty ? "Enter your phone number" : null,
+                  value == null || value.isEmpty
+                      ? l10n.registerEnterPhone
+                      : null,
             ),
             const SizedBox(height: 12),
             AuthTextField(
               controller: _passwordController,
-              label: "Password",
+              label: l10n.passwordLabel,
               icon: Icons.lock_outline_rounded,
               obscureText: true,
               validator: (String? value) =>
-                  value == null || value.length < 6 ? "Min 6 characters" : null,
+                  value == null || value.length < 6
+                      ? l10n.registerPasswordMin
+                      : null,
             ),
           ],
         ),

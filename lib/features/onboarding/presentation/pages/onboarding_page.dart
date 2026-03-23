@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -29,31 +31,29 @@ class _OnboardingPageState extends State<OnboardingPage> {
   late final PageController _pageController;
   int _currentIndex = 0;
 
-  static const List<_OnboardingSlide> _slides = <_OnboardingSlide>[
-    _OnboardingSlide(
-      icon: Icons.search_rounded,
-      startColor: Color(0xFF8A4DFF),
-      endColor: Color(0xFFE05BFF),
-      title: "Discover Restaurants",
-      description:
-          "Find the best restaurants around you with personalized recommendations.",
-    ),
-    _OnboardingSlide(
-      icon: Icons.place_rounded,
-      startColor: Color(0xFF2D9CFF),
-      endColor: Color(0xFF3EE4FF),
-      title: "Explore Branches",
-      description: "Locate nearby branches with directions and facilities.",
-    ),
-    _OnboardingSlide(
-      icon: Icons.casino_rounded,
-      startColor: Color(0xFFFF3F8E),
-      endColor: Color(0xFFFF7B65),
-      title: "Spin the Wheel",
-      description:
-          "Can’t decide? Let the wheel pick your next dining adventure!",
-    ),
-  ];
+  List<_OnboardingSlide> _slides(AppLocalizations l) => <_OnboardingSlide>[
+        _OnboardingSlide(
+          icon: Icons.search_rounded,
+          startColor: const Color(0xFF8A4DFF),
+          endColor: const Color(0xFFE05BFF),
+          title: l.onboardingDiscoverTitle,
+          description: l.onboardingDiscoverBody,
+        ),
+        _OnboardingSlide(
+          icon: Icons.place_rounded,
+          startColor: const Color(0xFF2D9CFF),
+          endColor: const Color(0xFF3EE4FF),
+          title: l.onboardingBranchesTitle,
+          description: l.onboardingBranchesBody,
+        ),
+        _OnboardingSlide(
+          icon: Icons.casino_rounded,
+          startColor: const Color(0xFFFF3F8E),
+          endColor: const Color(0xFFFF7B65),
+          title: l.onboardingSpinTitle,
+          description: l.onboardingSpinBody,
+        ),
+      ];
 
   @override
   void initState() {
@@ -68,7 +68,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _handlePrimaryAction(BuildContext context) {
-    final bool isLast = _currentIndex == _slides.length - 1;
+    final bool isLast =
+        _currentIndex == _slides(context.l10n).length - 1;
     if (isLast) {
       context.go("/auth/login");
     } else {
@@ -82,7 +83,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final bool isLast = _currentIndex == _slides.length - 1;
+    final l10n = context.l10n;
+    final List<_OnboardingSlide> slides = _slides(l10n);
+    final bool isLast = _currentIndex == slides.length - 1;
 
     return Scaffold(
       body: Container(
@@ -101,14 +104,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
-                    itemCount: _slides.length,
+                    itemCount: slides.length,
                     onPageChanged: (int index) {
                       setState(() {
                         _currentIndex = index;
                       });
                     },
                     itemBuilder: (BuildContext context, int index) {
-                      final _OnboardingSlide current = _slides[index];
+                      final _OnboardingSlide current = slides[index];
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
@@ -161,7 +164,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           ),
                           const SizedBox(height: 32),
                           _PageIndicator(
-                            length: _slides.length,
+                            length: slides.length,
                             index: index,
                             activeColor: theme.colorScheme.primary,
                           ),
@@ -172,13 +175,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 const SizedBox(height: 24),
                 GradientPrimaryButton(
-                  label: isLast ? "Get Started" : "Next",
+                  label: isLast ? l10n.onboardingGetStarted : l10n.commonNext,
                   onPressed: () => _handlePrimaryAction(context),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => context.go("/home"),
-                  child: const Text("Skip for now"),
+                  child: Text(l10n.onboardingSkipForNow),
                 ),
               ],
             ),

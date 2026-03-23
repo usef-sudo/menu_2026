@@ -5,14 +5,16 @@ import "package:flutter/material.dart";
 import "package:flutter_fortune_wheel/flutter_fortune_wheel.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
+import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/spin/presentation/controllers/spin_controller.dart";
-import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/spin/presentation/controllers/spin_filter_controller.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class SpinPage extends ConsumerStatefulWidget {
   const SpinPage({super.key});
@@ -94,6 +96,8 @@ class _SpinPageState extends ConsumerState<SpinPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
     final SpinResult? result = ref.watch(spinControllerProvider);
     final categoriesAsync = ref.watch(categoriesControllerProvider);
     final restaurantsAsync = ref.watch(spinFilteredRestaurantsProvider);
@@ -117,14 +121,14 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    "Not sure what to eat?",
+                    l10n.spinHeadline,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "Spin the wheel for a category (What to eat?) or a restaurant (Where to eat?)",
+                    l10n.spinSubtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -140,7 +144,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                       children: <Widget>[
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text("What to eat?"),
+                            label: Text(l10n.spinWhatToEat),
                             selectedColor: Colors.white,
                             backgroundColor: Colors.grey[300],
                             selected: _mode == SpinKind.category,
@@ -157,7 +161,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                           child: ChoiceChip(
                             selectedColor: Colors.white,
                             backgroundColor: Colors.grey[300],
-                            label: const Text("Where to eat?"),
+                            label: Text(l10n.spinWhereToEat),
                             selected: _mode == SpinKind.restaurant,
                             onSelected: (bool value) {
                               if (value) {
@@ -173,7 +177,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                   if (_mode == SpinKind.restaurant) ...[
                     const SizedBox(height: 16),
                     Text(
-                      "Filter by category (optional)",
+                      l10n.spinFilterByCategory,
                       style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.onSurface.withValues(
@@ -191,7 +195,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                               Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: FilterChip(
-                                  label: const Text("All"),
+                                  label: Text(l10n.commonAll),
                                   selected: selectedCategoryIds.isEmpty,
                                   onSelected: (_) {
                                     ref
@@ -210,7 +214,13 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8),
                                   child: FilterChip(
-                                    label: Text(c.nameEn),
+                                    label: Text(
+                                      (lang == "ar" && c.nameAr.isNotEmpty)
+                                          ? c.nameAr
+                                          : (c.nameEn.isNotEmpty
+                                              ? c.nameEn
+                                              : c.nameAr),
+                                    ),
                                     selected: isSelected,
                                     onSelected: (bool value) {
                                       final List<String> current = ref.read(
@@ -257,6 +267,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _buildWheel(
                   theme: theme,
+                  l10n: l10n,
                   mode: _mode,
                   categoriesAsync: categoriesAsync,
                   restaurantsAsync: restaurantsAsync,
@@ -275,6 +286,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: _buildSpinButton(
                 theme: theme,
+                l10n: l10n,
                 categoriesAsync: categoriesAsync,
                 restaurantsAsync: restaurantsAsync,
               ),
@@ -287,6 +299,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
 
   Widget _buildSpinButton({
     required ThemeData theme,
+    required AppLocalizations l10n,
     required AsyncValue<List<CategoryEntity>> categoriesAsync,
     required AsyncValue<List<RestaurantEntity>> restaurantsAsync,
   }) {
@@ -295,7 +308,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
         : (restaurantsAsync.valueOrNull?.length ?? 0);
 
     return GradientPrimaryButton(
-      label: _isSpinning ? "Spinning..." : "Spin now",
+      label: _isSpinning ? l10n.spinSpinning : l10n.spinNow,
       onPressed: _isSpinning || itemsLength < 2
           ? null
           : () {
@@ -309,6 +322,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
 
   Widget _buildWheel({
     required ThemeData theme,
+    required AppLocalizations l10n,
     required SpinKind mode,
     required AsyncValue<List<CategoryEntity>> categoriesAsync,
     required AsyncValue<List<RestaurantEntity>> restaurantsAsync,
@@ -327,26 +341,28 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                 ? categoriesAsync.when(
                     data: (List<CategoryEntity> items) => _wheelContent(
                       theme: theme,
+                      l10n: l10n,
                       items: items,
                       getEmoji: _categoryEmoji,
-                      emptyMessage: "No categories. Try removing filters.",
+                      emptyMessage: l10n.spinEmptyCategories,
                     ),
                     loading: () => const Center(
                       child: CircularProgressIndicator.adaptive(),
                     ),
-                    error: (Object e, StackTrace s) => _errorContent(theme),
+                    error: (Object e, StackTrace s) => _errorContent(theme, l10n),
                   )
                 : restaurantsAsync.when(
                     data: (List<RestaurantEntity> items) => _wheelContent(
                       theme: theme,
+                      l10n: l10n,
                       items: items,
                       getEmoji: _restaurantEmoji,
-                      emptyMessage: "No restaurants. Try different categories.",
+                      emptyMessage: l10n.spinEmptyRestaurants,
                     ),
                     loading: () => const Center(
                       child: CircularProgressIndicator.adaptive(),
                     ),
-                    error: (Object e, StackTrace s) => _errorContent(theme),
+                    error: (Object e, StackTrace s) => _errorContent(theme, l10n),
                   ),
           ),
         ),
@@ -356,6 +372,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
 
   Widget _wheelContent<T>({
     required ThemeData theme,
+    required AppLocalizations l10n,
     required List<T> items,
     required String Function(T) getEmoji,
     required String emptyMessage,
@@ -368,7 +385,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
     if (items.length < 2) {
       return Center(
         child: Text(
-          "Need at least 2 options to spin.",
+          l10n.spinNeedTwoOptions,
           style: theme.textTheme.bodyMedium,
         ),
       );
@@ -411,14 +428,14 @@ class _SpinPageState extends ConsumerState<SpinPage> {
     );
   }
 
-  Widget _errorContent(ThemeData theme) {
+  Widget _errorContent(ThemeData theme, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text("Unable to load options.", style: theme.textTheme.bodyMedium),
+          Text(l10n.spinUnableLoadOptions, style: theme.textTheme.bodyMedium),
         ],
       ),
     );
@@ -434,6 +451,7 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
@@ -447,8 +465,8 @@ class _ResultCard extends StatelessWidget {
             children: <Widget>[
               Text(
                 result.kind == SpinKind.category
-                    ? "You should eat..."
-                    : "Where to eat...",
+                    ? l10n.spinYouShouldEat
+                    : l10n.spinWhereToEatEllipsis,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.primary,
@@ -464,7 +482,7 @@ class _ResultCard extends StatelessWidget {
               if (result.distanceKm != null) ...<Widget>[
                 const SizedBox(height: 4),
                 Text(
-                  "${result.distanceKm!.toStringAsFixed(1)} km away",
+                  l10n.distanceKm(result.distanceKm!.toStringAsFixed(1)),
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -496,15 +514,15 @@ class _ResultCard extends StatelessWidget {
                       },
                       child: Text(
                         result.kind == SpinKind.category
-                            ? "Explore this category"
-                            : "View restaurant",
+                            ? l10n.spinExploreCategory
+                            : l10n.offersViewRestaurant,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   TextButton(
                     onPressed: onClearResult,
-                    child: const Text("Spin again"),
+                    child: Text(l10n.spinTryAgain),
                   ),
                 ],
               ),

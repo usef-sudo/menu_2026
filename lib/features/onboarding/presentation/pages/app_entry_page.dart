@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/settings/app_settings_controller.dart";
 import "package:menu_2026/features/auth/presentation/pages/login_page.dart";
 import "package:menu_2026/features/onboarding/presentation/pages/select_language_page.dart";
@@ -24,8 +25,8 @@ class AppEntryPage extends ConsumerWidget {
     final session = sessionAsync.valueOrNull;
 
     if (settings == null || session == null) {
-      return const Scaffold(
-        body: Center(child: Text("Unable to start app")),
+      return Scaffold(
+        body: Center(child: Text(context.l10n.unableToStartApp)),
       );
     }
 

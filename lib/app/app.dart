@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/app/router/app_router.dart";
 import "package:menu_2026/core/settings/app_settings_controller.dart";
 import "package:menu_2026/core/theme/app_theme.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class MenuApp extends ConsumerWidget {
   const MenuApp({super.key});
@@ -21,10 +22,8 @@ class MenuApp extends ConsumerWidget {
           darkTheme: AppTheme.dark(),
           themeMode: settings.themeMode,
           locale: settings.locale,
-          supportedLocales: const <Locale>[
-            Locale("en"),
-            Locale("ar"),
-          ],
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: router,
         );
       },
@@ -34,11 +33,15 @@ class MenuApp extends ConsumerWidget {
         ),
       ),
       error: (_, __) => MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text(
-              "Unable to load app settings",
-              style: Theme.of(context).textTheme.bodyMedium,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (BuildContext ctx) => Scaffold(
+            body: Center(
+              child: Text(
+                AppLocalizations.of(ctx).settingsLoadError,
+                style: Theme.of(ctx).textTheme.bodyMedium,
+              ),
             ),
           ),
         ),
