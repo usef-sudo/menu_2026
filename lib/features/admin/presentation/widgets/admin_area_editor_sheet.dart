@@ -148,6 +148,7 @@ class _AdminAreaEditorBodyState extends State<_AdminAreaEditorBody> {
                 maxLength: _kMaxAreaNameLength,
                 validator: _validateName,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nameAr,
                 decoration: InputDecoration(labelText: l10n.adminNameArabicLabel),

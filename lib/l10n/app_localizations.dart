@@ -1154,6 +1154,48 @@ abstract class AppLocalizations {
   /// **'Add photo by URL'**
   String get adminAddPhotoByUrl;
 
+  /// No description provided for @adminAddPhotoFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo from gallery'**
+  String get adminAddPhotoFromGallery;
+
+  /// No description provided for @adminOfferDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get adminOfferDescriptionLabel;
+
+  /// No description provided for @adminOfferImageUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer image URL (optional)'**
+  String get adminOfferImageUrlLabel;
+
+  /// No description provided for @adminOfferStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get adminOfferStartDate;
+
+  /// No description provided for @adminOfferEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End date'**
+  String get adminOfferEndDate;
+
+  /// No description provided for @adminNoPhotosPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos yet'**
+  String get adminNoPhotosPlaceholder;
+
+  /// No description provided for @adminNoOffersPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'No offers yet'**
+  String get adminNoOffersPlaceholder;
+
   /// No description provided for @adminNewOffer.
   ///
   /// In en, this message translates to:

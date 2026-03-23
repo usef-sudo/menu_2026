@@ -16,13 +16,20 @@ class RestaurantPhotoEntity {
   final bool isActive;
 
   factory RestaurantPhotoEntity.fromJson(Map<String, dynamic> json) {
+    final dynamic active = json["isActive"] ?? json["is_active"];
     return RestaurantPhotoEntity(
-      id: json["id"].toString(),
-      restaurantId: json["restaurantId"].toString(),
-      imageUrl: json["imageUrl"]?.toString() ?? "",
-      caption: json["caption"]?.toString(),
-      displayOrder: int.tryParse(json["displayOrder"]?.toString() ?? "0") ?? 0,
-      isActive: (json["isActive"]?.toString() ?? "1") == "1",
+      id: (json["id"] ?? "").toString(),
+      restaurantId:
+          (json["restaurantId"] ?? json["restaurant_id"] ?? "").toString(),
+      imageUrl: (json["imageUrl"] ?? json["image_url"] ?? "").toString(),
+      caption: (json["caption"])?.toString(),
+      displayOrder: int.tryParse(
+            (json["displayOrder"] ?? json["display_order"] ?? 0).toString(),
+          ) ??
+          0,
+      isActive: active == null
+          ? true
+          : (active is bool ? active : active.toString() == "1"),
     );
   }
 }

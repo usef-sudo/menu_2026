@@ -500,9 +500,50 @@ class MenuApi {
     await _dio.delete<dynamic>("/restaurant-photos/$photoId");
   }
 
+  /// Upload via `/upload/single` then register on restaurant (`POST /restaurants/:id/photos`).
+  Future<void> adminUploadRestaurantPhoto({
+    required String restaurantId,
+    required List<int> imageBytes,
+    required String filename,
+    String? caption,
+    int displayOrder = 0,
+  }) async {
+    final FormData uploadForm = FormData.fromMap(<String, dynamic>{
+      "file": MultipartFile.fromBytes(imageBytes, filename: filename),
+    });
+    final Response<dynamic> uploadRes =
+        await _dio.post<dynamic>("/upload/single", data: uploadForm);
+    final dynamic root = uploadRes.data;
+    final dynamic data =
+        root is Map<String, dynamic> && root["data"] != null
+            ? root["data"]
+            : root;
+    final String url = (data is Map && data["url"] != null)
+        ? data["url"].toString()
+        : "";
+    if (url.isEmpty) {
+      throw StateError("Upload did not return a URL");
+    }
+    await _dio.post<dynamic>(
+      "/restaurants/$restaurantId/photos",
+      data: <String, dynamic>{
+        "imageUrl": url,
+        "displayOrder": displayOrder,
+        if (caption != null && caption.isNotEmpty) "caption": caption,
+      },
+    );
+  }
+
   // —— Offers (admin) ——
-  Future<List<OfferDto>> adminGetAllOffers() async {
-    final Response<dynamic> response = await _dio.get<dynamic>("/offers/all");
+  /// Admin: all offers, optionally scoped to one restaurant (`GET /offers/all?restaurantId=`).
+  Future<List<OfferDto>> adminListOffers({String? restaurantId}) async {
+    final Response<dynamic> response = await _dio.get<dynamic>(
+      "/offers/all",
+      queryParameters: <String, dynamic>{
+        if (restaurantId != null && restaurantId.isNotEmpty)
+          "restaurantId": restaurantId,
+      },
+    );
     final List<dynamic> list = response.data as List<dynamic>;
     return list
         .map(

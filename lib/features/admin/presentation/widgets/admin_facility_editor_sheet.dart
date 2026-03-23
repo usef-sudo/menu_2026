@@ -167,6 +167,7 @@ class _AdminFacilityEditorBodyState extends State<_AdminFacilityEditorBody> {
                 maxLength: _kMaxFacilityNameLength,
                 validator: _validateName,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nameAr,
                 decoration: InputDecoration(labelText: l10n.adminNameArabicLabel),
@@ -174,6 +175,7 @@ class _AdminFacilityEditorBodyState extends State<_AdminFacilityEditorBody> {
                 maxLength: _kMaxFacilityNameLength,
                 validator: _validateName,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _icon,
                 decoration: InputDecoration(

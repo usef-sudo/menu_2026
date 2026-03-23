@@ -550,6 +550,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adminAddPhotoByUrl => 'إضافة صورة برابط';
 
   @override
+  String get adminAddPhotoFromGallery => 'إضافة صورة من المعرض';
+
+  @override
+  String get adminOfferDescriptionLabel => 'الوصف';
+
+  @override
+  String get adminOfferImageUrlLabel => 'رابط صورة العرض (اختياري)';
+
+  @override
+  String get adminOfferStartDate => 'تاريخ البدء';
+
+  @override
+  String get adminOfferEndDate => 'تاريخ الانتهاء';
+
+  @override
+  String get adminNoPhotosPlaceholder => 'لا توجد صور بعد';
+
+  @override
+  String get adminNoOffersPlaceholder => 'لا توجد عروض بعد';
+
+  @override
   String get adminNewOffer => 'عرض جديد';
 
   @override

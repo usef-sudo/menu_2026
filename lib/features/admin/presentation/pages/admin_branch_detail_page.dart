@@ -222,11 +222,17 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
             padding: const EdgeInsets.all(16),
             children: <Widget>[
               TextField(controller: _nameEn, decoration: const InputDecoration(labelText: "Name EN")),
+              const SizedBox(height: 8),
               TextField(controller: _nameAr, decoration: const InputDecoration(labelText: "Name AR")),
+              const SizedBox(height: 8),
               TextField(controller: _address, decoration: const InputDecoration(labelText: "Address")),
+              const SizedBox(height: 8),
               TextField(controller: _lat, decoration: const InputDecoration(labelText: "Latitude")),
+              const SizedBox(height: 8),
               TextField(controller: _lng, decoration: const InputDecoration(labelText: "Longitude")),
+              const SizedBox(height: 8),
               TextField(controller: _cost, decoration: const InputDecoration(labelText: "Cost level (1–5)")),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String?>(
                 decoration: const InputDecoration(labelText: "Area"),
                 value: _areaId,

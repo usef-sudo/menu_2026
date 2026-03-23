@@ -552,6 +552,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminAddPhotoByUrl => 'Add photo by URL';
 
   @override
+  String get adminAddPhotoFromGallery => 'Add photo from gallery';
+
+  @override
+  String get adminOfferDescriptionLabel => 'Description';
+
+  @override
+  String get adminOfferImageUrlLabel => 'Offer image URL (optional)';
+
+  @override
+  String get adminOfferStartDate => 'Start date';
+
+  @override
+  String get adminOfferEndDate => 'End date';
+
+  @override
+  String get adminNoPhotosPlaceholder => 'No photos yet';
+
+  @override
+  String get adminNoOffersPlaceholder => 'No offers yet';
+
+  @override
   String get adminNewOffer => 'New offer';
 
   @override

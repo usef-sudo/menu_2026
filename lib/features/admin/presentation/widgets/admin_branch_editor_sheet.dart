@@ -241,6 +241,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                     ? null
                     : (String? v) => setState(() => _areaId = v),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nameEn,
                 decoration: InputDecoration(labelText: l10n.adminBranchNameEn),
@@ -248,6 +249,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 maxLength: AdminFormValidators.maxName,
                 validator: (String? v) => AdminFormValidators.name(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nameAr,
                 decoration: InputDecoration(labelText: l10n.adminBranchNameAr),
@@ -269,6 +271,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 validator: (String? v) =>
                     AdminFormValidators.optionalAddress(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _lat,
                 decoration: InputDecoration(labelText: l10n.adminLabelLatitude),
@@ -280,6 +283,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 validator: (String? v) =>
                     AdminFormValidators.optionalCoordinate(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _lng,
                 decoration: InputDecoration(
@@ -293,6 +297,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 validator: (String? v) =>
                     AdminFormValidators.optionalCoordinate(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _cost,
                 decoration: InputDecoration(
@@ -303,6 +308,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 validator: (String? v) =>
                     AdminFormValidators.costLevelText(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _open,
                 decoration: InputDecoration(
@@ -313,6 +319,7 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 validator: (String? v) =>
                     AdminFormValidators.optionalTime(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _close,
                 decoration: InputDecoration(

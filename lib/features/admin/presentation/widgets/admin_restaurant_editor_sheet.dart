@@ -119,6 +119,7 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
                 maxLength: AdminFormValidators.maxName,
                 validator: (String? v) => AdminFormValidators.name(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nameAr,
                 decoration: InputDecoration(labelText: l10n.adminNameArabicLabel),
@@ -126,6 +127,7 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
                 maxLength: AdminFormValidators.maxName,
                 validator: (String? v) => AdminFormValidators.name(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _descEn,
                 decoration: InputDecoration(labelText: l10n.adminLabelDescEn),
@@ -133,6 +135,7 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
                 minLines: 1,
                 maxLines: 4,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _descAr,
                 decoration: InputDecoration(labelText: l10n.adminLabelDescAr),
@@ -140,6 +143,7 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
                 minLines: 1,
                 maxLines: 4,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _phone,
                 decoration: InputDecoration(labelText: l10n.adminLabelPhone),
@@ -149,6 +153,7 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
                 validator: (String? v) =>
                     AdminFormValidators.optionalPhone(v, l10n),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _logoUrl,
                 decoration: InputDecoration(
