@@ -739,6 +739,8 @@ class _BranchPanelContent extends ConsumerWidget {
     final l10n = context.l10n;
     final String lang = Localizations.localeOf(context).languageCode;
     final BranchEntity b = branch.branch;
+    final bool openNow = b.isEffectivelyOpenNow();
+    final String? todayHours = b.todaysHoursRangeLabel();
     final String branchName =
         (lang == "ar" && b.nameAr.isNotEmpty)
             ? b.nameAr
@@ -811,15 +813,15 @@ class _BranchPanelContent extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: b.isOpen
+                  color: openNow
                       ? Colors.green.withValues(alpha: 0.12)
                       : Colors.red.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadii.pill),
                 ),
                 child: Text(
-                  b.isOpen ? l10n.openNow : l10n.closed,
+                  openNow ? l10n.openNow : l10n.closed,
                   style: TextStyle(
-                    color: b.isOpen
+                    color: openNow
                         ? Colors.green.shade700
                         : Colors.red.shade700,
                     fontSize: 12,
@@ -829,6 +831,25 @@ class _BranchPanelContent extends ConsumerWidget {
               ),
             ],
           ),
+          if (todayHours != null && todayHours.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              todayHours,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ] else if (todayHours != null && todayHours.isEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              l10n.branchClosedToday,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
           if (description != null && description.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(

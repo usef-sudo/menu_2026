@@ -2,13 +2,16 @@ import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
 import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
 import "package:menu_2026/features/home/presentation/pages/home_discovery_page.dart"
     show HomeFilter, homeFilterProvider;
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class PlacesListSection extends ConsumerWidget {
   const PlacesListSection({
@@ -66,7 +69,8 @@ class PlacesListSection extends ConsumerWidget {
             }
             if (filter.openOnly) {
               filtered = filtered.where(
-                (NearbyBranchWithDistance b) => b.branch.isOpen,
+                (NearbyBranchWithDistance b) =>
+                    b.branch.isEffectivelyOpenNow(),
               );
             }
 
@@ -85,7 +89,8 @@ class PlacesListSection extends ConsumerWidget {
               case HomePlacesSort.recommended:
                 double score(NearbyBranchWithDistance x) {
                   final int votes = x.branch.upVotes - x.branch.downVotes;
-                  final double openBoost = x.branch.isOpen ? 2.0 : 0.0;
+                  final double openBoost =
+                      x.branch.isEffectivelyOpenNow() ? 2.0 : 0.0;
                   return votes.toDouble() + openBoost - (x.distanceKm * 0.25);
                 }
                 list.sort((a, b) => score(b).compareTo(score(a)));
@@ -142,6 +147,9 @@ class NearbyRestaurantCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final branch = branchWithDistance.branch;
+    final l10n = context.l10n;
+    final bool openNow = branch.isEffectivelyOpenNow();
+    final String? hoursLine = _todaysHoursLine(branch, l10n);
 
     final detailsAsync = ref.watch(
       restaurantDetailsControllerProvider(branch.restaurantId),
@@ -193,7 +201,7 @@ class NearbyRestaurantCard extends ConsumerWidget {
                   Positioned(
                     top: 14,
                     right: 14,
-                    child: _StatusPill(isOpen: branch.isOpen),
+                    child: _StatusPill(isOpen: openNow),
                   ),
                 ],
               ),
@@ -224,6 +232,19 @@ class NearbyRestaurantCard extends ConsumerWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        if (hoursLine != null) ...<Widget>[
+                          const SizedBox(height: 4),
+                          Text(
+                            hoursLine,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.55),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -243,6 +264,13 @@ class NearbyRestaurantCard extends ConsumerWidget {
   }
 }
 
+String? _todaysHoursLine(BranchEntity branch, AppLocalizations l10n) {
+  final String? r = branch.todaysHoursRangeLabel();
+  if (r == null) return null;
+  if (r.isEmpty) return l10n.branchClosedToday;
+  return r;
+}
+
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.isOpen});
 
@@ -250,6 +278,7 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -257,7 +286,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        isOpen ? "Open" : "Closed",
+        isOpen ? l10n.openNow : l10n.closed,
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w800,

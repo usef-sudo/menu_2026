@@ -3,11 +3,14 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
+import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_weekly_hours_editor.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class AdminBranchDetailPage extends ConsumerStatefulWidget {
   const AdminBranchDetailPage({super.key, required this.branchId});
@@ -21,6 +24,8 @@ class AdminBranchDetailPage extends ConsumerStatefulWidget {
 class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
+  GlobalKey<AdminWeeklyHoursEditorState> _weeklyKey =
+      GlobalKey<AdminWeeklyHoursEditorState>();
   bool _loading = true;
   String? _error;
   BranchDto? _branch;
@@ -35,6 +40,7 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
   List<MenuImageEntity> _images = <MenuImageEntity>[];
   List<FacilityDto> _facilities = <FacilityDto>[];
   Set<String> _facilitySelection = <String>{};
+  bool _savingHours = false;
 
   @override
   void initState() {
@@ -70,6 +76,7 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
 
       if (!mounted) return;
       setState(() {
+        _weeklyKey = GlobalKey<AdminWeeklyHoursEditorState>();
         _branch = b;
         _nameEn.text = b.nameEn;
         _nameAr.text = b.nameAr;
@@ -90,6 +97,41 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _saveOpeningHours() async {
+    final AppLocalizations? l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final String? err = _weeklyKey.currentState?.validate(l10n);
+    if (err != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
+      return;
+    }
+    final List<Map<String, dynamic>> payload =
+        _weeklyKey.currentState?.collectPayload() ?? <Map<String, dynamic>>[];
+    setState(() => _savingHours = true);
+    try {
+      await ref.read(menuApiProvider).adminReplaceBranchOpeningHours(
+            widget.branchId,
+            openingHours: payload,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.commonSaved)),
+        );
+        await _load();
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(dioErrorMessage(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingHours = false);
     }
   }
 
@@ -193,6 +235,8 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations? l10n = AppLocalizations.of(context);
+
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator.adaptive()));
     }
@@ -247,7 +291,25 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
                 ],
                 onChanged: (String? v) => setState(() => _areaId = v),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              if (l10n != null)
+                AdminWeeklyHoursEditor(
+                  key: _weeklyKey,
+                  initial: _branch!.openingHours,
+                  showApplyMondayButton: true,
+                ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _savingHours ? null : _saveOpeningHours,
+                child: _savingHours
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                      )
+                    : Text(l10n?.adminSaveOpeningHours ?? "Save opening hours"),
+              ),
+              const SizedBox(height: 24),
               FilledButton(onPressed: _saveInfo, child: const Text("Save")),
               const SizedBox(height: 24),
               OutlinedButton.icon(

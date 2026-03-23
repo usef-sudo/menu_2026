@@ -1,4 +1,5 @@
 import "package:equatable/equatable.dart";
+import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 
 class BranchEntity extends Equatable {
   const BranchEntity({
@@ -16,6 +17,7 @@ class BranchEntity extends Equatable {
     this.openTime,
     this.closeTime,
     this.facilities = const <String>[],
+    this.openingHours = const <BranchOpeningHour>[],
   });
 
   final String id;
@@ -32,6 +34,54 @@ class BranchEntity extends Equatable {
   final String? openTime;
   final String? closeTime;
   final List<String> facilities;
+  final List<BranchOpeningHour> openingHours;
+
+  /// Whether [when] falls inside any weekly interval (ignores admin [isOpen]).
+  bool matchesWeeklyScheduleAt(DateTime when) {
+    if (openingHours.isEmpty) return false;
+    for (final BranchOpeningHour h in openingHours) {
+      if (h.containsLocalMoment(when)) return true;
+    }
+    return false;
+  }
+
+  /// Admin closed ([isOpen] false) always false. With weekly hours, requires a matching
+  /// interval; with no hours, only [isOpen] matters (legacy branches).
+  bool isEffectivelyOpenNow([DateTime? now]) {
+    final DateTime when = now ?? DateTime.now();
+    if (!isOpen) return false;
+    if (openingHours.isEmpty) return true;
+    return matchesWeeklyScheduleAt(when);
+  }
+
+  /// Today's first slot range like `11:00–23:00`, `""` if closed today, `null` if unknown.
+  String? todaysHoursRangeLabel([DateTime? now]) {
+    final DateTime when = now ?? DateTime.now();
+    final int wd = when.weekday;
+    if (openingHours.isEmpty) {
+      if (openTime != null &&
+          closeTime != null &&
+          openTime!.isNotEmpty &&
+          closeTime!.isNotEmpty) {
+        return "$openTime–$closeTime";
+      }
+      return null;
+    }
+    final List<BranchOpeningHour> today = openingHours
+        .where((BranchOpeningHour h) => h.dayOfWeek == wd)
+        .toList(growable: false)
+      ..sort(
+        (BranchOpeningHour a, BranchOpeningHour b) =>
+            a.slotIndex.compareTo(b.slotIndex),
+      );
+    if (today.isEmpty) return "";
+    return today
+        .map(
+          (BranchOpeningHour s) =>
+              "${s.openTime}–${s.closeTime}${s.closesNextDay ? "*" : ""}",
+        )
+        .join(", ");
+  }
 
   @override
   List<Object?> get props => <Object?>[
@@ -49,5 +99,6 @@ class BranchEntity extends Equatable {
     openTime,
     closeTime,
     facilities,
+    openingHours,
   ];
 }

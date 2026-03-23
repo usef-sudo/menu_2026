@@ -353,6 +353,7 @@ class MenuApi {
     String? openTime,
     String? closeTime,
     List<String>? facilityIds,
+    List<Map<String, dynamic>>? openingHours,
   }) async {
     final Response<dynamic> response = await _dio.post<dynamic>(
       "/branches",
@@ -369,7 +370,19 @@ class MenuApi {
         if (openTime != null) "openTime": openTime,
         if (closeTime != null) "closeTime": closeTime,
         if (facilityIds != null) "facilityIds": facilityIds,
+        if (openingHours != null) "openingHours": openingHours,
       },
+    );
+    return BranchDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BranchDto> adminReplaceBranchOpeningHours(
+    String branchId, {
+    required List<Map<String, dynamic>> openingHours,
+  }) async {
+    final Response<dynamic> response = await _dio.put<dynamic>(
+      "/branches/$branchId/opening-hours",
+      data: <String, dynamic>{"openingHours": openingHours},
     );
     return BranchDto.fromJson(response.data as Map<String, dynamic>);
   }
@@ -677,6 +690,10 @@ class MenuApi {
   Future<List<BranchDto>> getBranches({
     String? restaurantId,
     String? areaId,
+    /// 1 = Monday … 7 = Sunday; use with [openAtTime] for server-side filter.
+    int? openAtWeekday,
+    /// `HH:mm` local wall time; use with [openAtWeekday].
+    String? openAtTime,
   }) async {
     final response = await _dio.get<dynamic>(
       "/branches",
@@ -684,6 +701,8 @@ class MenuApi {
         if (restaurantId != null && restaurantId.isNotEmpty)
           "restaurantId": restaurantId,
         if (areaId != null && areaId.isNotEmpty) "areaId": areaId,
+        if (openAtWeekday != null) "openAtWeekday": openAtWeekday,
+        if (openAtTime != null && openAtTime.isNotEmpty) "openAtTime": openAtTime,
       },
     );
     final envelope = ApiEnvelope.fromDynamic<List<BranchDto>>(response.data, (

@@ -428,6 +428,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminLabelCloseTime => 'Close time';
 
   @override
+  String get adminWeeklyHoursSectionTitle => 'Weekly opening hours';
+
+  @override
+  String get adminWeeklyHoursHint =>
+      'Use 24-hour times (HH:mm). Turn on overnight for hours past midnight (e.g. 22:00–02:00).';
+
+  @override
+  String get adminWeeklyHoursCopyMonday => 'Copy Monday to all days';
+
+  @override
+  String get adminWeeklyHoursClosedThisDay => 'Closed this day';
+
+  @override
+  String get adminWeeklyHoursOvernight => 'Overnight (closes after midnight)';
+
+  @override
+  String get adminWeeklyHoursTimeRequired =>
+      'Enter open and close times for each day that is not closed';
+
+  @override
+  String get adminWeeklyHoursTimeFormat =>
+      'Use HH:mm in 24-hour format (e.g. 09:30, 22:00)';
+
+  @override
+  String get adminSaveOpeningHours => 'Save opening hours';
+
+  @override
   String get adminNoRestaurants => 'No restaurants';
 
   @override
@@ -1138,6 +1165,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchOpeningHours => 'Opening hours';
 
   @override
+  String get branchHoursOvernightFootnote => '* Hours extend past midnight';
+
+  @override
   String get branchNoFacilities => 'No facilities information';
 
   @override
@@ -1172,6 +1202,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get branchHoursNotAvailable => 'Hours not available';
+
+  @override
+  String get branchClosedToday => 'Closed today';
 
   @override
   String get branchServicesFacilities => 'Services & facilities';

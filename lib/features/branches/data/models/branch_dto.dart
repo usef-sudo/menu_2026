@@ -1,4 +1,6 @@
+import "package:menu_2026/features/branches/data/models/branch_opening_hour_dto.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
+import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 
 class BranchDto {
   const BranchDto({
@@ -18,6 +20,7 @@ class BranchDto {
     this.facilities = const <String>[],
     this.areaId,
     this.costLevel,
+    this.openingHours = const <BranchOpeningHourDto>[],
   });
 
   final String id;
@@ -36,6 +39,20 @@ class BranchDto {
   final List<String> facilities;
   final String? areaId;
   final int? costLevel;
+  final List<BranchOpeningHourDto> openingHours;
+
+  static List<BranchOpeningHourDto> _parseOpeningHours(dynamic raw) {
+    if (raw is! List<dynamic>) return const <BranchOpeningHourDto>[];
+    final List<BranchOpeningHourDto> out = <BranchOpeningHourDto>[];
+    for (final dynamic item in raw) {
+      if (item is Map) {
+        out.add(
+          BranchOpeningHourDto.fromJson(Map<String, dynamic>.from(item)),
+        );
+      }
+    }
+    return out;
+  }
 
   factory BranchDto.fromJson(Map<String, dynamic> json) {
     final dynamic isOpenRaw = json["isOpen"] ?? json["is_open"];
@@ -74,6 +91,9 @@ class BranchDto {
       costLevel: int.tryParse(
         (json["costLevel"] ?? json["cost_level"] ?? "").toString(),
       ),
+      openingHours: _parseOpeningHours(
+        json["openingHours"] ?? json["opening_hours"],
+      ),
     );
   }
 
@@ -93,6 +113,18 @@ class BranchDto {
       openTime: openTime?.isEmpty == true ? null : openTime,
       closeTime: closeTime?.isEmpty == true ? null : closeTime,
       facilities: facilities,
+      openingHours: openingHours
+          .map(
+            (BranchOpeningHourDto e) => BranchOpeningHour(
+              id: e.id,
+              dayOfWeek: e.dayOfWeek,
+              slotIndex: e.slotIndex,
+              openTime: e.openTime,
+              closeTime: e.closeTime,
+              closesNextDay: e.closesNextDay,
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }

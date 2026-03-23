@@ -2,9 +2,11 @@ import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:intl/intl.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
@@ -136,23 +138,65 @@ class _OpeningHoursCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final String? open = branch.branch.openTime;
-    final String? close = branch.branch.closeTime;
-    final String text = (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
-        ? "$open - $close"
-        : l10n.branchHoursNotAvailable;
+    final List<BranchOpeningHour> hours = branch.branch.openingHours;
+
+    final Widget schedule;
+    if (hours.isEmpty) {
+      final String? open = branch.branch.openTime;
+      final String? close = branch.branch.closeTime;
+      final String text =
+          (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
+              ? "$open - $close"
+              : l10n.branchHoursNotAvailable;
+      schedule = Text(text);
+    } else {
+      final List<BranchOpeningHour> sorted = List<BranchOpeningHour>.from(hours)
+        ..sort((BranchOpeningHour a, BranchOpeningHour b) {
+          final int c = a.dayOfWeek.compareTo(b.dayOfWeek);
+          if (c != 0) return c;
+          return a.slotIndex.compareTo(b.slotIndex);
+        });
+      final bool anyOvernight = sorted.any((BranchOpeningHour h) => h.closesNextDay);
+      final String locale = Localizations.localeOf(context).toString();
+      schedule = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ...sorted.map((BranchOpeningHour h) {
+            final DateTime anchor = DateTime(2024, 1, h.dayOfWeek);
+            final String day = DateFormat.E(locale).format(anchor);
+            final String suffix = h.closesNextDay ? " *" : "";
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text("${h.openTime} – ${h.closeTime}  ($day)$suffix"),
+            );
+          }),
+          if (anyOvernight)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                l10n.branchHoursOvernightFootnote,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      );
+    }
+
     return _InfoCard(
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Icon(Icons.access_time_rounded, color: Colors.purple),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(l10n.branchOpeningHours),
-              const SizedBox(height: 4),
-              Text(text),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(l10n.branchOpeningHours),
+                const SizedBox(height: 4),
+                schedule,
+              ],
+            ),
           ),
         ],
       ),

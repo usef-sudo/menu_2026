@@ -5,6 +5,7 @@ import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_editor_header.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_form_validators.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_weekly_hours_editor.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
@@ -64,6 +65,8 @@ class _AdminBranchEditorBody extends StatefulWidget {
 
 class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<AdminWeeklyHoursEditorState> _weeklyKey =
+      GlobalKey<AdminWeeklyHoursEditorState>();
   late String? _restaurantId;
   String? _areaId;
   final TextEditingController _nameEn = TextEditingController();
@@ -72,8 +75,6 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
   final TextEditingController _lat = TextEditingController();
   final TextEditingController _lng = TextEditingController();
   final TextEditingController _cost = TextEditingController(text: "1");
-  final TextEditingController _open = TextEditingController();
-  final TextEditingController _close = TextEditingController();
   bool _isOpen = true;
   final Set<String> _facilityIds = <String>{};
   bool _submitting = false;
@@ -97,8 +98,6 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
     _lat.dispose();
     _lng.dispose();
     _cost.dispose();
-    _open.dispose();
-    _close.dispose();
     super.dispose();
   }
 
@@ -123,8 +122,20 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
     final String lng = _lng.text.trim();
     final String costRaw = _cost.text.trim();
     final int costLevel = int.tryParse(costRaw.isEmpty ? "1" : costRaw) ?? 1;
-    final String openT = _open.text.trim();
-    final String closeT = _close.text.trim();
+
+    final String? hoursErr =
+        _weeklyKey.currentState?.validate(widget.l10n);
+    if (hoursErr != null) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(hoursErr)),
+        );
+      }
+      return;
+    }
+    final List<Map<String, dynamic>> hoursPayload =
+        _weeklyKey.currentState?.collectPayload() ?? <Map<String, dynamic>>[];
 
     try {
       final BranchDto b = await widget.api.adminCreateBranch(
@@ -137,8 +148,8 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
         longitude: lng.isEmpty ? null : lng,
         costLevel: costLevel,
         isOpen: _isOpen ? 1 : 0,
-        openTime: openT.isEmpty ? null : openT,
-        closeTime: closeT.isEmpty ? null : closeT,
+        openingHours:
+            hoursPayload.isEmpty ? null : hoursPayload,
       );
       if (_facilityIds.isNotEmpty) {
         await widget.api.adminAssignBranchFacilities(
@@ -308,28 +319,8 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                 validator: (String? v) =>
                     AdminFormValidators.costLevelText(v, l10n),
               ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _open,
-                decoration: InputDecoration(
-                  labelText: l10n.adminLabelOpenTime,
-                ),
-                textInputAction: TextInputAction.next,
-                maxLength: AdminFormValidators.maxTime,
-                validator: (String? v) =>
-                    AdminFormValidators.optionalTime(v, l10n),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _close,
-                decoration: InputDecoration(
-                  labelText: l10n.adminLabelCloseTime,
-                ),
-                textInputAction: TextInputAction.next,
-                maxLength: AdminFormValidators.maxTime,
-                validator: (String? v) =>
-                    AdminFormValidators.optionalTime(v, l10n),
-              ),
+              const SizedBox(height: 16),
+              AdminWeeklyHoursEditor(key: _weeklyKey, showApplyMondayButton: true),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(l10n.adminBranchIsOpenLabel),

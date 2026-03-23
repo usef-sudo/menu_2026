@@ -5,6 +5,7 @@ import "package:go_router/go_router.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
@@ -522,6 +523,9 @@ class _BranchCard extends StatelessWidget {
             : (branch.branch.nameEn.isNotEmpty
                 ? branch.branch.nameEn
                 : branch.branch.nameAr);
+    final BranchEntity b = branch.branch;
+    final bool openNow = b.isEffectivelyOpenNow();
+    final String? todayHours = b.todaysHoursRangeLabel();
     return InkWell(
       onTap: () {
         Navigator.of(context).push(
@@ -564,6 +568,33 @@ class _BranchCard extends StatelessWidget {
               l10n.distanceKm(branch.distanceKm.toStringAsFixed(1)),
               style: theme.textTheme.bodySmall,
             ),
+            const SizedBox(height: 6),
+            Text(
+              openNow ? l10n.openNow : l10n.closed,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: openNow
+                    ? const Color(0xFF2E7D32)
+                    : theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (todayHours != null && todayHours.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 2),
+              Text(
+                todayHours,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
+              ),
+            ] else if (todayHours != null && todayHours.isEmpty) ...<Widget>[
+              const SizedBox(height: 2),
+              Text(
+                l10n.branchClosedToday,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
+            ],
           ],
         ),
       ),

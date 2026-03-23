@@ -920,6 +920,54 @@ abstract class AppLocalizations {
   /// **'Close time'**
   String get adminLabelCloseTime;
 
+  /// No description provided for @adminWeeklyHoursSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly opening hours'**
+  String get adminWeeklyHoursSectionTitle;
+
+  /// No description provided for @adminWeeklyHoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 24-hour times (HH:mm). Turn on overnight for hours past midnight (e.g. 22:00–02:00).'**
+  String get adminWeeklyHoursHint;
+
+  /// No description provided for @adminWeeklyHoursCopyMonday.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Monday to all days'**
+  String get adminWeeklyHoursCopyMonday;
+
+  /// No description provided for @adminWeeklyHoursClosedThisDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed this day'**
+  String get adminWeeklyHoursClosedThisDay;
+
+  /// No description provided for @adminWeeklyHoursOvernight.
+  ///
+  /// In en, this message translates to:
+  /// **'Overnight (closes after midnight)'**
+  String get adminWeeklyHoursOvernight;
+
+  /// No description provided for @adminWeeklyHoursTimeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter open and close times for each day that is not closed'**
+  String get adminWeeklyHoursTimeRequired;
+
+  /// No description provided for @adminWeeklyHoursTimeFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Use HH:mm in 24-hour format (e.g. 09:30, 22:00)'**
+  String get adminWeeklyHoursTimeFormat;
+
+  /// No description provided for @adminSaveOpeningHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Save opening hours'**
+  String get adminSaveOpeningHours;
+
   /// No description provided for @adminNoRestaurants.
   ///
   /// In en, this message translates to:
@@ -2276,6 +2324,12 @@ abstract class AppLocalizations {
   /// **'Opening hours'**
   String get branchOpeningHours;
 
+  /// No description provided for @branchHoursOvernightFootnote.
+  ///
+  /// In en, this message translates to:
+  /// **'* Hours extend past midnight'**
+  String get branchHoursOvernightFootnote;
+
   /// No description provided for @branchNoFacilities.
   ///
   /// In en, this message translates to:
@@ -2347,6 +2401,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hours not available'**
   String get branchHoursNotAvailable;
+
+  /// No description provided for @branchClosedToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed today'**
+  String get branchClosedToday;
 
   /// No description provided for @branchServicesFacilities.
   ///

@@ -39,7 +39,9 @@ final mapFilteredBranchesProvider =
     data: (List<BranchWithDistance> branches) {
       List<BranchWithDistance> out = branches;
       if (openOnly) {
-        out = out.where((b) => b.branch.isOpen).toList(growable: false);
+        out = out
+            .where((b) => b.branch.isEffectivelyOpenNow())
+            .toList(growable: false);
       }
       if (selectedCategoryIds.isEmpty) return AsyncValue.data(out);
       return restaurantIdsAsync.when(

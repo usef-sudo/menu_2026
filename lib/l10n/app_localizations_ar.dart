@@ -426,6 +426,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adminLabelCloseTime => 'وقت الإغلاق';
 
   @override
+  String get adminWeeklyHoursSectionTitle => 'ساعات العمل الأسبوعية';
+
+  @override
+  String get adminWeeklyHoursHint =>
+      'استخدم صيغة 24 ساعة (ساعة:دقيقة). فعّل «طوال الليل» للفترات التي تتجاوز منتصف الليل (مثال 22:00–02:00).';
+
+  @override
+  String get adminWeeklyHoursCopyMonday => 'نسخ الإثنين لكل الأيام';
+
+  @override
+  String get adminWeeklyHoursClosedThisDay => 'مغلق هذا اليوم';
+
+  @override
+  String get adminWeeklyHoursOvernight => 'طوال الليل (يغلق بعد منتصف الليل)';
+
+  @override
+  String get adminWeeklyHoursTimeRequired =>
+      'أدخل وقت الفتح والإغلاق لكل يوم غير مغلق';
+
+  @override
+  String get adminWeeklyHoursTimeFormat =>
+      'استخدم ساعة:دقيقة بصيغة 24 ساعة (مثال 09:30، 22:00)';
+
+  @override
+  String get adminSaveOpeningHours => 'حفظ ساعات العمل';
+
+  @override
   String get adminNoRestaurants => 'لا توجد مطاعم';
 
   @override
@@ -1134,6 +1161,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get branchOpeningHours => 'ساعات العمل';
 
   @override
+  String get branchHoursOvernightFootnote => '* تتجاوز ساعات العمل منتصف الليل';
+
+  @override
   String get branchNoFacilities => 'لا معلومات عن المرافق';
 
   @override
@@ -1168,6 +1198,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get branchHoursNotAvailable => 'الأوقات غير متوفرة';
+
+  @override
+  String get branchClosedToday => 'مغلق اليوم';
 
   @override
   String get branchServicesFacilities => 'الخدمات والمرافق';
