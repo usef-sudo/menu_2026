@@ -1,10 +1,13 @@
-import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/network/menu_api.dart";
+import "package:menu_2026/features/admin/data/area_dto.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_branch_editor_sheet.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
+import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class AdminBranchesPage extends ConsumerStatefulWidget {
   const AdminBranchesPage({super.key});
@@ -18,6 +21,8 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
   String? _error;
   List<BranchDto> _branches = <BranchDto>[];
   List<RestaurantDto> _restaurants = <RestaurantDto>[];
+  List<AreaDto> _areas = <AreaDto>[];
+  List<FacilityDto> _facilities = <FacilityDto>[];
   String? _filterRestaurantId;
 
   @override
@@ -37,10 +42,14 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
       final List<BranchDto> br = await api.getBranches(
         restaurantId: _filterRestaurantId,
       );
+      final List<AreaDto> areas = await api.getAreas();
+      final List<FacilityDto> fac = await api.getFacilities();
       if (!mounted) return;
       setState(() {
         _restaurants = rests;
         _branches = br;
+        _areas = areas;
+        _facilities = fac;
         _loading = false;
       });
     } catch (e) {
@@ -53,56 +62,40 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
   }
 
   Future<void> _create() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     if (_restaurants.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Create a restaurant first")),
+        SnackBar(content: Text(l10n.adminCreateRestaurantFirst)),
       );
       return;
     }
-    String? rid = _filterRestaurantId;
-    rid ??= await showDialog<String>(
+    final MenuApi api = ref.read(menuApiProvider);
+    final bool lockRestaurant = _filterRestaurantId != null;
+    final BranchDto? b = await showAdminBranchEditor(
       context: context,
-      builder: (BuildContext ctx) => SimpleDialog(
-        title: const Text("Restaurant"),
-        children: _restaurants
-            .map(
-              (RestaurantDto r) => SimpleDialogOption(
-                onPressed: () => Navigator.pop(ctx, r.id),
-                child: Text(r.nameEn),
-              ),
-            )
-            .toList(),
-      ),
+      l10n: l10n,
+      api: api,
+      restaurants: _restaurants,
+      areas: _areas,
+      facilities: _facilities,
+      initialRestaurantId: _filterRestaurantId,
+      lockRestaurantId: lockRestaurant,
     );
-    if (rid == null) return;
-    final String? nameEn = await _prompt(context, "Branch name (EN)");
-    if (nameEn == null || nameEn.isEmpty) return;
-    final String? nameAr = await _prompt(context, "Branch name (AR)");
-    if (nameAr == null || nameAr.isEmpty) return;
-    try {
-      final BranchDto b = await ref.read(menuApiProvider).adminCreateBranch(
-            restaurantId: rid,
-            nameEn: nameEn,
-            nameAr: nameAr,
-          );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Created")));
-        await _load();
-        context.push("/admin/branches/${b.id}");
-      }
-    } on DioException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data?.toString() ?? "Failed")),
-      );
-    }
+    if (!mounted || b == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.commonCreated)),
+    );
+    await _load();
+    if (mounted) context.push("/admin/branches/${b.id}");
   }
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Branches"),
+        title: Text(l10n.adminBranchesTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -114,24 +107,33 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
           },
         ),
         actions: <Widget>[
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loading ? null : _load),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: l10n.adminTooltipRefresh,
+            onPressed: _loading ? null : _load,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _create,
         icon: const Icon(Icons.add),
-        label: const Text("New branch"),
+        label: Text(l10n.adminNewBranch),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: DropdownButtonFormField<String?>(
-              decoration: const InputDecoration(labelText: "Filter by restaurant"),
+              decoration: InputDecoration(
+                labelText: l10n.adminFilterRestaurant,
+              ),
               value: _filterRestaurantId,
               items: <DropdownMenuItem<String?>>[
-                const DropdownMenuItem<String?>(value: null, child: Text("All")),
+                DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text(l10n.commonAll),
+                ),
                 ..._restaurants.map(
                   (RestaurantDto r) => DropdownMenuItem<String?>(
                     value: r.id,
@@ -149,41 +151,57 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator.adaptive())
                 : _error != null
-                    ? Center(child: Text(_error!))
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _branches.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, int i) {
-                          final BranchDto b = _branches[i];
-                          return ListTile(
-                            title: Text(b.nameEn),
-                            subtitle: Text(b.address.isEmpty ? b.nameAr : b.address),
-                            onTap: () => context.push("/admin/branches/${b.id}"),
-                            trailing: const Icon(Icons.chevron_right),
-                          );
-                        },
-                      ),
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Text(_error!, textAlign: TextAlign.center),
+                              const SizedBox(height: 16),
+                              FilledButton(
+                                onPressed: _load,
+                                child: Text(l10n.commonRetry),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _branches.isEmpty
+                        ? Center(
+                            child: Text(
+                              l10n.adminNoBranches,
+                              style: theme.textTheme.bodyLarge,
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _branches.length,
+                              separatorBuilder:
+                                  (BuildContext context, int index) =>
+                                      const Divider(height: 1),
+                              itemBuilder: (BuildContext context, int i) {
+                                final BranchDto b = _branches[i];
+                                return ListTile(
+                                  title: Text(b.nameEn),
+                                  subtitle: Text(
+                                    b.address.isEmpty ? b.nameAr : b.address,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  onTap: () =>
+                                      context.push("/admin/branches/${b.id}"),
+                                  trailing: const Icon(Icons.chevron_right),
+                                );
+                              },
+                            ),
+                          ),
           ),
         ],
       ),
     );
   }
-}
-
-Future<String?> _prompt(BuildContext context, String label) async {
-  final TextEditingController c = TextEditingController();
-  final String? r = await showDialog<String>(
-    context: context,
-    builder: (BuildContext ctx) => AlertDialog(
-      title: Text(label),
-      content: TextField(controller: c, autofocus: true),
-      actions: <Widget>[
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-        FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text("OK")),
-      ],
-    ),
-  );
-  c.dispose();
-  return r;
 }

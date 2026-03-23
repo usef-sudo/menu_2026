@@ -60,6 +60,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commonChooseImage => 'اختر صورة';
 
   @override
+  String get commonCreate => 'إنشاء';
+
+  @override
   String get commonSaved => 'تم الحفظ';
 
   @override
@@ -382,6 +385,51 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get adminTooltipRefresh => 'تحديث';
+
+  @override
+  String get adminValidationPhoneMax => 'الهاتف 20 حرفاً كحد أقصى';
+
+  @override
+  String get adminValidationAddressMax => 'العنوان 500 حرف كحد أقصى';
+
+  @override
+  String get adminValidationNumberInvalid => 'أدخل رقماً صالحاً';
+
+  @override
+  String get adminValidationCostLevelRange => 'استخدم رقماً من 1 إلى 5';
+
+  @override
+  String get adminValidationTimeMax => '16 حرفاً كحد أقصى';
+
+  @override
+  String get adminValidationSelectRestaurant => 'اختر مطعماً';
+
+  @override
+  String get adminValidationUrlMax => 'الرابط طويل جداً';
+
+  @override
+  String get adminBranchSectionDetails => 'تفاصيل الفرع';
+
+  @override
+  String get adminBranchSectionLocation => 'الموقع وساعات العمل';
+
+  @override
+  String get adminBranchFacilitiesHint => 'اختياري — يمكن التعديل لاحقاً';
+
+  @override
+  String get adminBranchIsOpenLabel => 'يظهر للعملاء كمفتوح';
+
+  @override
+  String get adminLabelOpenTime => 'وقت الفتح';
+
+  @override
+  String get adminLabelCloseTime => 'وقت الإغلاق';
+
+  @override
+  String get adminNoRestaurants => 'لا توجد مطاعم';
+
+  @override
+  String get adminNoBranches => 'لا توجد فروع';
 
   @override
   String get adminInactive => 'غير نشط';

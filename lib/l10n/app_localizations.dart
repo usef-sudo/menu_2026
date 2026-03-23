@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Choose image'**
   String get commonChooseImage;
 
+  /// No description provided for @commonCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get commonCreate;
+
   /// No description provided for @commonSaved.
   ///
   /// In en, this message translates to:
@@ -835,6 +841,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh'**
   String get adminTooltipRefresh;
+
+  /// No description provided for @adminValidationPhoneMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone must be at most 20 characters'**
+  String get adminValidationPhoneMax;
+
+  /// No description provided for @adminValidationAddressMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Address must be at most 500 characters'**
+  String get adminValidationAddressMax;
+
+  /// No description provided for @adminValidationNumberInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number'**
+  String get adminValidationNumberInvalid;
+
+  /// No description provided for @adminValidationCostLevelRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a number from 1 to 5'**
+  String get adminValidationCostLevelRange;
+
+  /// No description provided for @adminValidationTimeMax.
+  ///
+  /// In en, this message translates to:
+  /// **'At most 16 characters'**
+  String get adminValidationTimeMax;
+
+  /// No description provided for @adminValidationSelectRestaurant.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a restaurant'**
+  String get adminValidationSelectRestaurant;
+
+  /// No description provided for @adminValidationUrlMax.
+  ///
+  /// In en, this message translates to:
+  /// **'URL is too long'**
+  String get adminValidationUrlMax;
+
+  /// No description provided for @adminBranchSectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch details'**
+  String get adminBranchSectionDetails;
+
+  /// No description provided for @adminBranchSectionLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location & hours'**
+  String get adminBranchSectionLocation;
+
+  /// No description provided for @adminBranchFacilitiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — assign now or edit later'**
+  String get adminBranchFacilitiesHint;
+
+  /// No description provided for @adminBranchIsOpenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown as open to customers'**
+  String get adminBranchIsOpenLabel;
+
+  /// No description provided for @adminLabelOpenTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Open time'**
+  String get adminLabelOpenTime;
+
+  /// No description provided for @adminLabelCloseTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Close time'**
+  String get adminLabelCloseTime;
+
+  /// No description provided for @adminNoRestaurants.
+  ///
+  /// In en, this message translates to:
+  /// **'No restaurants'**
+  String get adminNoRestaurants;
+
+  /// No description provided for @adminNoBranches.
+  ///
+  /// In en, this message translates to:
+  /// **'No branches'**
+  String get adminNoBranches;
 
   /// No description provided for @adminInactive.
   ///

@@ -1,15 +1,17 @@
-import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/network/menu_api.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_restaurant_editor_sheet.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class AdminRestaurantsPage extends ConsumerStatefulWidget {
   const AdminRestaurantsPage({super.key});
 
   @override
-  ConsumerState<AdminRestaurantsPage> createState() => _AdminRestaurantsPageState();
+  ConsumerState<AdminRestaurantsPage> createState() =>
+      _AdminRestaurantsPageState();
 }
 
 class _AdminRestaurantsPageState extends ConsumerState<AdminRestaurantsPage> {
@@ -46,31 +48,27 @@ class _AdminRestaurantsPageState extends ConsumerState<AdminRestaurantsPage> {
   }
 
   Future<void> _create() async {
-    final String? nameEn = await _prompt(context, "Name (EN)");
-    if (nameEn == null || nameEn.isEmpty) return;
-    final String? nameAr = await _prompt(context, "Name (AR)");
-    if (nameAr == null || nameAr.isEmpty) return;
-    try {
-      final RestaurantDto r =
-          await ref.read(menuApiProvider).adminCreateRestaurant(nameEn: nameEn, nameAr: nameAr);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Created")));
-        await _load();
-        context.push("/admin/restaurants/${r.id}");
-      }
-    } on DioException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data?.toString() ?? "Failed")),
-      );
-    }
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final RestaurantDto? r = await showAdminRestaurantEditor(
+      context: context,
+      l10n: l10n,
+      api: ref.read(menuApiProvider),
+    );
+    if (!mounted || r == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.commonCreated)),
+    );
+    await _load();
+    if (mounted) context.push("/admin/restaurants/${r.id}");
   }
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Restaurants"),
+        title: Text(l10n.adminRestaurantsTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -82,49 +80,67 @@ class _AdminRestaurantsPageState extends ConsumerState<AdminRestaurantsPage> {
           },
         ),
         actions: <Widget>[
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loading ? null : _load),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: l10n.adminTooltipRefresh,
+            onPressed: _loading ? null : _load,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _create,
         icon: const Icon(Icons.add),
-        label: const Text("New restaurant"),
+        label: Text(l10n.adminNewRestaurant),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator.adaptive())
           : _error != null
-              ? Center(child: Text(_error!))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, int i) {
-                    final RestaurantDto r = _items[i];
-                    return ListTile(
-                      title: Text(r.nameEn),
-                      subtitle: Text(r.nameAr),
-                      onTap: () => context.push("/admin/restaurants/${r.id}"),
-                      trailing: const Icon(Icons.chevron_right),
-                    );
-                  },
-                ),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _load,
+                          child: Text(l10n.commonRetry),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _items.isEmpty
+                  ? Center(
+                      child: Text(
+                        l10n.adminNoRestaurants,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _items.length,
+                        separatorBuilder: (BuildContext context, int index) =>
+                            const Divider(height: 1),
+                        itemBuilder: (BuildContext context, int i) {
+                          final RestaurantDto r = _items[i];
+                          return ListTile(
+                            title: Text(r.nameEn),
+                            subtitle: Text(
+                              r.nameAr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () => context.push("/admin/restaurants/${r.id}"),
+                            trailing: const Icon(Icons.chevron_right),
+                          );
+                        },
+                      ),
+                    ),
     );
   }
-}
-
-Future<String?> _prompt(BuildContext context, String label) async {
-  final TextEditingController c = TextEditingController();
-  final String? r = await showDialog<String>(
-    context: context,
-    builder: (BuildContext ctx) => AlertDialog(
-      title: Text(label),
-      content: TextField(controller: c, decoration: InputDecoration(labelText: label), autofocus: true),
-      actions: <Widget>[
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-        FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text("OK")),
-      ],
-    ),
-  );
-  c.dispose();
-  return r;
 }

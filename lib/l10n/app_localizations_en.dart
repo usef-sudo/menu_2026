@@ -60,6 +60,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonChooseImage => 'Choose image';
 
   @override
+  String get commonCreate => 'Create';
+
+  @override
   String get commonSaved => 'Saved';
 
   @override
@@ -383,6 +386,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminTooltipRefresh => 'Refresh';
+
+  @override
+  String get adminValidationPhoneMax => 'Phone must be at most 20 characters';
+
+  @override
+  String get adminValidationAddressMax =>
+      'Address must be at most 500 characters';
+
+  @override
+  String get adminValidationNumberInvalid => 'Enter a valid number';
+
+  @override
+  String get adminValidationCostLevelRange => 'Use a number from 1 to 5';
+
+  @override
+  String get adminValidationTimeMax => 'At most 16 characters';
+
+  @override
+  String get adminValidationSelectRestaurant => 'Select a restaurant';
+
+  @override
+  String get adminValidationUrlMax => 'URL is too long';
+
+  @override
+  String get adminBranchSectionDetails => 'Branch details';
+
+  @override
+  String get adminBranchSectionLocation => 'Location & hours';
+
+  @override
+  String get adminBranchFacilitiesHint => 'Optional — assign now or edit later';
+
+  @override
+  String get adminBranchIsOpenLabel => 'Shown as open to customers';
+
+  @override
+  String get adminLabelOpenTime => 'Open time';
+
+  @override
+  String get adminLabelCloseTime => 'Close time';
+
+  @override
+  String get adminNoRestaurants => 'No restaurants';
+
+  @override
+  String get adminNoBranches => 'No branches';
 
   @override
   String get adminInactive => 'Inactive';
