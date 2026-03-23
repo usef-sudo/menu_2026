@@ -770,6 +770,72 @@ abstract class AppLocalizations {
   /// **'Add an image now? (Required for image-based categories.)'**
   String get adminCategoryImageBody;
 
+  /// No description provided for @adminCategoryDisplayOrderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Display order'**
+  String get adminCategoryDisplayOrderHint;
+
+  /// No description provided for @adminCategoryActiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get adminCategoryActiveLabel;
+
+  /// No description provided for @adminCategoryActiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive categories are hidden in the customer app.'**
+  String get adminCategoryActiveSubtitle;
+
+  /// No description provided for @adminCategoryCoverSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover image'**
+  String get adminCategoryCoverSectionTitle;
+
+  /// No description provided for @adminCategoryIconHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji or icon identifier'**
+  String get adminCategoryIconHint;
+
+  /// No description provided for @adminCategoryValidationNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get adminCategoryValidationNameRequired;
+
+  /// No description provided for @adminCategoryValidationNameMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max 255 characters'**
+  String get adminCategoryValidationNameMax;
+
+  /// No description provided for @adminCategoryValidationDisplayOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number'**
+  String get adminCategoryValidationDisplayOrder;
+
+  /// No description provided for @adminReorderTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder'**
+  String get adminReorderTooltip;
+
+  /// No description provided for @adminReorderDoneTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save order'**
+  String get adminReorderDoneTooltip;
+
+  /// No description provided for @adminTooltipRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get adminTooltipRefresh;
+
   /// No description provided for @adminInactive.
   ///
   /// In en, this message translates to:
@@ -818,11 +884,53 @@ abstract class AppLocalizations {
   /// **'Facilities'**
   String get adminFacilitiesTitle;
 
+  /// No description provided for @adminNewFacility.
+  ///
+  /// In en, this message translates to:
+  /// **'New facility'**
+  String get adminNewFacility;
+
+  /// No description provided for @adminEditFacility.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit facility'**
+  String get adminEditFacility;
+
+  /// No description provided for @adminNoFacilities.
+  ///
+  /// In en, this message translates to:
+  /// **'No facilities'**
+  String get adminNoFacilities;
+
+  /// No description provided for @adminFacilityValidationIconMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max 255 characters'**
+  String get adminFacilityValidationIconMax;
+
   /// No description provided for @adminAreasTitle.
   ///
   /// In en, this message translates to:
   /// **'Areas'**
   String get adminAreasTitle;
+
+  /// No description provided for @adminNewArea.
+  ///
+  /// In en, this message translates to:
+  /// **'New area'**
+  String get adminNewArea;
+
+  /// No description provided for @adminEditArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit area'**
+  String get adminEditArea;
+
+  /// No description provided for @adminNoAreas.
+  ///
+  /// In en, this message translates to:
+  /// **'No areas'**
+  String get adminNoAreas;
 
   /// No description provided for @adminDeleteFacilityTitle.
   ///

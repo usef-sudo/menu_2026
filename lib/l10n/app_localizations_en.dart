@@ -351,6 +351,40 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add an image now? (Required for image-based categories.)';
 
   @override
+  String get adminCategoryDisplayOrderHint => 'Display order';
+
+  @override
+  String get adminCategoryActiveLabel => 'Active';
+
+  @override
+  String get adminCategoryActiveSubtitle =>
+      'Inactive categories are hidden in the customer app.';
+
+  @override
+  String get adminCategoryCoverSectionTitle => 'Cover image';
+
+  @override
+  String get adminCategoryIconHint => 'Emoji or icon identifier';
+
+  @override
+  String get adminCategoryValidationNameRequired => 'Required';
+
+  @override
+  String get adminCategoryValidationNameMax => 'Max 255 characters';
+
+  @override
+  String get adminCategoryValidationDisplayOrder => 'Enter a valid number';
+
+  @override
+  String get adminReorderTooltip => 'Reorder';
+
+  @override
+  String get adminReorderDoneTooltip => 'Save order';
+
+  @override
+  String get adminTooltipRefresh => 'Refresh';
+
+  @override
   String get adminInactive => 'Inactive';
 
   @override
@@ -377,7 +411,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminFacilitiesTitle => 'Facilities';
 
   @override
+  String get adminNewFacility => 'New facility';
+
+  @override
+  String get adminEditFacility => 'Edit facility';
+
+  @override
+  String get adminNoFacilities => 'No facilities';
+
+  @override
+  String get adminFacilityValidationIconMax => 'Max 255 characters';
+
+  @override
   String get adminAreasTitle => 'Areas';
+
+  @override
+  String get adminNewArea => 'New area';
+
+  @override
+  String get adminEditArea => 'Edit area';
+
+  @override
+  String get adminNoAreas => 'No areas';
 
   @override
   String get adminDeleteFacilityTitle => 'Delete facility';

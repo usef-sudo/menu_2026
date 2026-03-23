@@ -211,16 +211,18 @@ class MenuApi {
 
   Future<FacilityDto> adminUpdateFacility(
     String id, {
-    String? nameEn,
-    String? nameAr,
-    String? icon,
+    required String nameEn,
+    required String nameAr,
+    required String icon,
   }) async {
-    final Map<String, dynamic> body = <String, dynamic>{};
-    if (nameEn != null) body["nameEn"] = nameEn;
-    if (nameAr != null) body["nameAr"] = nameAr;
-    if (icon != null) body["icon"] = icon;
-    final Response<dynamic> response =
-        await _dio.put<dynamic>("/facilities/$id", data: body);
+    final Response<dynamic> response = await _dio.put<dynamic>(
+      "/facilities/$id",
+      data: <String, dynamic>{
+        "nameEn": nameEn,
+        "nameAr": nameAr,
+        "icon": icon.isEmpty ? null : icon,
+      },
+    );
     return FacilityDto.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -252,14 +254,13 @@ class MenuApi {
 
   Future<AreaDto> adminUpdateArea(
     String id, {
-    String? nameEn,
-    String? nameAr,
+    required String nameEn,
+    required String nameAr,
   }) async {
-    final Map<String, dynamic> body = <String, dynamic>{};
-    if (nameEn != null) body["nameEn"] = nameEn;
-    if (nameAr != null) body["nameAr"] = nameAr;
-    final Response<dynamic> response =
-        await _dio.put<dynamic>("/areas/$id", data: body);
+    final Response<dynamic> response = await _dio.put<dynamic>(
+      "/areas/$id",
+      data: <String, dynamic>{"nameEn": nameEn, "nameAr": nameAr},
+    );
     return AreaDto.fromJson(response.data as Map<String, dynamic>);
   }
 

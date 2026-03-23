@@ -3,8 +3,11 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
+import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_category_editor_sheet.dart";
 import "package:menu_2026/features/categories/data/models/category_dto.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 
 class AdminCategoriesPage extends ConsumerStatefulWidget {
   const AdminCategoriesPage({super.key});
@@ -48,82 +51,26 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
     }
   }
 
-  Future<void> _editCategory(CategoryDto? existing) async {
-    final String? nameEn = await _promptText(
-      context,
-      title: existing == null ? "New category" : "Edit category",
-      label: "Name (English)",
-      initial: existing?.nameEn ?? "",
+  Future<void> _openEditor(CategoryDto? existing) async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final MenuApi api = ref.read(menuApiProvider);
+    final bool saved = await showAdminCategoryEditor(
+      context: context,
+      l10n: l10n,
+      api: api,
+      existing: existing,
     );
-    if (nameEn == null || nameEn.isEmpty) return;
-    final String? nameAr = await _promptText(
-      context,
-      title: "Arabic name",
-      label: "Name (Arabic)",
-      initial: existing?.nameAr ?? "",
+    if (!mounted || !saved) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.commonSaved)),
     );
-    if (nameAr == null || nameAr.isEmpty) return;
-
-    try {
-      final MenuApi api = ref.read(menuApiProvider);
-      if (existing == null) {
-        final bool? withImage = await showDialog<bool>(
-          context: context,
-          builder: (BuildContext ctx) => AlertDialog(
-            title: const Text("Category image"),
-            content: const Text("Add an image now? (Required for image-based categories.)"),
-            actions: <Widget>[
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Skip")),
-              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Choose image")),
-            ],
-          ),
-        );
-        if (withImage == true) {
-          final XFile? file = await ImagePicker().pickImage(source: ImageSource.gallery);
-          if (!mounted) return;
-          if (file == null) return;
-          final List<int> bytes = await file.readAsBytes();
-          await api.adminCreateCategoryWithImage(
-            nameEn: nameEn,
-            nameAr: nameAr,
-            imageBytes: bytes,
-            filename: file.name,
-          );
-        } else {
-          await api.adminCreateCategory(nameEn: nameEn, nameAr: nameAr);
-        }
-      } else {
-        await api.adminUpdateCategory(
-          existing.id,
-          nameEn: nameEn,
-          nameAr: nameAr,
-        );
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Saved")),
-        );
-        await _load();
-      }
-    } on DioException catch (e) {
-      if (!mounted) return;
-      final String msg = e.response?.data is Map
-          ? (e.response?.data["message"]?.toString() ?? "Request failed")
-          : "Request failed";
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
+    await _load();
   }
 
   Future<void> _replaceCategoryImage(CategoryDto c) async {
     final XFile? file = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (!mounted || file == null) return;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     try {
       final List<int> bytes = await file.readAsBytes();
       await ref.read(menuApiProvider).adminUpdateCategoryWithImage(
@@ -132,18 +79,21 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
             imageFilename: file.name,
           );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Image updated")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.adminImageUpdated)),
+        );
         await _load();
       }
     } on DioException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.response?.data?.toString() ?? "Failed")),
+        SnackBar(content: Text(dioErrorMessage(e))),
       );
     }
   }
 
   Future<void> _saveReorder() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     try {
       await ref.read(menuApiProvider).adminReorderCategories(
             _items.map((CategoryDto e) => e.id).toList(growable: false),
@@ -151,7 +101,7 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
       if (mounted) {
         setState(() => _reorderMode = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Order saved")),
+          SnackBar(content: Text(l10n.adminOrderSaved)),
         );
         await _load();
       }
@@ -162,20 +112,21 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
   }
 
   Future<void> _confirmDelete(CategoryDto c) async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Delete category"),
-          content: Text("Delete \"${c.nameEn}\"? This cannot be undone."),
+          title: Text(l10n.adminDeleteCategoryTitle),
+          content: Text(l10n.adminDeleteCategoryMessage(c.nameEn)),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel"),
+              child: Text(l10n.commonCancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text("Delete"),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -186,27 +137,25 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
       await ref.read(menuApiProvider).adminDeleteCategory(c.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Deleted")),
+          SnackBar(content: Text(l10n.commonDeleted)),
         );
         await _load();
       }
     } on DioException catch (e) {
       if (!mounted) return;
-      final String msg = e.response?.data is Map
-          ? (e.response?.data["message"]?.toString() ?? "Delete failed")
-          : "Delete failed";
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
+        SnackBar(content: Text(dioErrorMessage(e))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Categories"),
+        title: Text(l10n.adminCategoriesTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -220,7 +169,7 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
         actions: <Widget>[
           IconButton(
             icon: Icon(_reorderMode ? Icons.check : Icons.swap_vert),
-            tooltip: _reorderMode ? "Done reordering" : "Reorder",
+            tooltip: _reorderMode ? l10n.adminReorderDoneTooltip : l10n.adminReorderTooltip,
             onPressed: _loading
                 ? null
                 : () {
@@ -233,6 +182,7 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: l10n.adminTooltipRefresh,
             onPressed: _loading ? null : _load,
           ),
         ],
@@ -240,9 +190,9 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
       floatingActionButton: _reorderMode
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _editCategory(null),
+              onPressed: () => _openEditor(null),
               icon: const Icon(Icons.add),
-              label: const Text("Add"),
+              label: Text(l10n.commonAdd),
             ),
       body: _loading
           ? const Center(child: CircularProgressIndicator.adaptive())
@@ -257,7 +207,7 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
                         const SizedBox(height: 16),
                         FilledButton(
                           onPressed: _load,
-                          child: const Text("Retry"),
+                          child: Text(l10n.commonRetry),
                         ),
                       ],
                     ),
@@ -266,7 +216,7 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
               : _items.isEmpty
                   ? Center(
                       child: Text(
-                        "No categories",
+                        l10n.adminNoCategories,
                         style: theme.textTheme.bodyLarge,
                       ),
                     )
@@ -294,9 +244,11 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
                       : RefreshIndicator(
                           onRefresh: _load,
                           child: ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
                             itemCount: _items.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            separatorBuilder: (BuildContext context, int index) =>
+                                const Divider(height: 1),
                             itemBuilder: (BuildContext context, int index) {
                               final CategoryDto c = _items[index];
                               return ListTile(
@@ -313,18 +265,18 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
                                       Padding(
                                         padding: const EdgeInsets.only(right: 8),
                                         child: Text(
-                                          "Inactive",
+                                          l10n.adminInactive,
                                           style: theme.textTheme.labelSmall,
                                         ),
                                       ),
                                     IconButton(
                                       icon: const Icon(Icons.photo_outlined),
-                                      tooltip: "Change image",
+                                      tooltip: l10n.adminChangeImageTooltip,
                                       onPressed: () => _replaceCategoryImage(c),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
-                                      onPressed: () => _editCategory(c),
+                                      onPressed: () => _openEditor(c),
                                     ),
                                     IconButton(
                                       icon: Icon(
@@ -341,40 +293,4 @@ class _AdminCategoriesPageState extends ConsumerState<AdminCategoriesPage> {
                         ),
     );
   }
-}
-
-Future<String?> _promptText(
-  BuildContext context, {
-  required String title,
-  required String label,
-  String initial = "",
-}) async {
-  final TextEditingController controller =
-      TextEditingController(text: initial);
-  final String? result = await showDialog<String>(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: label),
-          autofocus: true,
-          onSubmitted: (String v) => Navigator.pop(context, v),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text("OK"),
-          ),
-        ],
-      );
-    },
-  );
-  controller.dispose();
-  return result;
 }

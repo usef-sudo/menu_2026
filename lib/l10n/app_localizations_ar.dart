@@ -350,6 +350,40 @@ class AppLocalizationsAr extends AppLocalizations {
       'إضافة صورة الآن؟ (مطلوبة لبعض التصنيفات.)';
 
   @override
+  String get adminCategoryDisplayOrderHint => 'ترتيب العرض';
+
+  @override
+  String get adminCategoryActiveLabel => 'نشط';
+
+  @override
+  String get adminCategoryActiveSubtitle =>
+      'التصنيفات غير النشطة لا تظهر للعملاء.';
+
+  @override
+  String get adminCategoryCoverSectionTitle => 'صورة الغلاف';
+
+  @override
+  String get adminCategoryIconHint => 'رمز تعبيري أو معرف أيقونة';
+
+  @override
+  String get adminCategoryValidationNameRequired => 'مطلوب';
+
+  @override
+  String get adminCategoryValidationNameMax => '255 حرفاً كحد أقصى';
+
+  @override
+  String get adminCategoryValidationDisplayOrder => 'أدخل رقماً صحيحاً';
+
+  @override
+  String get adminReorderTooltip => 'إعادة ترتيب';
+
+  @override
+  String get adminReorderDoneTooltip => 'حفظ الترتيب';
+
+  @override
+  String get adminTooltipRefresh => 'تحديث';
+
+  @override
   String get adminInactive => 'غير نشط';
 
   @override
@@ -376,7 +410,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adminFacilitiesTitle => 'المرافق';
 
   @override
+  String get adminNewFacility => 'مرفق جديد';
+
+  @override
+  String get adminEditFacility => 'تعديل المرفق';
+
+  @override
+  String get adminNoFacilities => 'لا توجد مرافق';
+
+  @override
+  String get adminFacilityValidationIconMax => '255 حرفاً كحد أقصى';
+
+  @override
   String get adminAreasTitle => 'المناطق';
+
+  @override
+  String get adminNewArea => 'منطقة جديدة';
+
+  @override
+  String get adminEditArea => 'تعديل المنطقة';
+
+  @override
+  String get adminNoAreas => 'لا توجد مناطق';
 
   @override
   String get adminDeleteFacilityTitle => 'حذف المرفق';
