@@ -164,7 +164,7 @@ class _OpeningHoursCard extends StatelessWidget {
           ...sorted.map((BranchOpeningHour h) {
             final DateTime anchor = DateTime(2024, 1, h.dayOfWeek);
             final String day = DateFormat.E(locale).format(anchor);
-            final String suffix = h.closesNextDay ? " (next day)" : "";
+            final String suffix = h.closesNextDay ? "" : "";
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(

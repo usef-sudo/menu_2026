@@ -90,7 +90,7 @@ class BranchEntity extends Equatable {
     return today
         .map(
           (BranchOpeningHour s) =>
-              "${formatHm12(s.openTime)}–${formatHm12(s.closeTime)}${s.closesNextDay ? " (next day)" : ""}",
+              "${formatHm12(s.openTime)}–${formatHm12(s.closeTime)}${s.closesNextDay ? "" : ""}",
         )
         .join(", ");
   }
