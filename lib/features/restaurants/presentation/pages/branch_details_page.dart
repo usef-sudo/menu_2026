@@ -157,7 +157,6 @@ class _OpeningHoursCard extends StatelessWidget {
           if (c != 0) return c;
           return a.slotIndex.compareTo(b.slotIndex);
         });
-      final bool anyOvernight = sorted.any((BranchOpeningHour h) => h.closesNextDay);
       final String locale = Localizations.localeOf(context).toString();
       schedule = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,7 +164,7 @@ class _OpeningHoursCard extends StatelessWidget {
           ...sorted.map((BranchOpeningHour h) {
             final DateTime anchor = DateTime(2024, 1, h.dayOfWeek);
             final String day = DateFormat.E(locale).format(anchor);
-            final String suffix = h.closesNextDay ? " *" : "";
+            final String suffix = h.closesNextDay ? " (next day)" : "";
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
@@ -173,14 +172,6 @@ class _OpeningHoursCard extends StatelessWidget {
               ),
             );
           }),
-          if (anyOvernight)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l10n.branchHoursOvernightFootnote,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
         ],
       );
     }
