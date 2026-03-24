@@ -7,11 +7,13 @@ class AppSettings {
     required this.themeMode,
     required this.localeCode,
     required this.hasSelectedLanguage,
+    required this.hasCompletedOnboarding,
   });
 
   final ThemeMode themeMode;
   final String localeCode;
   final bool hasSelectedLanguage;
+  final bool hasCompletedOnboarding;
 
   Locale get locale => Locale(localeCode);
 
@@ -19,11 +21,14 @@ class AppSettings {
     ThemeMode? themeMode,
     String? localeCode,
     bool? hasSelectedLanguage,
+    bool? hasCompletedOnboarding,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       localeCode: localeCode ?? this.localeCode,
       hasSelectedLanguage: hasSelectedLanguage ?? this.hasSelectedLanguage,
+      hasCompletedOnboarding:
+          hasCompletedOnboarding ?? this.hasCompletedOnboarding,
     );
   }
 }
@@ -32,14 +37,22 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
   static const String _themeKey = "app_theme_mode";
   static const String _localeKey = "app_locale_code";
   static const String _hasSelectedLanguageKey = "app_has_selected_language";
+  static const String _hasCompletedOnboardingKey = "app_has_completed_onboarding";
+  static const String _onboardingLegacyMigratedKey =
+      "app_onboarding_legacy_migrated_v1";
 
   @override
   Future<AppSettings> build() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    await _migrateOnboardingForLegacyUsers(prefs);
+
     final String themeString = prefs.getString(_themeKey) ?? "system";
     final String localeCode = prefs.getString(_localeKey) ?? "en";
     final bool hasSelectedLanguage =
         prefs.getBool(_hasSelectedLanguageKey) ?? false;
+    final bool hasCompletedOnboarding =
+        prefs.getBool(_hasCompletedOnboardingKey) ?? false;
 
     final ThemeMode themeMode;
     switch (themeString) {
@@ -57,7 +70,22 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
       themeMode: themeMode,
       localeCode: localeCode,
       hasSelectedLanguage: hasSelectedLanguage,
+      hasCompletedOnboarding: hasCompletedOnboarding,
     );
+  }
+
+  /// Users who already had a locale before onboarding existed should not see the carousel.
+  Future<void> _migrateOnboardingForLegacyUsers(SharedPreferences prefs) async {
+    if (prefs.getBool(_onboardingLegacyMigratedKey) ?? false) {
+      return;
+    }
+    if (!prefs.containsKey(_hasCompletedOnboardingKey)) {
+      final bool hadLanguage = prefs.getBool(_hasSelectedLanguageKey) ?? false;
+      if (hadLanguage) {
+        await prefs.setBool(_hasCompletedOnboardingKey, true);
+      }
+    }
+    await prefs.setBool(_onboardingLegacyMigratedKey, true);
   }
 
   Future<void> toggleDarkMode() async {
@@ -73,6 +101,16 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
       next == ThemeMode.dark ? "dark" : "light",
     );
     state = AsyncData(current.copyWith(themeMode: next));
+  }
+
+  Future<void> setOnboardingCompleted() async {
+    final current = state.valueOrNull;
+    if (current == null) {
+      return;
+    }
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasCompletedOnboardingKey, true);
+    state = AsyncData(current.copyWith(hasCompletedOnboarding: true));
   }
 
   Future<void> setLocale(String code) async {

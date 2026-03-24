@@ -31,11 +31,15 @@ class SessionState {
   }
 }
 
-class SessionController extends AutoDisposeAsyncNotifier<SessionState> {
+class SessionController extends AsyncNotifier<SessionState> {
   @override
   Future<SessionState> build() async {
     final token = await ref.read(tokenStoreProvider).readToken();
-    final role = await ref.read(tokenStoreProvider).readUserRole();
+    final String? roleRaw = await ref.read(tokenStoreProvider).readUserRole();
+    final String? role = switch (roleRaw?.trim()) {
+      null || "" => null,
+      final String r => r.toLowerCase(),
+    };
     return SessionState(token: token, role: role);
   }
 
@@ -49,10 +53,14 @@ class SessionController extends AutoDisposeAsyncNotifier<SessionState> {
     required String token,
     String? role,
   }) async {
+    final String? normalizedRole = switch (role?.trim()) {
+      null || "" => null,
+      final String r => r.toLowerCase(),
+    };
     final store = ref.read(tokenStoreProvider);
     await store.saveToken(token);
-    await store.saveUserRole(role);
-    state = AsyncData(SessionState(token: token, role: role));
+    await store.saveUserRole(normalizedRole);
+    state = AsyncData(SessionState(token: token, role: normalizedRole));
   }
 
   Future<void> logout() async {
@@ -62,6 +70,6 @@ class SessionController extends AutoDisposeAsyncNotifier<SessionState> {
 }
 
 final sessionControllerProvider =
-    AutoDisposeAsyncNotifierProvider<SessionController, SessionState>(
+    AsyncNotifierProvider<SessionController, SessionState>(
       SessionController.new,
     );

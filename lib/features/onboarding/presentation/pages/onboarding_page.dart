@@ -5,7 +5,17 @@ import "package:menu_2026/core/widgets/gradient_primary_button.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key});
+  const OnboardingPage({
+    super.key,
+    this.onFlowCompleted,
+    this.onSkipGuest,
+  });
+
+  /// When set (e.g. from [AppEntryPage]), finishes onboarding then continues entry flow.
+  final Future<void> Function()? onFlowCompleted;
+
+  /// When set, marks onboarding done and continues as guest (e.g. `/home`).
+  final Future<void> Function()? onSkipGuest;
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -67,11 +77,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
-  void _handlePrimaryAction(BuildContext context) {
+  Future<void> _handlePrimaryAction(BuildContext context) async {
     final bool isLast =
         _currentIndex == _slides(context.l10n).length - 1;
     if (isLast) {
-      context.go("/auth/login");
+      if (widget.onFlowCompleted != null) {
+        await widget.onFlowCompleted!();
+      } else if (context.mounted) {
+        context.go("/auth/login");
+      }
     } else {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -180,7 +194,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 const SizedBox(height: 12),
                 TextButton(
-                  onPressed: () => context.go("/home"),
+                  onPressed: () async {
+                    if (widget.onSkipGuest != null) {
+                      await widget.onSkipGuest!();
+                    } else if (context.mounted) {
+                      context.go("/home");
+                    }
+                  },
                   child: Text(l10n.onboardingSkipForNow),
                 ),
               ],

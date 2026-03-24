@@ -1,8 +1,8 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/network/menu_api.dart";
-import "package:menu_2026/features/auth/data/models/login_response_dto.dart";
 import "package:menu_2026/core/network/safe_request.dart";
+import "package:menu_2026/features/auth/data/models/login_response_dto.dart";
 
 class AuthController extends AutoDisposeAsyncNotifier<void> {
   @override
@@ -21,7 +21,8 @@ class AuthController extends AutoDisposeAsyncNotifier<void> {
 
     return result.when(
       success: (LoginResponseDto payload) async {
-        if (requireAdmin && payload.role != "admin") {
+        final String? roleNorm = payload.role?.trim().toLowerCase();
+        if (requireAdmin && roleNorm != "admin") {
           return false;
         }
 
