@@ -54,6 +54,17 @@ class BranchDto {
     return out;
   }
 
+  static bool _parseBoolLoose(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    final String s = value?.toString().trim().toLowerCase() ?? "";
+    return s == "1" || s == "true" || s == "yes";
+  }
+
   factory BranchDto.fromJson(Map<String, dynamic> json) {
     final dynamic isOpenRaw = json["isOpen"] ?? json["is_open"];
     return BranchDto(
@@ -71,7 +82,7 @@ class BranchDto {
       longitude:
           double.tryParse((json["longitude"] ?? json["lng"] ?? 0).toString()) ??
           0,
-      isOpen: isOpenRaw is bool ? isOpenRaw : isOpenRaw.toString() == "1",
+      isOpen: _parseBoolLoose(isOpenRaw),
       upVotes:
           int.tryParse((json["upVotes"] ?? json["up_votes"] ?? 0).toString()) ??
           0,
@@ -80,8 +91,10 @@ class BranchDto {
             (json["downVotes"] ?? json["down_votes"] ?? 0).toString(),
           ) ??
           0,
-      distanceKm:
-          double.tryParse((json["distanceKm"] ?? 0).toString()) ?? 0,
+      distanceKm: double.tryParse(
+            (json["distanceKm"] ?? json["distance_km"] ?? 0).toString(),
+          ) ??
+          0,
       openTime: (json["openTime"] ?? json["open_time"] ?? "").toString(),
       closeTime: (json["closeTime"] ?? json["close_time"] ?? "").toString(),
       facilities: ((json["facilities"] as List<dynamic>?) ?? <dynamic>[])
@@ -114,6 +127,10 @@ class BranchDto {
       closeTime: closeTime?.isEmpty == true ? null : closeTime,
       facilities: facilities,
       openingHours: openingHours
+          .where(
+            (BranchOpeningHourDto e) =>
+                e.dayOfWeek >= 1 && e.dayOfWeek <= 7,
+          )
           .map(
             (BranchOpeningHourDto e) => BranchOpeningHour(
               id: e.id,

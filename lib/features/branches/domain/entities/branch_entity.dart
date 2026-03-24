@@ -37,7 +37,8 @@ class BranchEntity extends Equatable {
   final List<String> facilities;
   final List<BranchOpeningHour> openingHours;
 
-  static final RegExp _hm = RegExp(r"^([01]?\d|2[0-3]):([0-5]\d)$");
+  static final RegExp _hm =
+      RegExp(r"^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$");
 
   static String formatHm12(String value) {
     final RegExpMatch? m = _hm.firstMatch(value.trim());
@@ -57,13 +58,47 @@ class BranchEntity extends Equatable {
     return false;
   }
 
-  /// Admin closed ([isOpen] false) always false. With weekly hours, requires a matching
-  /// interval; with no hours, only [isOpen] matters (legacy branches).
+  static int? _wallClockToMinutes(String? value) {
+    if (value == null) return null;
+    final RegExpMatch? m =
+        RegExp(r"^(\d{1,2}):(\d{2})(?::\d{2})?$").firstMatch(value.trim());
+    if (m == null) return null;
+    final int h = int.parse(m.group(1)!);
+    final int min = int.parse(m.group(2)!);
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  }
+
+  /// Same simple hours every day (legacy [openTime] / [closeTime] on the branch row).
+  bool _legacyDailyOpenAt(DateTime when) {
+    final int? o = _wallClockToMinutes(openTime);
+    final int? c = _wallClockToMinutes(closeTime);
+    if (o == null || c == null) {
+      return true;
+    }
+    if (o == 0 && c == 0) {
+      return false;
+    }
+    final int mod = when.hour * 60 + when.minute;
+    int cEff = c;
+    if (c == 0 && o > 0) {
+      cEff = 24 * 60;
+    }
+    if (cEff > o) {
+      return mod >= o && mod < cEff;
+    }
+    return mod >= o || mod < c;
+  }
+
+  /// Admin closed ([isOpen] false) always false. Weekly hours win when present;
+  /// otherwise legacy daily [openTime]/[closeTime]; if those are missing, [isOpen] only.
   bool isEffectivelyOpenNow([DateTime? now]) {
     final DateTime when = now ?? DateTime.now();
     if (!isOpen) return false;
-    if (openingHours.isEmpty) return true;
-    return matchesWeeklyScheduleAt(when);
+    if (openingHours.isNotEmpty) {
+      return matchesWeeklyScheduleAt(when);
+    }
+    return _legacyDailyOpenAt(when);
   }
 
   /// Today's first slot range like `11:00–23:00`, `""` if closed today, `null` if unknown.

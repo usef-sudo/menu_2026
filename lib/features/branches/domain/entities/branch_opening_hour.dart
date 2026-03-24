@@ -19,7 +19,8 @@ class BranchOpeningHour extends Equatable {
   final bool closesNextDay;
 
   static int? _hmToMinutes(String t) {
-    final RegExpMatch? m = RegExp(r"^(\d{1,2}):(\d{2})$").firstMatch(t.trim());
+    final RegExpMatch? m =
+        RegExp(r"^(\d{1,2}):(\d{2})(?::\d{2})?$").firstMatch(t.trim());
     if (m == null) return null;
     final int h = int.parse(m.group(1)!);
     final int min = int.parse(m.group(2)!);

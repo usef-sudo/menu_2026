@@ -30,15 +30,6 @@ class RestaurantDetailsPage extends ConsumerStatefulWidget {
 class _RestaurantDetailsPageState
     extends ConsumerState<RestaurantDetailsPage> {
   @override
-  void initState() {
-    super.initState();
-    Future<void>.microtask(() {
-      ref.read(selectedRestaurantIdProvider.notifier).state =
-          widget.restaurantId;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final detailsAsync =
         ref.watch(restaurantDetailsControllerProvider(widget.restaurantId));
@@ -46,7 +37,8 @@ class _RestaurantDetailsPageState
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     final favorites =
         ref.watch(favoritesControllerProvider).valueOrNull ?? <String>{};
-    final branchesAsync = ref.watch(branchesControllerProvider);
+    final branchesAsync =
+        ref.watch(restaurantBranchesProvider(widget.restaurantId));
 
     return detailsAsync.when(
       loading: () => const Scaffold(
@@ -126,9 +118,9 @@ class _RestaurantDetailsPageState
                     restaurantId: details.id,
                     branchesAsync: branchesAsync,
                   ),
-                  const _MenuTab(),
+                  _MenuTab(restaurantId: details.id),
                   _PhotosTab(restaurantId: details.id),
-                  _ReviewsTab(),
+                  _ReviewsTab(restaurantId: details.id),
                 ],
               ),
             ),
@@ -603,10 +595,14 @@ class _BranchCard extends StatelessWidget {
 }
 
 class _ReviewsTab extends ConsumerWidget {
+  const _ReviewsTab({required this.restaurantId});
+
+  final String restaurantId;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final branchesAsync = ref.watch(branchesControllerProvider);
+    final branchesAsync = ref.watch(restaurantBranchesProvider(restaurantId));
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     return branchesAsync.when(
@@ -652,13 +648,15 @@ class _ReviewsTab extends ConsumerWidget {
 }
 
 class _MenuTab extends ConsumerWidget {
-  const _MenuTab();
+  const _MenuTab({required this.restaurantId});
+
+  final String restaurantId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final AsyncValue<List<BranchWithDistance>> branchesAsync =
-        ref.watch(branchesControllerProvider);
+        ref.watch(restaurantBranchesProvider(restaurantId));
     return branchesAsync.when(
       data: (List<BranchWithDistance> branches) {
         if (branches.isEmpty) {

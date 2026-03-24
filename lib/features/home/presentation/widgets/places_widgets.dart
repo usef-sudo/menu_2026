@@ -147,6 +147,11 @@ class NearbyRestaurantCard extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final branch = branchWithDistance.branch;
     final l10n = context.l10n;
+    final String lang = Localizations.localeOf(context).languageCode;
+    final String branchName =
+        (lang == "ar" && branch.nameAr.isNotEmpty)
+            ? branch.nameAr
+            : (branch.nameEn.isNotEmpty ? branch.nameEn : branch.nameAr);
     final bool openNow = branch.isEffectivelyOpenNow();
     final String? hoursLine = _todaysHoursLine(branch, l10n);
 
@@ -214,7 +219,7 @@ class NearbyRestaurantCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          branch.nameEn,
+                          branchName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleLarge?.copyWith(
@@ -228,6 +233,16 @@ class NearbyRestaurantCard extends ConsumerWidget {
                               : "—",
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.distanceKm(
+                            branchWithDistance.distanceKm.toStringAsFixed(1),
+                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

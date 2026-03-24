@@ -8,7 +8,6 @@ import "package:go_router/go_router.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
-import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
@@ -31,14 +30,6 @@ class _SpinPageState extends ConsumerState<SpinPage> {
   bool _isSpinning = false;
   int _segments = 8;
   SpinKind _mode = SpinKind.category;
-
-  @override
-  void initState() {
-    super.initState();
-    Future<void>.microtask(() {
-      ref.read(selectedRestaurantIdProvider.notifier).state = null;
-    });
-  }
 
   @override
   void dispose() {
