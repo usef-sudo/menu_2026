@@ -6,6 +6,7 @@ import "package:intl/intl.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
@@ -146,7 +147,7 @@ class _OpeningHoursCard extends StatelessWidget {
       final String? close = branch.branch.closeTime;
       final String text =
           (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
-              ? "$open - $close"
+              ? "${BranchEntity.formatHm12(open)} - ${BranchEntity.formatHm12(close)}"
               : l10n.branchHoursNotAvailable;
       schedule = Text(text);
     } else {
@@ -167,7 +168,9 @@ class _OpeningHoursCard extends StatelessWidget {
             final String suffix = h.closesNextDay ? " *" : "";
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text("${h.openTime} – ${h.closeTime}  ($day)$suffix"),
+              child: Text(
+                "${BranchEntity.formatHm12(h.openTime)} – ${BranchEntity.formatHm12(h.closeTime)}  ($day)$suffix",
+              ),
             );
           }),
           if (anyOvernight)

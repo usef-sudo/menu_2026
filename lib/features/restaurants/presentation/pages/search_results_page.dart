@@ -23,8 +23,16 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   void initState() {
     super.initState();
     Future<void>.microtask(() async {
+      final RestaurantsFilter current = ref.read(restaurantsFilterProvider);
       ref.read(restaurantsFilterProvider.notifier).state = RestaurantsFilter(
-        search: widget.query.isNotEmpty ? widget.query : null,
+        categoryId: current.categoryId,
+        search: widget.query.isNotEmpty ? widget.query : current.search,
+        minCostLevel: current.minCostLevel,
+        maxCostLevel: current.maxCostLevel,
+        openOnly: current.openOnly,
+        sort: current.sort,
+        facilityIds: current.facilityIds,
+        openHoursFilter: current.openHoursFilter,
       );
       await ref.read(restaurantsControllerProvider.notifier).refresh();
     });

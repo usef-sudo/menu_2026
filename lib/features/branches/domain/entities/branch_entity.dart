@@ -1,4 +1,5 @@
 import "package:equatable/equatable.dart";
+import "package:intl/intl.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 
 class BranchEntity extends Equatable {
@@ -36,6 +37,17 @@ class BranchEntity extends Equatable {
   final List<String> facilities;
   final List<BranchOpeningHour> openingHours;
 
+  static final RegExp _hm = RegExp(r"^([01]?\d|2[0-3]):([0-5]\d)$");
+
+  static String formatHm12(String value) {
+    final RegExpMatch? m = _hm.firstMatch(value.trim());
+    if (m == null) return value;
+    final int h = int.parse(m.group(1)!);
+    final int min = int.parse(m.group(2)!);
+    final DateTime dt = DateTime(2000, 1, 1, h, min);
+    return DateFormat("h:mm a").format(dt);
+  }
+
   /// Whether [when] falls inside any weekly interval (ignores admin [isOpen]).
   bool matchesWeeklyScheduleAt(DateTime when) {
     if (openingHours.isEmpty) return false;
@@ -63,7 +75,7 @@ class BranchEntity extends Equatable {
           closeTime != null &&
           openTime!.isNotEmpty &&
           closeTime!.isNotEmpty) {
-        return "$openTime–$closeTime";
+        return "${formatHm12(openTime!)}–${formatHm12(closeTime!)}";
       }
       return null;
     }
@@ -78,7 +90,7 @@ class BranchEntity extends Equatable {
     return today
         .map(
           (BranchOpeningHour s) =>
-              "${s.openTime}–${s.closeTime}${s.closesNextDay ? "*" : ""}",
+              "${formatHm12(s.openTime)}–${formatHm12(s.closeTime)}${s.closesNextDay ? "*" : ""}",
         )
         .join(", ");
   }

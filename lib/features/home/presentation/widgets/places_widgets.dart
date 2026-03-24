@@ -6,9 +6,8 @@ import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
+import "package:menu_2026/features/home/presentation/controllers/home_filter.dart";
 import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
-import "package:menu_2026/features/home/presentation/pages/home_discovery_page.dart"
-    show HomeFilter, homeFilterProvider;
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/l10n/app_localizations.dart";

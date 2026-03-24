@@ -121,7 +121,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                 },
               ),
               Positioned(
-                top: MediaQuery.paddingOf(context).top + 16,
+                top: MediaQuery.paddingOf(context).top + 56,
                 left: 16,
                 right: 16,
                 child: _MapAppBar(
