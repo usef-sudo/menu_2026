@@ -1,3 +1,4 @@
+import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -160,15 +161,41 @@ class _RestaurantCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
+            SizedBox(
               height: 160,
-              color: Colors.grey.shade300,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.restaurant_rounded,
-                size: 40,
-                color: Colors.white,
-              ),
+              width: double.infinity,
+              child: restaurant.logoUrl.trim().isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: restaurant.logoUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.restaurant_rounded,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade300,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.restaurant_rounded,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: Colors.grey.shade300,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.restaurant_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),

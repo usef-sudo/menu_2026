@@ -31,6 +31,7 @@ class PlacesListSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     final HomeFilter filter = ref.watch(homeFilterProvider);
 
     return Column(
@@ -52,7 +53,7 @@ class PlacesListSection extends ConsumerWidget {
                     "/places?sort=${homePlacesSortToQuery(sort)}",
                   ),
                   icon: const Icon(Icons.align_horizontal_left),
-                  label: const Text("View All"),
+                  label: Text(l10n.commonViewAll),
                 ),
             ],
           ),
@@ -123,7 +124,7 @@ class PlacesListSection extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                  "Unable to load places",
+                  l10n.placesLoadError,
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),
@@ -131,7 +132,7 @@ class PlacesListSection extends ConsumerWidget {
                   onPressed: () =>
                       ref.invalidate(nearbyBranchesControllerProvider),
                   icon: const Icon(Icons.refresh),
-                  label: const Text("Retry"),
+                  label: Text(l10n.commonRetry),
                 ),
               ],
             ),

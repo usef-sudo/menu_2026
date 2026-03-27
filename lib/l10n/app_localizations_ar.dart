@@ -15,6 +15,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLoadError => 'تعذّر تحميل إعدادات التطبيق';
 
   @override
+  String get placesLoadError => 'تعذّر تحميل الأماكن';
+
+  @override
   String get unableToStartApp => 'تعذّر بدء التطبيق';
 
   @override
@@ -34,6 +37,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get commonRetry => 'إعادة المحاولة';
+
+  @override
+  String get commonViewAll => 'عرض الكل';
 
   @override
   String get commonAdd => 'إضافة';

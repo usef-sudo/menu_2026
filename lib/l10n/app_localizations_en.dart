@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLoadError => 'Unable to load app settings';
 
   @override
+  String get placesLoadError => 'Unable to load places';
+
+  @override
   String get unableToStartApp => 'Unable to start app';
 
   @override
@@ -34,6 +37,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonRetry => 'Retry';
+
+  @override
+  String get commonViewAll => 'View All';
 
   @override
   String get commonAdd => 'Add';

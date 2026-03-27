@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'Unable to load app settings'**
   String get settingsLoadError;
 
+  /// No description provided for @placesLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load places'**
+  String get placesLoadError;
+
   /// No description provided for @unableToStartApp.
   ///
   /// In en, this message translates to:
@@ -151,6 +157,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get commonRetry;
+
+  /// No description provided for @commonViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get commonViewAll;
 
   /// No description provided for @commonAdd.
   ///
