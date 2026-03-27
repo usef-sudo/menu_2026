@@ -17,6 +17,8 @@ class BranchDto {
     this.distanceKm,
     this.openTime,
     this.closeTime,
+    this.openNow,
+    this.activeOfferCount,
     this.facilities = const <String>[],
     this.areaId,
     this.costLevel,
@@ -36,6 +38,8 @@ class BranchDto {
   final double? distanceKm;
   final String? openTime;
   final String? closeTime;
+  final bool? openNow;
+  final int? activeOfferCount;
   final List<String> facilities;
   final String? areaId;
   final int? costLevel;
@@ -67,6 +71,9 @@ class BranchDto {
 
   factory BranchDto.fromJson(Map<String, dynamic> json) {
     final dynamic isOpenRaw = json["isOpen"] ?? json["is_open"];
+    final dynamic openNowRaw = json["openNow"] ?? json["open_now"];
+    final dynamic aocRaw =
+        json["activeOfferCount"] ?? json["active_offer_count"];
     return BranchDto(
       id: (json["id"] ?? "").toString(),
       restaurantId: (json["restaurantId"] ?? json["restaurant_id"] ?? "")
@@ -82,7 +89,12 @@ class BranchDto {
       longitude:
           double.tryParse((json["longitude"] ?? json["lng"] ?? 0).toString()) ??
           0,
-      isOpen: _parseBoolLoose(isOpenRaw),
+      // If backend doesn't send isOpen, don't force "Closed" in UI.
+      // Explicit false should still win.
+      isOpen: isOpenRaw == null ? true : _parseBoolLoose(isOpenRaw),
+      openNow: openNowRaw == null ? null : _parseBoolLoose(openNowRaw),
+      activeOfferCount:
+          aocRaw == null ? null : int.tryParse(aocRaw.toString()),
       upVotes:
           int.tryParse((json["upVotes"] ?? json["up_votes"] ?? 0).toString()) ??
           0,
@@ -125,6 +137,8 @@ class BranchDto {
       distanceKm: distanceKm,
       openTime: openTime?.isEmpty == true ? null : openTime,
       closeTime: closeTime?.isEmpty == true ? null : closeTime,
+      openNow: openNow,
+      activeOfferCount: activeOfferCount,
       facilities: facilities,
       openingHours: openingHours
           .where(

@@ -90,7 +90,12 @@ class PlacesListSection extends ConsumerWidget {
                   final int votes = x.branch.upVotes - x.branch.downVotes;
                   final double openBoost =
                       x.branch.isEffectivelyOpenNow() ? 2.0 : 0.0;
-                  return votes.toDouble() + openBoost - (x.distanceKm * 0.25);
+                  final int offers = x.branch.activeOfferCount ?? 0;
+                  final double offerBoost = offers > 0 ? (3.0 + (offers * 0.5)) : 0.0;
+                  return votes.toDouble() +
+                      openBoost +
+                      offerBoost -
+                      (x.distanceKm * 0.25);
                 }
                 list.sort((a, b) => score(b).compareTo(score(a)));
                 break;

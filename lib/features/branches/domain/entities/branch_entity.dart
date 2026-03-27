@@ -17,6 +17,8 @@ class BranchEntity extends Equatable {
     this.distanceKm,
     this.openTime,
     this.closeTime,
+    this.openNow,
+    this.activeOfferCount,
     this.facilities = const <String>[],
     this.openingHours = const <BranchOpeningHour>[],
   });
@@ -34,6 +36,10 @@ class BranchEntity extends Equatable {
   final double? distanceKm;
   final String? openTime;
   final String? closeTime;
+  /// Server-computed "open now" (single source of truth). If null, app computes locally.
+  final bool? openNow;
+  /// Server-computed count of currently active offers for this restaurant (0 if none/unknown).
+  final int? activeOfferCount;
   final List<String> facilities;
   final List<BranchOpeningHour> openingHours;
 
@@ -93,6 +99,7 @@ class BranchEntity extends Equatable {
   /// Admin closed ([isOpen] false) always false. Weekly hours win when present;
   /// otherwise legacy daily [openTime]/[closeTime]; if those are missing, [isOpen] only.
   bool isEffectivelyOpenNow([DateTime? now]) {
+    if (openNow != null) return openNow!;
     final DateTime when = now ?? DateTime.now();
     if (!isOpen) return false;
     if (openingHours.isNotEmpty) {
@@ -145,6 +152,8 @@ class BranchEntity extends Equatable {
     distanceKm,
     openTime,
     closeTime,
+    openNow,
+    activeOfferCount,
     facilities,
     openingHours,
   ];

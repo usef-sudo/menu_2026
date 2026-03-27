@@ -587,6 +587,10 @@ class _BranchCard extends StatelessWidget {
                 ),
               ),
             ],
+
+
+
+
           ],
         ),
       ),
