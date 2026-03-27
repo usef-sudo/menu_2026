@@ -45,7 +45,8 @@ class HomeDiscoveryPage extends ConsumerWidget {
                       initial: filter,
                       initialRestaurantsFilter:
                           ref.read(restaurantsFilterProvider),
-                      onApply: (_) {
+                      onApply: (HomeFilter applied) {
+                        ref.read(homeFilterProvider.notifier).state = applied;
                         Navigator.of(context).pop();
                         context.push("/search/results", extra: "");
                       },

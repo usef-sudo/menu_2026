@@ -8,7 +8,9 @@ import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
 import "package:menu_2026/features/home/presentation/controllers/home_filter.dart";
 import "package:menu_2026/features/home/presentation/controllers/home_places_sort.dart";
+import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 
@@ -33,6 +35,8 @@ class PlacesListSection extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
     final HomeFilter filter = ref.watch(homeFilterProvider);
+    final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
+        ref.watch(restaurantsControllerProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,6 +76,23 @@ class PlacesListSection extends ConsumerWidget {
                 (NearbyBranchWithDistance b) =>
                     b.branch.isEffectivelyOpenNow(),
               );
+            }
+
+            // Match category / price / facilities / hours (and API open-only) from [restaurantsControllerProvider].
+            final Set<String>? allowedRestaurantIds = restaurantsAsync.maybeWhen(
+              data: (List<RestaurantEntity> rests) =>
+                  rests.map((RestaurantEntity r) => r.id).toSet(),
+              orElse: () => null,
+            );
+            if (allowedRestaurantIds != null) {
+              if (allowedRestaurantIds.isEmpty) {
+                filtered = filtered.where((_) => false);
+              } else {
+                filtered = filtered.where(
+                  (NearbyBranchWithDistance b) =>
+                      allowedRestaurantIds.contains(b.branch.restaurantId),
+                );
+              }
             }
 
             final List<NearbyBranchWithDistance> list =

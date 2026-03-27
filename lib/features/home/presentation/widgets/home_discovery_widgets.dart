@@ -380,7 +380,6 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
   late bool _openOnly;
   late int? _priceMin;
   late int? _priceMax;
-  late double? _minRating;
   late String? _categoryId;
   List<String> _selectedFacilityIds = <String>[];
   late final List<bool> _hoursEnabled;
@@ -397,7 +396,6 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
         widget.initial.priceMin ?? widget.initialRestaurantsFilter?.minCostLevel;
     _priceMax =
         widget.initial.priceMax ?? widget.initialRestaurantsFilter?.maxCostLevel;
-    _minRating = widget.initial.minRating;
     _categoryId =
         widget.initial.categoryId ?? widget.initialRestaurantsFilter?.categoryId;
     _selectedFacilityIds = List<String>.from(
@@ -441,7 +439,6 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
     if (_distanceEnabled) n++;
     if (_openOnly) n++;
     if (_priceMin != null || _priceMax != null) n++;
-    if (_minRating != null && _minRating! > 0) n++;
     if (_categoryId != null && _categoryId!.isNotEmpty) n++;
     if (_selectedFacilityIds.isNotEmpty) n++;
     if (!_openOnly && _hoursEnabled.any((e) => e)) n++;
@@ -507,7 +504,7 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
     openOnly: _openOnly,
     priceMin: _priceMin,
     priceMax: _priceMax,
-    minRating: _minRating,
+    minRating: null,
     categoryId: _categoryId,
     dietaryOptions: const <String>[],
   );
@@ -753,23 +750,6 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                     ),
                   ),
                   _FilterExpansionTile(
-                    title: l10n.filterMinRating,
-                    value: _minRating != null && _minRating! > 0
-                        ? "${_minRating!.toStringAsFixed(1)}+"
-                        : null,
-                    child: Slider(
-                      value: _minRating ?? 0,
-                      min: 0,
-                      max: 5,
-                      divisions: 10,
-                      label: _minRating == null || _minRating == 0
-                          ? l10n.filterAny
-                          : _minRating!.toStringAsFixed(1),
-                      onChanged: (double v) =>
-                          setState(() => _minRating = v == 0 ? null : v),
-                    ),
-                  ),
-                  _FilterExpansionTile(
                     title: l10n.filterCuisineType,
                     value: _categoryId != null ? l10n.filterCuisineSelected : null,
                     child: categoriesAsync.when(
@@ -866,7 +846,7 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                           );
                           return;
                         }
-                        widget.onApply(_currentFilter);
+                        // Update restaurant query first so parent can intersect nearby + filtered restaurants.
                         ref.read(restaurantsFilterProvider.notifier).state =
                             RestaurantsFilter(
                           categoryId: _categoryId,
@@ -875,10 +855,10 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                           openOnly: _openOnly,
                           facilityIds: _selectedFacilityIds,
                           openHoursFilter: openHoursFilter,
-                          sort:
-                              _minRating != null && _minRating! > 0 ? "votes" : "newest",
+                          sort: "newest",
                         );
                         ref.read(restaurantsControllerProvider.notifier).refresh();
+                        widget.onApply(_currentFilter);
                       },
                       child: Ink(
                         decoration: BoxDecoration(
