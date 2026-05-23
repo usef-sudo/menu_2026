@@ -405,6 +405,7 @@
   "spinExploreCategory": "استكشف هذا التصنيف",
   "mapNoOpenBranches": "لا فروع مفتوحة قريبة",
   "mapNoBranchesYet": "لا فروع قريبة بعد",
+  "mapNoMatchingFilters": "لا أماكن تطابق الفلاتر",
   "mapNavigateTooltip": "التنقل",
   "mapLoading": "جاري تحميل الخريطة…",
   "mapLoadError": "تعذّر تحميل بيانات الخريطة",

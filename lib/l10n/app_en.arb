@@ -456,6 +456,7 @@
   "spinExploreCategory": "Explore this category",
   "mapNoOpenBranches": "No open branches nearby",
   "mapNoBranchesYet": "No branches nearby yet",
+  "mapNoMatchingFilters": "No places match your filters",
   "mapNavigateTooltip": "Navigate",
   "mapLoading": "Loading map…",
   "mapLoadError": "Unable to load map data",

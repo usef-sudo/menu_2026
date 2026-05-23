@@ -41,12 +41,12 @@ class BranchDetailsPage extends ConsumerWidget {
         children: <Widget>[
           _AddressCard(address: branch.branch.address),
           const SizedBox(height: 12),
-          _MapCard(
-            lat: branch.branch.latitude,
-            lng: branch.branch.longitude,
-            onTap: () => _openMaps(branch),
-          ),
-          const SizedBox(height: 12),
+          // _MapCard(
+          //   lat: branch.branch.latitude,
+          //   lng: branch.branch.longitude,
+          //   onTap: () => _openMaps(branch),
+          // ),
+          // const SizedBox(height: 12),
           _OpeningHoursCard(branch: branch),
           const SizedBox(height: 12),
           _FacilitiesSection(branch: branch),

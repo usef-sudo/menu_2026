@@ -35,8 +35,9 @@ class PlacesListSection extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
     final HomeFilter filter = ref.watch(homeFilterProvider);
-    final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
-        ref.watch(restaurantsControllerProvider);
+    final AsyncValue<List<RestaurantEntity>> restaurantsAsync = ref.watch(
+      restaurantsControllerProvider,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,17 +74,17 @@ class PlacesListSection extends ConsumerWidget {
             }
             if (filter.openOnly) {
               filtered = filtered.where(
-                (NearbyBranchWithDistance b) =>
-                    b.branch.isEffectivelyOpenNow(),
+                (NearbyBranchWithDistance b) => b.branch.isEffectivelyOpenNow(),
               );
             }
 
             // Match category / price / facilities / hours (and API open-only) from [restaurantsControllerProvider].
-            final Set<String>? allowedRestaurantIds = restaurantsAsync.maybeWhen(
-              data: (List<RestaurantEntity> rests) =>
-                  rests.map((RestaurantEntity r) => r.id).toSet(),
-              orElse: () => null,
-            );
+            final Set<String>? allowedRestaurantIds = restaurantsAsync
+                .maybeWhen(
+                  data: (List<RestaurantEntity> rests) =>
+                      rests.map((RestaurantEntity r) => r.id).toSet(),
+                  orElse: () => null,
+                );
             if (allowedRestaurantIds != null) {
               if (allowedRestaurantIds.isEmpty) {
                 filtered = filtered.where((_) => false);
@@ -95,8 +96,9 @@ class PlacesListSection extends ConsumerWidget {
               }
             }
 
-            final List<NearbyBranchWithDistance> list =
-                filtered.toList(growable: true);
+            final List<NearbyBranchWithDistance> list = filtered.toList(
+              growable: true,
+            );
 
             switch (sort) {
               case HomePlacesSort.nearby:
@@ -110,10 +112,13 @@ class PlacesListSection extends ConsumerWidget {
               case HomePlacesSort.recommended:
                 double score(NearbyBranchWithDistance x) {
                   final int votes = x.branch.upVotes - x.branch.downVotes;
-                  final double openBoost =
-                      x.branch.isEffectivelyOpenNow() ? 2.0 : 0.0;
+                  final double openBoost = x.branch.isEffectivelyOpenNow()
+                      ? 2.0
+                      : 0.0;
                   final int offers = x.branch.activeOfferCount ?? 0;
-                  final double offerBoost = offers > 0 ? (3.0 + (offers * 0.5)) : 0.0;
+                  final double offerBoost = offers > 0
+                      ? (3.0 + (offers * 0.5))
+                      : 0.0;
                   return votes.toDouble() +
                       openBoost +
                       offerBoost -
@@ -125,7 +130,9 @@ class PlacesListSection extends ConsumerWidget {
 
             if (list.isEmpty) return Text(emptyText);
 
-            final int limit = showViewAll ? (sort == HomePlacesSort.recommended ? 8 : 10) : 200;
+            final int limit = showViewAll
+                ? (sort == HomePlacesSort.recommended ? 8 : 10)
+                : 200;
 
             return Column(
               children: list
@@ -144,10 +151,7 @@ class PlacesListSection extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(
-                  l10n.placesLoadError,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                Text(l10n.placesLoadError, style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: () =>
@@ -175,24 +179,56 @@ class NearbyRestaurantCard extends ConsumerWidget {
     final branch = branchWithDistance.branch;
     final l10n = context.l10n;
     final String lang = Localizations.localeOf(context).languageCode;
-    final String branchName =
-        (lang == "ar" && branch.nameAr.isNotEmpty)
-            ? branch.nameAr
-            : (branch.nameEn.isNotEmpty ? branch.nameEn : branch.nameAr);
+    final String branchName = _localizedEntityName(
+      lang: lang,
+      nameEn: branch.nameEn,
+      nameAr: branch.nameAr,
+    );
+
     final bool openNow = branch.isEffectivelyOpenNow();
     final String? hoursLine = _todaysHoursLine(branch, l10n);
 
+    final AsyncValue<List<RestaurantEntity>> restaurantsAsync = ref.watch(
+      restaurantsControllerProvider,
+    );
     final detailsAsync = ref.watch(
       restaurantDetailsControllerProvider(branch.restaurantId),
     );
-    final photosAsync =
-        ref.watch(restaurantPhotosControllerProvider(branch.restaurantId));
+    final photosAsync = ref.watch(
+      restaurantPhotosControllerProvider(branch.restaurantId),
+    );
 
     final String? categoryName = detailsAsync.valueOrNull?.categoryName;
     final double rating = detailsAsync.valueOrNull?.avgRating ?? 0;
     final String? imageUrl = photosAsync.valueOrNull?.isNotEmpty == true
         ? photosAsync.valueOrNull!.first.imageUrl
         : null;
+
+    String? restaurantName = restaurantsAsync.maybeWhen(
+      data: (List<RestaurantEntity> rests) {
+        for (final RestaurantEntity r in rests) {
+          if (r.id == branch.restaurantId) {
+            return _localizedEntityName(
+              lang: lang,
+              nameEn: r.nameEn,
+              nameAr: r.nameAr,
+            );
+          }
+        }
+        return null;
+      },
+      orElse: () => null,
+    );
+    final String detailsNameEn =
+        detailsAsync.valueOrNull?.nameEn.trim() ?? "";
+    if ((restaurantName == null || restaurantName.isEmpty) &&
+        detailsNameEn.isNotEmpty) {
+      restaurantName = detailsNameEn;
+    }
+    final String titleLine = _placeCardTitle(
+      restaurantName: restaurantName,
+      branchName: branchName,
+    );
 
     return InkWell(
       onTap: () => context.push("/restaurant/${branch.restaurantId}"),
@@ -223,7 +259,8 @@ class NearbyRestaurantCard extends ConsumerWidget {
                     CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => _ImageFallback(theme: theme),
+                      placeholder: (context, url) =>
+                          _ImageFallback(theme: theme),
                       errorWidget: (context, url, error) =>
                           _ImageFallback(theme: theme),
                     )
@@ -246,7 +283,7 @@ class NearbyRestaurantCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          branchName,
+                          titleLine,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleLarge?.copyWith(
@@ -259,7 +296,9 @@ class NearbyRestaurantCard extends ConsumerWidget {
                               ? categoryName
                               : "—",
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.65,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -280,8 +319,9 @@ class NearbyRestaurantCard extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.55),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.55,
+                              ),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -290,11 +330,7 @@ class NearbyRestaurantCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  if (rating > 0.1)
-                    _RatingPill(
-                      rating: rating,
-                      theme: theme,
-                    ),
+                  if (rating > 0.1) _RatingPill(rating: rating, theme: theme),
                 ],
               ),
             ),
@@ -303,6 +339,31 @@ class NearbyRestaurantCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _localizedEntityName({
+  required String lang,
+  required String nameEn,
+  required String nameAr,
+}) {
+  return (lang == "ar" && nameAr.isNotEmpty)
+      ? nameAr
+      : (nameEn.isNotEmpty ? nameEn : nameAr);
+}
+
+String _placeCardTitle({
+  required String? restaurantName,
+  required String branchName,
+}) {
+  final String restaurant = restaurantName?.trim() ?? "";
+  final String branch = branchName.trim();
+  if (restaurant.isEmpty) {
+    return branch.isNotEmpty ? branch : "—";
+  }
+  if (branch.isEmpty || branch == restaurant) {
+    return restaurant;
+  }
+  return "$restaurant ($branch)";
 }
 
 String? _todaysHoursLine(BranchEntity branch, AppLocalizations l10n) {
@@ -395,4 +456,3 @@ class _ImageFallback extends StatelessWidget {
     );
   }
 }
-

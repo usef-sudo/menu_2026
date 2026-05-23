@@ -1,9 +1,9 @@
 import "dart:async";
+import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:google_maps_flutter/google_maps_flutter.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
@@ -14,12 +14,11 @@ import "package:menu_2026/features/categories/domain/entities/category_entity.da
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/map_nearby/presentation/controllers/location_controller.dart";
 import "package:menu_2026/features/map_nearby/presentation/controllers/map_filter_controller.dart";
-import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
+import "package:menu_2026/l10n/app_localizations.dart";
 import "package:url_launcher/url_launcher.dart";
 
 class NearbyMapPage extends ConsumerStatefulWidget {
@@ -36,11 +35,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
 
   final Map<String, BitmapDescriptor> _markerIconCache =
       <String, BitmapDescriptor>{};
-  final Map<String, Uint8List?> _imageBytesCache = <String, Uint8List?>{};
   final Set<String> _markerIconInFlight = <String>{};
-
-  Uint8List? _appLogoBytes;
-  bool _appLogoLoadAttempted = false;
 
   @override
   void dispose() {
@@ -57,21 +52,41 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
     }
   }
 
+  void _clearMapFilters() {
+    ref.read(mapSelectedCategoryIdsProvider.notifier).state = <String>[];
+    ref.read(mapOpenOnlyProvider.notifier).state = false;
+    setState(() => _selectedBranch = null);
+  }
+
+  LatLng _mapCenter({
+    required UserLocation? userLoc,
+    required List<BranchWithDistance> filtered,
+    required List<BranchWithDistance> allBranches,
+  }) {
+    if (userLoc != null) {
+      return LatLng(userLoc.latitude, userLoc.longitude);
+    }
+    final BranchWithDistance anchor = filtered.isNotEmpty
+        ? filtered.first
+        : allBranches.first;
+    return LatLng(anchor.branch.latitude, anchor.branch.longitude);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final branchesAsync = ref.watch(mapFilteredBranchesProvider);
+    final allBranchesAsync = ref.watch(branchesControllerProvider);
+    final filteredAsync = ref.watch(mapFilteredBranchesProvider);
     final locationAsync = ref.watch(locationControllerProvider);
     final ThemeData theme = Theme.of(context);
     final bool isMobile = MediaQuery.sizeOf(context).width < 768;
     final categoriesAsync = ref.watch(categoriesControllerProvider);
-    final restaurantsAsync = ref.watch(restaurantsControllerProvider);
     final selectedCategoryIds = ref.watch(mapSelectedCategoryIdsProvider);
     final openOnly = ref.watch(mapOpenOnlyProvider);
 
-    return branchesAsync.when(
-      data: (List<BranchWithDistance> filtered) {
-        if (filtered.isEmpty) {
+    return allBranchesAsync.when(
+      data: (List<BranchWithDistance> allBranches) {
+        if (allBranches.isEmpty) {
           return Scaffold(
             body: Center(
               child: Column(
@@ -84,7 +99,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    openOnly ? l10n.mapNoOpenBranches : l10n.mapNoBranchesYet,
+                    l10n.mapNoBranchesYet,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -95,414 +110,188 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
           );
         }
 
-        final UserLocation? userLoc = locationAsync.valueOrNull;
-        final LatLng center = userLoc != null
-            ? LatLng(userLoc.latitude, userLoc.longitude)
-            : LatLng(filtered.first.branch.latitude, filtered.first.branch.longitude);
-        final Map<String, String> logoUrlByRestaurantId =
-            restaurantsAsync.valueOrNull == null
-                ? <String, String>{}
-                : <String, String>{
-                    for (final RestaurantEntity r
-                        in restaurantsAsync.valueOrNull!)
-                      r.id: r.logoUrl,
-                  };
+        return filteredAsync.when(
+          data: (List<BranchWithDistance> filtered) {
+            final bool hasActiveFilter =
+                selectedCategoryIds.isNotEmpty || openOnly;
+            final bool showNoResultsBanner = filtered.isEmpty && hasActiveFilter;
 
-        _primeMarkerIcons(filtered, theme, logoUrlByRestaurantId);
-        final Set<Marker> markers =
-            _buildMarkers(context, filtered, theme, logoUrlByRestaurantId);
+            final UserLocation? userLoc = locationAsync.valueOrNull;
+            final LatLng center = _mapCenter(
+              userLoc: userLoc,
+              filtered: filtered,
+              allBranches: allBranches,
+            );
 
-        return Scaffold(
-          backgroundColor: theme.colorScheme.surface,
-          body: Stack(
-            children: [
-              GoogleMap(
-                myLocationButtonEnabled: true,
-                myLocationEnabled: true,
-                mapToolbarEnabled: true,
-                zoomControlsEnabled: true,
-                zoomGesturesEnabled: true,
-                scrollGesturesEnabled: true,
-                rotateGesturesEnabled: true,
-                onMapCreated: (GoogleMapController controller) {
-                  _mapController = controller;
-                  if (userLoc != null) {
-                    controller.animateCamera(
-                      CameraUpdate.newLatLngZoom(
-                        LatLng(userLoc.latitude, userLoc.longitude),
-                        14,
-                      ),
-                    );
-                  }
-                },
-                initialCameraPosition: CameraPosition(
-                  target: center,
-                  zoom: 14,
-                ),
-                markers: markers,
-                onTap: (_) {
-                  if (_selectedBranch != null) {
-                    setState(() => _selectedBranch = null);
-                  }
-                },
-              ),
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 56,
-                left: 16,
-                right: 16,
-                child: _MapAppBar(
-                  theme: theme,
-                  total: filtered.length,
-                  isMobile: isMobile,
-                  openOnly: openOnly,
-                  hasCategoryFilter: selectedCategoryIds.isNotEmpty,
-                  onFilterTap: () => _showFilterDialog(
-                    context,
-                    theme,
-                    categoriesAsync,
-                    selectedCategoryIds,
-                    openOnly,
+            _primePinIcons();
+            final Set<Marker> markers = _buildMarkers(context, filtered);
+
+            return Scaffold(
+              backgroundColor: theme.colorScheme.surface,
+              body: Stack(
+                children: [
+                  GoogleMap(
+                    myLocationButtonEnabled: true,
+                    myLocationEnabled: true,
+                    mapToolbarEnabled: true,
+                    zoomControlsEnabled: true,
+                    zoomGesturesEnabled: true,
+                    scrollGesturesEnabled: true,
+                    rotateGesturesEnabled: true,
+                    onMapCreated: (GoogleMapController controller) {
+                      _mapController = controller;
+                      if (userLoc != null) {
+                        controller.animateCamera(
+                          CameraUpdate.newLatLngZoom(
+                            LatLng(userLoc.latitude, userLoc.longitude),
+                            14,
+                          ),
+                        );
+                      }
+                    },
+                    initialCameraPosition: CameraPosition(
+                      target: center,
+                      zoom: 14,
+                    ),
+                    markers: markers,
+                    onTap: (_) {
+                      if (_selectedBranch != null) {
+                        setState(() => _selectedBranch = null);
+                      }
+                    },
                   ),
-                ),
+                  Positioned(
+                    top: MediaQuery.paddingOf(context).top + 56,
+                    left: 16,
+                    right: 16,
+                    child: _MapAppBar(
+                      theme: theme,
+                      total: filtered.length,
+                      isMobile: isMobile,
+                      openOnly: openOnly,
+                      hasCategoryFilter: selectedCategoryIds.isNotEmpty,
+                      onFilterTap: () => _showFilterDialog(
+                        context,
+                        theme,
+                        categoriesAsync,
+                        selectedCategoryIds,
+                        openOnly,
+                      ),
+                    ),
+                  ),
+                  if (!isMobile && _filterChipsVisible)
+                    _FilterChipsPanel(
+                      theme: theme,
+                      categoriesAsync: categoriesAsync,
+                      selectedCategoryIds: selectedCategoryIds,
+                      onCategoryTap: (String categoryId) =>
+                          _onCategorySelected(categoryId),
+                      onClose: () => setState(() => _filterChipsVisible = false),
+                    ),
+                  if (showNoResultsBanner)
+                    _MapNoResultsBanner(
+                      theme: theme,
+                      message: l10n.mapNoMatchingFilters,
+                      onClearFilters: _clearMapFilters,
+                      onAdjustFilters: () => _showFilterDialog(
+                        context,
+                        theme,
+                        categoriesAsync,
+                        selectedCategoryIds,
+                        openOnly,
+                      ),
+                    ),
+                  if (_selectedBranch != null && isMobile)
+                    _BranchBottomSheet(
+                      branch: _selectedBranch!,
+                      theme: theme,
+                      onViewDetails: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                BranchDetailsPage(branch: _selectedBranch!),
+                          ),
+                        );
+                      },
+                      onNavigate: () => _navigateToBranch(_selectedBranch!),
+                    ),
+                  if (_selectedBranch != null && !isMobile)
+                    _BranchSidePanel(
+                      branch: _selectedBranch!,
+                      theme: theme,
+                      onClose: () => setState(() => _selectedBranch = null),
+                      onViewDetails: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                BranchDetailsPage(branch: _selectedBranch!),
+                          ),
+                        );
+                      },
+                      onNavigate: () => _navigateToBranch(_selectedBranch!),
+                    ),
+                ],
               ),
-              if (!isMobile && _filterChipsVisible)
-                _FilterChipsPanel(
-                  theme: theme,
-                  categoriesAsync: categoriesAsync,
-                  selectedCategoryIds: selectedCategoryIds,
-                  onCategoryTap: (String categoryId) =>
-                      _onCategorySelected(categoryId),
-                  onClose: () => setState(() => _filterChipsVisible = false),
-                ),
-              if (_selectedBranch != null && isMobile)
-                _BranchBottomSheet(
-                  branch: _selectedBranch!,
-                  theme: theme,
-                  onViewDetails: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            BranchDetailsPage(branch: _selectedBranch!),
-                      ),
-                    );
-                  },
-                  onNavigate: () => _navigateToBranch(_selectedBranch!),
-                ),
-              if (_selectedBranch != null && !isMobile)
-                _BranchSidePanel(
-                  branch: _selectedBranch!,
-                  theme: theme,
-                  onClose: () => setState(() => _selectedBranch = null),
-                  onViewDetails: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            BranchDetailsPage(branch: _selectedBranch!),
-                      ),
-                    );
-                  },
-                  onNavigate: () => _navigateToBranch(_selectedBranch!),
-                ),
-            ],
-          ),
+            );
+          },
+          loading: () => _MapLoadingScaffold(theme: theme, l10n: l10n),
+          error: (Object error, StackTrace stackTrace) =>
+              _MapErrorScaffold(theme: theme, l10n: l10n),
         );
       },
-      loading: () => Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.mapLoading,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      error: (Object error, StackTrace stackTrace) => Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline_rounded,
-                  size: 48, color: theme.colorScheme.error),
-              const SizedBox(height: 16),
-              Text(
-                l10n.mapLoadError,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      loading: () => _MapLoadingScaffold(theme: theme, l10n: l10n),
+      error: (Object error, StackTrace stackTrace) =>
+          _MapErrorScaffold(theme: theme, l10n: l10n),
     );
   }
 
-  String _markerCacheKey({
-    required String branchId,
-    required bool isSelected,
-    required String? logoUrl,
-    required Brightness brightness,
-  }) {
-    final String logoKey = (logoUrl ?? "").trim();
-    return "$branchId|${isSelected ? "sel" : "norm"}|$brightness|$logoKey";
-  }
-
-  Future<Uint8List?> _loadAppLogoBytes({required int targetPx}) async {
-    if (_appLogoLoadAttempted) return _appLogoBytes;
-    _appLogoLoadAttempted = true;
-    try {
-      final ByteData data =
-          await rootBundle.load("assets/images/menu_logo.png");
-      final Uint8List bytes = data.buffer.asUint8List();
-      final ui.Codec codec = await ui.instantiateImageCodec(
-        bytes,
-        targetWidth: targetPx,
-        targetHeight: targetPx,
-      );
-      final ui.FrameInfo fi = await codec.getNextFrame();
-      final ByteData? png =
-          await fi.image.toByteData(format: ui.ImageByteFormat.png);
-      _appLogoBytes = png?.buffer.asUint8List();
-      return _appLogoBytes;
-    } catch (_) {
-      _appLogoBytes = null;
-      return null;
-    }
-  }
-
-  Future<Uint8List?> _fetchImageBytes(String url, {required int targetPx}) async {
-    final String key = "${url.trim()}|$targetPx";
-    if (_imageBytesCache.containsKey(key)) return _imageBytesCache[key];
-    try {
-      final ByteData data =
-          await NetworkAssetBundle(Uri.parse(url)).load(url);
-      final Uint8List bytes = data.buffer.asUint8List();
-
-      // Decode and resize to keep marker generation fast.
-      final ui.Codec codec = await ui.instantiateImageCodec(
-        bytes,
-        targetWidth: targetPx,
-        targetHeight: targetPx,
-      );
-      final ui.FrameInfo fi = await codec.getNextFrame();
-      final ByteData? png =
-          await fi.image.toByteData(format: ui.ImageByteFormat.png);
-      final Uint8List? out = png?.buffer.asUint8List();
-      _imageBytesCache[key] = out;
-      return out;
-    } catch (_) {
-      _imageBytesCache[key] = null;
-      return null;
-    }
-  }
-
-  Future<BitmapDescriptor> _buildModernMarkerIcon({
-    required ThemeData theme,
-    required bool isSelected,
-    required Uint8List? logoPngBytes,
-  }) async {
-    final double dpr = MediaQuery.of(context).devicePixelRatio;
-    // Keep markers compact; selected slightly larger.
-    final double baseW = isSelected ? 40 : 34;
-    final double baseH = isSelected ? 50 : 44;
-    final double width = (baseW * dpr).clamp(34, 84);
-    final double height = (baseH * dpr).clamp(44, 110);
-
+  Future<BitmapDescriptor> _buildEmojiPinIcon({required bool isSelected}) async {
+    final double fontSize = (isSelected ? 52 : 44) *
+        MediaQuery.of(context).devicePixelRatio.clamp(1.0, 3.0);
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: "📍",
+        style: TextStyle(fontSize: fontSize),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final double width = painter.width;
+    final double height = painter.height;
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
-
-    final Color p1 = theme.colorScheme.primary;
-    // Secondary accent if present, else a lighter primary.
-    final Color p2 = theme.colorScheme.secondary;
-    final Color shadow = Colors.black.withValues(alpha: 0.18);
-    final Color stroke = isSelected
-        ? p1
-        : p1.withValues(alpha: theme.brightness == Brightness.dark ? 0.55 : 0.42);
-
-    final Path pin = Path()
-      ..moveTo(width / 2, height)
-      ..quadraticBezierTo(
-        width * 0.10,
-        height * 0.64,
-        width * 0.18,
-        height * 0.34,
-      )
-      ..arcToPoint(
-        Offset(width * 0.82, height * 0.34),
-        radius: Radius.circular(width * 0.44),
-        clockwise: true,
-      )
-      ..quadraticBezierTo(width * 0.90, height * 0.64, width / 2, height)
-      ..close();
-
-    // Shadow
-    canvas.drawPath(
-      pin.shift(Offset(0, 2.5 * dpr)),
-      Paint()..color = shadow,
+    painter.paint(canvas, Offset.zero);
+    final ui.Image image = await recorder.endRecording().toImage(
+      width.ceil().clamp(1, 256),
+      height.ceil().clamp(1, 256),
     );
-
-    // Fill: gradient for modern "menu" feel.
-    final Paint fillPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset(0, 0),
-        Offset(width, height * 0.95),
-        <Color>[
-          p1,
-          Color.lerp(p2, p1, 0.2) ?? p2,
-        ],
-      );
-    canvas.drawPath(pin, fillPaint);
-    canvas.drawPath(
-      pin,
-      Paint()
-        ..color = stroke
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = (isSelected ? 2.0 : 1.6) * dpr,
-    );
-
-    // Inner circle (logo container)
-    final Offset c = Offset(width / 2, height * 0.35);
-    final double rOuter = (isSelected ? 14.5 : 12.0) * dpr;
-    final double rInner = rOuter - (1.5 * dpr);
-
-    canvas.drawCircle(
-      c,
-      rOuter,
-      Paint()..color = Colors.white,
-    );
-    canvas.drawCircle(
-      c,
-      rOuter,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.75)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2 * dpr,
-    );
-
-    if (logoPngBytes != null && logoPngBytes.isNotEmpty) {
-      final ui.Codec codec = await ui.instantiateImageCodec(
-        logoPngBytes,
-        targetWidth: (rInner * 2).round(),
-        targetHeight: (rInner * 2).round(),
-      );
-      final ui.FrameInfo frame = await codec.getNextFrame();
-      final ui.Image img = frame.image;
-
-      final Rect dst = Rect.fromCircle(center: c, radius: rInner);
-      canvas.save();
-      canvas.clipPath(Path()..addOval(dst));
-      paintImage(
-        canvas: canvas,
-        rect: dst,
-        image: img,
-        fit: BoxFit.cover,
-        filterQuality: FilterQuality.high,
-      );
-      canvas.restore();
-    } else {
-      // Fallback: app "logo" mark (stylized M) instead of restaurant logo.
-      // Uses the same brand gradient background.
-      canvas.drawCircle(
-        c,
-        rInner,
-        Paint()
-          ..shader = ui.Gradient.linear(
-            Offset(c.dx - rInner, c.dy - rInner),
-            Offset(c.dx + rInner, c.dy + rInner),
-            <Color>[p2, p1],
-          ),
-      );
-      final TextPainter tp = TextPainter(
-        text: TextSpan(
-          text: "M",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: (isSelected ? 14.0 : 12.0) * dpr,
-            fontWeight: FontWeight.w800,
-            height: 1,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
-    }
-
-    final ui.Image image = await recorder
-        .endRecording()
-        .toImage(width.round(), height.round());
     final ByteData? png =
         await image.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.bytes(png!.buffer.asUint8List());
   }
 
-  void _primeMarkerIcons(
-    List<BranchWithDistance> branches,
-    ThemeData theme,
-    Map<String, String> logoUrlByRestaurantId,
-  ) {
-    // Prime "normal" markers for everything on-screen, and the selected marker if any.
-    final Iterable<BranchWithDistance> targets = _selectedBranch == null
-        ? branches
-        : <BranchWithDistance>[
-            ...branches,
-            if (branches.any((b) => b.branch.id == _selectedBranch!.branch.id))
-              _selectedBranch!,
-          ];
-
-    for (final BranchWithDistance item in targets) {
-      for (final bool sel in <bool>[
-        false,
-        if (_selectedBranch?.branch.id == item.branch.id) true,
-      ]) {
-        final String? logoUrl =
-            logoUrlByRestaurantId[item.branch.restaurantId];
-        final String key = _markerCacheKey(
-          branchId: item.branch.id,
-          isSelected: sel,
-          logoUrl: logoUrl,
-          brightness: theme.brightness,
-        );
-        if (_markerIconCache.containsKey(key) || _markerIconInFlight.contains(key)) {
-          continue;
-        }
-        _markerIconInFlight.add(key);
-
-        unawaited(() async {
-          Uint8List? logoBytes;
-          if (logoUrl != null && logoUrl.trim().isNotEmpty) {
-            logoBytes = await _fetchImageBytes(logoUrl, targetPx: 96);
-          }
-          logoBytes ??= await _loadAppLogoBytes(targetPx: 96);
-          final BitmapDescriptor icon = await _buildModernMarkerIcon(
-            theme: theme,
-            isSelected: sel,
-            logoPngBytes: logoBytes,
-          );
-          if (!mounted) return;
-          setState(() {
-            _markerIconCache[key] = icon;
-            _markerIconInFlight.remove(key);
-          });
-        }());
+  void _primePinIcons() {
+    for (final bool isSelected in <bool>[false, true]) {
+      final String key = isSelected ? "sel" : "norm";
+      if (_markerIconCache.containsKey(key) ||
+          _markerIconInFlight.contains(key)) {
+        continue;
       }
+      _markerIconInFlight.add(key);
+      unawaited(() async {
+        final BitmapDescriptor icon =
+            await _buildEmojiPinIcon(isSelected: isSelected);
+        if (!mounted) return;
+        setState(() {
+          _markerIconCache[key] = icon;
+          _markerIconInFlight.remove(key);
+        });
+      }());
     }
   }
 
   Set<Marker> _buildMarkers(
     BuildContext context,
     List<BranchWithDistance> filtered,
-    ThemeData theme,
-    Map<String, String> logoUrlByRestaurantId,
   ) {
     final l10n = context.l10n;
     final String lang = Localizations.localeOf(context).languageCode;
@@ -521,15 +310,9 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
           title: markerTitle,
           snippet: l10n.distanceKm(item.distanceKm.toStringAsFixed(1)),
         ),
-        icon: _markerIconCache[_markerCacheKey(
-              branchId: item.branch.id,
-              isSelected: isSelected,
-              logoUrl: logoUrlByRestaurantId[item.branch.restaurantId],
-              brightness: theme.brightness,
-            )] ??
-            BitmapDescriptor.defaultMarkerWithHue(
-              isSelected ? BitmapDescriptor.hueAzure : BitmapDescriptor.hueRed,
-            ),
+        anchor: const Offset(0.5, 0.92),
+        icon: _markerIconCache[isSelected ? "sel" : "norm"] ??
+            BitmapDescriptor.defaultMarker,
         zIndexInt: isSelected ? 10 : 0,
         onTap: () {
           setState(() => _selectedBranch = item);
@@ -661,6 +444,140 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
           ],
         );
       },
+    );
+  }
+}
+
+class _MapLoadingScaffold extends StatelessWidget {
+  const _MapLoadingScaffold({required this.theme, required this.l10n});
+
+  final ThemeData theme;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: theme.colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              l10n.mapLoading,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapErrorScaffold extends StatelessWidget {
+  const _MapErrorScaffold({required this.theme, required this.l10n});
+
+  final ThemeData theme;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.mapLoadError,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapNoResultsBanner extends StatelessWidget {
+  const _MapNoResultsBanner({
+    required this.theme,
+    required this.message,
+    required this.onClearFilters,
+    required this.onAdjustFilters,
+  });
+
+  final ThemeData theme;
+  final String message;
+  final VoidCallback onClearFilters;
+  final VoidCallback onAdjustFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: MediaQuery.paddingOf(context).bottom + 24,
+      child: Material(
+        color: theme.colorScheme.surface,
+        elevation: 8,
+        shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.search_off_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onAdjustFilters,
+                      child: Text(l10n.mapFilterAction),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: onClearFilters,
+                      child: Text(l10n.filterResetAll),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

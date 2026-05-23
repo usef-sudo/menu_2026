@@ -1268,6 +1268,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mapNoBranchesYet => 'لا فروع قريبة بعد';
 
   @override
+  String get mapNoMatchingFilters => 'لا أماكن تطابق الفلاتر';
+
+  @override
   String get mapNavigateTooltip => 'التنقل';
 
   @override

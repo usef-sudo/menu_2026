@@ -2528,6 +2528,12 @@ abstract class AppLocalizations {
   /// **'No branches nearby yet'**
   String get mapNoBranchesYet;
 
+  /// No description provided for @mapNoMatchingFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'No places match your filters'**
+  String get mapNoMatchingFilters;
+
   /// No description provided for @mapNavigateTooltip.
   ///
   /// In en, this message translates to:

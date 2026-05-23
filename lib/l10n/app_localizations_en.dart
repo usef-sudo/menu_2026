@@ -1273,6 +1273,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapNoBranchesYet => 'No branches nearby yet';
 
   @override
+  String get mapNoMatchingFilters => 'No places match your filters';
+
+  @override
   String get mapNavigateTooltip => 'Navigate';
 
   @override
