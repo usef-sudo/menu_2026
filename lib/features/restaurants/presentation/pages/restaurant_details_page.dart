@@ -97,8 +97,8 @@ class _RestaurantDetailsPageState
                       child: Material(
                         color: Theme.of(context).colorScheme.surface,
                         child: TabBar(
-                          indicatorColor: const Color(0xFF8A4DFF),
-                          labelColor: const Color(0xFF8A4DFF),
+                          indicatorColor: Theme.of(context).colorScheme.primary,
+                          labelColor: Theme.of(context).colorScheme.primary,
                           unselectedLabelColor: Colors.grey,
                           tabs: <Widget>[
                             Tab(text: context.l10n.tabBranches),
@@ -404,10 +404,11 @@ class _FacilityChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF8A4DFF).withValues(alpha: 0.6)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.6)),
         borderRadius: BorderRadius.circular(999),
         color: Colors.white,
       ),
@@ -417,13 +418,13 @@ class _FacilityChip extends StatelessWidget {
           Icon(
             _iconFor(iconName),
             size: 18,
-            color: const Color(0xFF8A4DFF),
+            color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 6),
           Text(
             nameEn,
-            style: const TextStyle(
-              color: Color(0xFF8A4DFF),
+            style: TextStyle(
+              color: theme.colorScheme.primary,
               fontWeight: FontWeight.w500,
             ),
           ),

@@ -14,6 +14,7 @@ class RestaurantDetailsState {
   const RestaurantDetailsState({
     required this.id,
     required this.nameEn,
+    required this.phone,
     required this.descriptionEn,
     required this.categoryName,
     required this.branchesCount,
@@ -25,6 +26,7 @@ class RestaurantDetailsState {
 
   final String id;
   final String nameEn;
+  final String phone;
   final String descriptionEn;
   final String? categoryName;
   final int branchesCount;
@@ -62,6 +64,7 @@ class RestaurantDetailsController
       return RestaurantDetailsState(
         id: (data["id"] ?? restaurantId).toString(),
         nameEn: (data["nameEn"] ?? "").toString(),
+        phone: (data["phone"] ?? "").toString(),
         descriptionEn: (data["descriptionEn"] ?? "").toString(),
         categoryName:
             category.isEmpty ? null : (category["nameEn"] ?? "").toString(),

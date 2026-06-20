@@ -5,6 +5,7 @@ import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurants_results_header.dart";
 
 class SearchResultsPage extends ConsumerStatefulWidget {
   const SearchResultsPage({
@@ -19,9 +20,20 @@ class SearchResultsPage extends ConsumerStatefulWidget {
 }
 
 class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _localSearchQuery = "";
+
   @override
   void initState() {
     super.initState();
+    _searchController.text = widget.query;
+    _localSearchQuery = widget.query.trim().toLowerCase();
+    _searchController.addListener(() {
+      setState(
+        () => _localSearchQuery = _searchController.text.trim().toLowerCase(),
+      );
+    });
     Future<void>.microtask(() async {
       final RestaurantsFilter current = ref.read(restaurantsFilterProvider);
       ref.read(restaurantsFilterProvider.notifier).state = RestaurantsFilter(
@@ -39,27 +51,46 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
         ref.watch(restaurantsControllerProvider);
+    final String headerTitle = widget.query.isEmpty
+        ? l10n.searchAllRestaurants
+        : l10n.searchResultsFor(widget.query);
 
     return Scaffold(
       body: Column(
         children: <Widget>[
-          _SearchHeader(query: widget.query),
+          RestaurantsResultsHeader(
+            title: headerTitle,
+            searchController: _searchController,
+            searchFocusNode: _searchFocusNode,
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: restaurantsAsync.when(
                 data: (List<RestaurantEntity> restaurants) {
+                  final List<RestaurantEntity> filtered =
+                      filterRestaurantsByQuery(restaurants, _localSearchQuery);
                   if (restaurants.isEmpty) {
                     return Center(child: Text(l10n.restaurantsNoneFound));
                   }
+                  if (filtered.isEmpty) {
+                    return Center(child: Text(l10n.searchNoResults));
+                  }
                   return ListView.builder(
-                    itemCount: restaurants.length,
+                    itemCount: filtered.length,
                     itemBuilder: (BuildContext context, int index) {
-                      final RestaurantEntity restaurant = restaurants[index];
+                      final RestaurantEntity restaurant = filtered[index];
                       return _RestaurantCard(restaurant: restaurant);
                     },
                   );
@@ -69,55 +100,6 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
                 error: (Object error, StackTrace stack) =>
                     Center(child: Text(l10n.restaurantsLoadError)),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchHeader extends StatelessWidget {
-  const _SearchHeader({required this.query});
-
-  final String query;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    return Container(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 48, bottom: 24),
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[Color(0xFF8A4DFF), Color(0xFFFF3F8E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            query.isEmpty
-                ? l10n.searchAllRestaurants
-                : l10n.searchResultsFor(query),
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -203,4 +185,3 @@ class _RestaurantCard extends StatelessWidget {
     );
   }
 }
-

@@ -205,6 +205,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
                     _BranchBottomSheet(
                       branch: _selectedBranch!,
                       theme: theme,
+                      onClose: () => setState(() => _selectedBranch = null),
                       onViewDetails: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -246,12 +247,15 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
   }
 
   Future<BitmapDescriptor> _buildEmojiPinIcon({required bool isSelected}) async {
-    final double fontSize = (isSelected ? 52 : 44) *
-        MediaQuery.of(context).devicePixelRatio.clamp(1.0, 3.0);
+    final double displayW = isSelected ? 28 : 24;
+    final double displayH = isSelected ? 34 : 30;
+    final double fontSize = isSelected ? 26 : 22;
+    final double scale = MediaQuery.of(context).devicePixelRatio.clamp(2.0, 3.0);
+
     final TextPainter painter = TextPainter(
       text: TextSpan(
         text: "📍",
-        style: TextStyle(fontSize: fontSize),
+        style: TextStyle(fontSize: fontSize * scale),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -261,12 +265,16 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
     final Canvas canvas = Canvas(recorder);
     painter.paint(canvas, Offset.zero);
     final ui.Image image = await recorder.endRecording().toImage(
-      width.ceil().clamp(1, 256),
-      height.ceil().clamp(1, 256),
+      width.ceil().clamp(1, 128),
+      height.ceil().clamp(1, 128),
     );
     final ByteData? png =
         await image.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.bytes(png!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(
+      png!.buffer.asUint8List(),
+      width: displayW,
+      height: displayH,
+    );
   }
 
   void _primePinIcons() {
@@ -808,41 +816,83 @@ class _BranchBottomSheet extends StatelessWidget {
   const _BranchBottomSheet({
     required this.branch,
     required this.theme,
+    required this.onClose,
     required this.onViewDetails,
     required this.onNavigate,
   });
 
   final BranchWithDistance branch;
   final ThemeData theme;
+  final VoidCallback onClose;
   final VoidCallback onViewDetails;
   final VoidCallback onNavigate;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return DraggableScrollableSheet(
-      initialChildSize: 0.65,
-      minChildSize: 0.28,
-      maxChildSize: 0.9,
+      initialChildSize: 0.55,
+      minChildSize: 0.38,
+      maxChildSize: 0.92,
+      snap: true,
+      snapSizes: const <double>[0.38, 0.55, 0.92],
       builder: (BuildContext context, ScrollController scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(AppRadii.lg)),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.shadow.withValues(alpha: 0.2),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+        return Material(
+          color: theme.colorScheme.surface,
+          elevation: 12,
+          shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.2),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(AppRadii.lg)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: <Widget>[
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 4, 0),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(
+                          l10n.mapSheetRestaurantDetails,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: onClose,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _BranchInfoContent(
+                  branch: branch,
+                  theme: theme,
+                  scrollController: scrollController,
+                ),
+              ),
+              _BranchActionBar(
+                theme: theme,
+                onViewDetails: onViewDetails,
+                onNavigate: onNavigate,
               ),
             ],
-          ),
-          child: _BranchPanelContent(
-            branch: branch,
-            theme: theme,
-            scrollController: scrollController,
-            onViewDetails: onViewDetails,
-            onNavigate: onNavigate,
           ),
         );
       },
@@ -905,13 +955,16 @@ class _BranchSidePanel extends StatelessWidget {
               ),
               const Divider(height: 1),
               Expanded(
-                child: _BranchPanelContent(
+                child: _BranchInfoContent(
                   branch: branch,
                   theme: theme,
                   scrollController: null,
-                  onViewDetails: onViewDetails,
-                  onNavigate: onNavigate,
                 ),
+              ),
+              _BranchActionBar(
+                theme: theme,
+                onViewDetails: onViewDetails,
+                onNavigate: onNavigate,
               ),
             ],
           ),
@@ -921,20 +974,16 @@ class _BranchSidePanel extends StatelessWidget {
   }
 }
 
-class _BranchPanelContent extends ConsumerWidget {
-  const _BranchPanelContent({
+class _BranchInfoContent extends ConsumerWidget {
+  const _BranchInfoContent({
     required this.branch,
     required this.theme,
     required this.scrollController,
-    required this.onViewDetails,
-    required this.onNavigate,
   });
 
   final BranchWithDistance branch;
   final ThemeData theme;
   final ScrollController? scrollController;
-  final VoidCallback onViewDetails;
-  final VoidCallback onNavigate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -952,170 +1001,289 @@ class _BranchPanelContent extends ConsumerWidget {
     final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
         ref.watch(restaurantPhotosControllerProvider(b.restaurantId));
 
-    final String? categoryName = detailsAsync.valueOrNull?.categoryName;
-    final String? description = detailsAsync.valueOrNull?.descriptionEn;
+    final RestaurantDetailsState? details = detailsAsync.valueOrNull;
+    final String? categoryName = details?.categoryName;
+    final String? description = details?.descriptionEn;
+    final String phone = details?.phone.trim() ?? "";
+    final double avgRating = details?.avgRating ?? 0;
+    final List<RestaurantFacility> facilities = details?.facilities ?? <RestaurantFacility>[];
     final String? imageUrl = photosAsync.valueOrNull?.isNotEmpty == true
         ? photosAsync.valueOrNull!.first.imageUrl
         : null;
+    final String restaurantName = details?.nameEn ?? "";
 
-    return SingleChildScrollView(
+    return ListView(
       controller: scrollController,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 160,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (BuildContext context, String url) =>
-                          _ImagePlaceholder(theme: theme),
-                      errorWidget: (BuildContext context, String url, _) =>
-                          _ImagePlaceholder(theme: theme),
-                    )
-                  : _ImagePlaceholder(theme: theme),
-            ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      children: <Widget>[
+        Container(
+          height: 160,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.md),
           ),
-          const SizedBox(height: 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            child: imageUrl != null && imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (BuildContext context, String url) =>
+                        _ImagePlaceholder(theme: theme),
+                    errorWidget: (BuildContext context, String url, _) =>
+                        _ImagePlaceholder(theme: theme),
+                  )
+                : _ImagePlaceholder(theme: theme),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          branchName,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (restaurantName.isNotEmpty &&
+            restaurantName.toLowerCase() != branchName.toLowerCase()) ...<Widget>[
+          const SizedBox(height: 4),
           Text(
-            branchName,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
+            restaurantName,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
-          if (categoryName != null && categoryName.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                categoryName,
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-          Row(
-            children: [
+        ],
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: <Widget>[
+            if (categoryName != null && categoryName.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: openNow
-                      ? Colors.green.withValues(alpha: 0.12)
-                      : Colors.red.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  openNow ? l10n.openNow : l10n.closed,
+                  categoryName,
                   style: TextStyle(
-                    color: openNow
-                        ? Colors.green.shade700
-                        : Colors.red.shade700,
-                    fontSize: 12,
+                    color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
               ),
-            ],
-          ),
-          if (todayHours != null && todayHours.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              todayHours,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-                fontWeight: FontWeight.w500,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: openNow
+                    ? Colors.green.withValues(alpha: 0.12)
+                    : Colors.red.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+              ),
+              child: Text(
+                openNow ? l10n.openNow : l10n.closed,
+                style: TextStyle(
+                  color: openNow ? Colors.green.shade700 : Colors.red.shade700,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ] else if (todayHours != null && todayHours.isEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              l10n.branchClosedToday,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                fontWeight: FontWeight.w500,
+            if (avgRating > 0)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.star_rounded,
+                    size: 16,
+                    color: Colors.amber.shade700,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    avgRating.toStringAsFixed(1),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-            ),
           ],
-          if (description != null && description.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              description,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                height: 1.5,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          const SizedBox(height: 12),
+        ),
+        if (todayHours != null && todayHours.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 10),
           Row(
-            children: [
+            children: <Widget>[
               Icon(
-                Icons.location_on_outlined,
+                Icons.schedule_rounded,
                 size: 18,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  b.address,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  "${l10n.branchToday}: $todayHours",
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+        ] else if (todayHours != null && todayHours.isEmpty) ...<Widget>[
+          const SizedBox(height: 10),
           Text(
-            l10n.distanceKm(branch.distanceKm.toStringAsFixed(1)),
+            l10n.branchClosedToday,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+        if (phone.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 10),
           Row(
-            children: [
+            children: <Widget>[
+              Icon(
+                Icons.phone_outlined,
+                size: 18,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              const SizedBox(width: 6),
               Expanded(
-                child: FilledButton.icon(
-                  onPressed: onViewDetails,
-                  icon: const Icon(Icons.info_outline_rounded, size: 20),
-                  label: Text(l10n.mapViewDetails),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  phone,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              IconButton.filled(
-                onPressed: onNavigate,
-                icon: const Icon(Icons.navigation_rounded),
-                tooltip: l10n.mapNavigateTooltip,
-                style: IconButton.styleFrom(
-                  padding: const EdgeInsets.all(12),
-                ),
-              ),
-          ],
+            ],
           ),
         ],
+        if (description != null && description.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              height: 1.5,
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(
+              Icons.location_on_outlined,
+              size: 18,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                b.address,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          l10n.distanceKm(branch.distanceKm.toStringAsFixed(1)),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (facilities.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 16),
+          Text(
+            l10n.branchServicesFacilities,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: facilities.map((RestaurantFacility facility) {
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                ),
+                child: Text(
+                  facility.nameEn,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _BranchActionBar extends StatelessWidget {
+  const _BranchActionBar({
+    required this.theme,
+    required this.onViewDetails,
+    required this.onNavigate,
+  });
+
+  final ThemeData theme;
+  final VoidCallback onViewDetails;
+  final VoidCallback onNavigate;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: 8,
+      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.12),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onViewDetails,
+                icon: const Icon(Icons.info_outline_rounded, size: 20),
+                label: Text(l10n.mapViewDetails),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            IconButton.filled(
+              onPressed: onNavigate,
+              icon: const Icon(Icons.navigation_rounded),
+              tooltip: l10n.mapNavigateTooltip,
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

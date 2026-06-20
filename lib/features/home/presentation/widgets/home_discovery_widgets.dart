@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
@@ -31,15 +32,13 @@ class HomeDiscoverHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
+    final BrandGradients? gradients =
+        Theme.of(context).extension<BrandGradients>();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        gradient: const LinearGradient(
-          colors: <Color>[Color(0xFF8A4DFF), Color(0xFFFF3F8E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: gradients?.primary,
       ),
       child: Row(
         children: <Widget>[
@@ -75,12 +74,12 @@ class HomeDiscoverHeader extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: onFilterTap,
-              child: const SizedBox(
+              child: SizedBox(
                 width: 48,
                 height: 48,
                 child: Icon(
                   Icons.tune_rounded,
-                  color: Color(0xFF8A4DFF),
+                  color: theme.colorScheme.primary,
                   size: 28,
                 ),
               ),
@@ -537,7 +536,7 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                             ? l10n.filtersActiveOne
                             : l10n.filtersActiveMany(active),
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF8A4DFF),
+                          color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -849,11 +848,9 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                       },
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: <Color>[Color(0xFF8A4DFF), Color(0xFFFF3F8E)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          gradient: Theme.of(context)
+                              .extension<BrandGradients>()
+                              ?.primary,
                           borderRadius: BorderRadius.circular(AppRadii.lg),
                         ),
                         child: Center(
@@ -912,7 +909,7 @@ class _FilterExpansionTile extends StatelessWidget {
           ? Text(
               value!,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF8A4DFF),
+                color: theme.colorScheme.primary,
               ),
             )
           : null,

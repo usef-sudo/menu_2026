@@ -5,12 +5,16 @@ import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/legal/legal_urls.dart";
 import "package:menu_2026/core/settings/app_settings_controller.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
 import "package:menu_2026/features/favorites/presentation/pages/favorites_page.dart";
 import "package:menu_2026/features/map_nearby/presentation/pages/nearby_map_page.dart";
 import "package:menu_2026/features/onboarding/presentation/pages/select_language_page.dart";
+import "package:menu_2026/features/profile/data/user_profile_dto.dart";
 import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
+import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
+import "package:menu_2026/features/profile/presentation/pages/edit_profile_page.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 import "package:url_launcher/url_launcher.dart";
 
@@ -34,6 +38,8 @@ class ProfilePage extends ConsumerWidget {
     final session = ref.watch(sessionControllerProvider);
     final favorites = ref.watch(favoritesControllerProvider);
     final stats = ref.watch(profileStatsControllerProvider);
+    final AsyncValue<UserProfileDto?> userProfile =
+        ref.watch(userProfileControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     final bool isAdmin = session.valueOrNull?.isAdmin ?? false;
     final int favoritesCount = favorites.valueOrNull?.length ?? 0;
@@ -47,11 +53,83 @@ class ProfilePage extends ConsumerWidget {
       children: <Widget>[
         _ProfileHeader(
           isLoggedIn: isLoggedIn,
+          profile: userProfile.valueOrNull,
+          profileLoading: userProfile.isLoading,
           favoritesCount: favoritesCount,
           visitedCount: visitedCount,
           reviewCount: reviewCount,
           l10n: l10n,
         ),
+        if (isLoggedIn) ...<Widget>[
+          const SizedBox(height: 16),
+          userProfile.when(
+            data: (UserProfileDto? profile) {
+              if (profile == null) {
+                return _ProfileInfoCard(
+                  child: Text(
+                    l10n.profileLoadError,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                );
+              }
+              return _ProfileInfoCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.profileAccountDetails,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _InfoRow(
+                      icon: Icons.email_outlined,
+                      label: l10n.emailLabel,
+                      value: profile.email,
+                    ),
+                    if (profile.phoneNumber?.trim().isNotEmpty == true) ...<Widget>[
+                      const SizedBox(height: 10),
+                      _InfoRow(
+                        icon: Icons.phone_outlined,
+                        label: l10n.registerPhoneNumberLabel,
+                        value: profile.phoneNumber!,
+                      ),
+                    ],
+                    if (profile.birthDate?.trim().isNotEmpty == true) ...<Widget>[
+                      const SizedBox(height: 10),
+                      _InfoRow(
+                        icon: Icons.cake_outlined,
+                        label: l10n.registerBirthDateLabel,
+                        value: profile.birthDate!,
+                      ),
+                    ],
+                    if (profile.gender?.trim().isNotEmpty == true) ...<Widget>[
+                      const SizedBox(height: 10),
+                      _InfoRow(
+                        icon: Icons.wc_outlined,
+                        label: l10n.registerGender,
+                        value: genderLabel(l10n, profile.gender),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: CircularProgressIndicator.adaptive(),
+              ),
+            ),
+            error: (_, __) => _ProfileInfoCard(
+              child: Text(
+                l10n.profileLoadError,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         if (isLoggedIn) ...<Widget>[
           Text(
@@ -161,14 +239,26 @@ class ProfilePage extends ConsumerWidget {
             label: l10n.profileEditProfile,
             subtitle: l10n.profileEditSubtitle,
             onTap: () {
-              // Profile editing flow can be added later.
+              final UserProfileDto? profile = userProfile.valueOrNull;
+              if (profile == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.profileLoadError)),
+                );
+                return;
+              }
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => EditProfilePage(profile: profile),
+                ),
+              );
             },
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () => ref
-                .read(sessionControllerProvider.notifier)
-                .logout(),
+            onPressed: () async {
+              await ref.read(sessionControllerProvider.notifier).logout();
+              ref.invalidate(userProfileControllerProvider);
+            },
             icon: const Icon(Icons.logout),
             label: Text(l10n.profileLogout),
           ),
@@ -188,6 +278,8 @@ class ProfilePage extends ConsumerWidget {
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.isLoggedIn,
+    required this.profile,
+    required this.profileLoading,
     required this.favoritesCount,
     required this.visitedCount,
     required this.reviewCount,
@@ -195,6 +287,8 @@ class _ProfileHeader extends StatelessWidget {
   });
 
   final bool isLoggedIn;
+  final UserProfileDto? profile;
+  final bool profileLoading;
   final int favoritesCount;
   final int visitedCount;
   final int reviewCount;
@@ -203,18 +297,13 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final BrandGradients? gradients =
+        Theme.of(context).extension<BrandGradients>();
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        gradient: const LinearGradient(
-          colors: <Color>[
-            Color(0xFF8A4DFF),
-            Color(0xFFFF3F8E),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: gradients?.primary,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,11 +317,28 @@ class _ProfileHeader extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: Colors.white24,
                 ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: Colors.white,
-                  size: 32,
-                ),
+                child: profileLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: CircularProgressIndicator.adaptive(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Center(
+                        child: isLoggedIn && profile != null
+                            ? Text(
+                                profile!.initials,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person_outline,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -241,7 +347,7 @@ class _ProfileHeader extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       isLoggedIn
-                          ? l10n.profileLoggedInUser
+                          ? (profile?.displayName ?? l10n.profileLoggedInUser)
                           : l10n.profileGuestUser,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: Colors.white,
@@ -251,12 +357,22 @@ class _ProfileHeader extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       isLoggedIn
-                          ? l10n.profileTapSettings
+                          ? (profile?.email ?? l10n.profileTapSettings)
                           : l10n.profileSignInSync,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white70,
                       ),
                     ),
+                    if (isLoggedIn &&
+                        profile?.phoneNumber?.trim().isNotEmpty == true) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(
+                        profile!.phoneNumber!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white60,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -309,6 +425,77 @@ class _HeaderStat extends StatelessWidget {
           label,
           style: theme.textTheme.bodySmall?.copyWith(
             color: Colors.white70,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileInfoCard extends StatelessWidget {
+  const _ProfileInfoCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          icon,
+          size: 20,
+          color: theme.colorScheme.primary,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ],

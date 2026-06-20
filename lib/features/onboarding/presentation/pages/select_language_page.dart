@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/settings/app_settings_controller.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
+import "package:menu_2026/core/theme/tokens/app_colors.dart";
 
 class SelectLanguagePage extends ConsumerWidget {
   const SelectLanguagePage({super.key, this.onDone});
@@ -13,15 +15,12 @@ class SelectLanguagePage extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
 
+    final BrandGradients? gradients =
+        Theme.of(context).extension<BrandGradients>();
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFFF6F4FF), Color(0xFFFFF3FB)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: gradients?.background),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -52,7 +51,10 @@ class SelectLanguagePage extends ConsumerWidget {
                         subtitle: "EN",
                         icon: Icons.language_rounded,
                         gradient: const LinearGradient(
-                          colors: <Color>[Color(0xFF2D9CFF), Color(0xFF3EE4FF)],
+                          colors: <Color>[
+                            AppColors.accent,
+                            Color(0xFF4DD0E1),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -63,11 +65,7 @@ class SelectLanguagePage extends ConsumerWidget {
                         title: l10n.languageArabic,
                         subtitle: "AR",
                         icon: Icons.translate_rounded,
-                        gradient: const LinearGradient(
-                          colors: <Color>[Color(0xFF8A4DFF), Color(0xFFE05BFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: BrandGradients.light.primary,
                         onTap: () => _select(ref, "ar"),
                       ),
                     ],

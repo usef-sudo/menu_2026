@@ -3,6 +3,7 @@ import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/core/network/safe_request.dart";
 import "package:menu_2026/features/auth/data/models/login_response_dto.dart";
+import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
 
 class AuthController extends AutoDisposeAsyncNotifier<void> {
   @override
@@ -34,6 +35,12 @@ class AuthController extends AutoDisposeAsyncNotifier<void> {
           await ref
               .read(tokenStoreProvider)
               .saveRefreshToken(payload.refreshToken);
+        }
+        if (payload.user != null) {
+          ref.read(userProfileControllerProvider.notifier).state =
+              AsyncData(payload.user);
+        } else {
+          await ref.read(userProfileControllerProvider.notifier).refreshProfile();
         }
         return true;
       },

@@ -5,6 +5,8 @@ import "package:menu_2026/core/network/dio_client.dart";
 import "package:menu_2026/features/admin/data/admin_user_dto.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
 import "package:menu_2026/features/auth/data/models/login_response_dto.dart";
+import "package:menu_2026/features/voting/domain/branch_vote_state.dart";
+import "package:menu_2026/features/profile/data/user_profile_dto.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/categories/data/models/category_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
@@ -764,13 +766,16 @@ class MenuApi {
     return envelope.data;
   }
 
-  Future<Map<String, int>> getBranchVotes(String branchId) async {
-    final response = await _dio.get<dynamic>("/votes/branches/$branchId/votes");
-    final payload = response.data as Map<String, dynamic>;
-    return <String, int>{
-      "upVotes": int.tryParse((payload["upVotes"] ?? 0).toString()) ?? 0,
-      "downVotes": int.tryParse((payload["downVotes"] ?? 0).toString()) ?? 0,
-    };
+  Future<BranchVoteState> getBranchVotes(String branchId) async {
+    final Response<dynamic> response =
+        await _dio.get<dynamic>("/votes/branches/$branchId/votes");
+    final ApiEnvelope<BranchVoteState> envelope =
+        ApiEnvelope.fromDynamic<BranchVoteState>(
+      response.data,
+      (dynamic data) =>
+          BranchVoteState.fromJson(Map<String, dynamic>.from(data as Map)),
+    );
+    return envelope.data;
   }
 
   Future<List<FacilityDto>> getFacilities() async {
@@ -785,11 +790,18 @@ class MenuApi {
         .toList(growable: false);
   }
 
-  Future<void> voteForBranch(String branchId, int vote) async {
-    await _dio.post<dynamic>(
+  Future<BranchVoteState> voteForBranch(String branchId, int vote) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
       "/votes/branches/$branchId/vote",
       data: <String, dynamic>{"vote": vote},
     );
+    final ApiEnvelope<BranchVoteState> envelope =
+        ApiEnvelope.fromDynamic<BranchVoteState>(
+      response.data,
+      (dynamic data) =>
+          BranchVoteState.fromJson(Map<String, dynamic>.from(data as Map)),
+    );
+    return envelope.data;
   }
 
   Future<LoginResponseDto> login({
@@ -829,6 +841,29 @@ class MenuApi {
       "/users/forgot-password",
       data: <String, dynamic>{"email": email},
     );
+  }
+
+  Future<UserProfileDto> getCurrentUser() async {
+    final Response<dynamic> response = await _dio.get<dynamic>("/users/me");
+    return UserProfileDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<UserProfileDto> updateCurrentUser({
+    required String name,
+    required String birthDate,
+    required String gender,
+    required String phoneNumber,
+  }) async {
+    final Response<dynamic> response = await _dio.patch<dynamic>(
+      "/users/me",
+      data: <String, dynamic>{
+        "name": name,
+        "birthDate": birthDate,
+        "gender": gender,
+        "phoneNumber": phoneNumber,
+      },
+    );
+    return UserProfileDto.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<Set<String>> getFavoriteRestaurantIds() async {

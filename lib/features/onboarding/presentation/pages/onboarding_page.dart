@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
+import "package:menu_2026/core/theme/tokens/app_colors.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 
@@ -44,22 +46,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
   List<_OnboardingSlide> _slides(AppLocalizations l) => <_OnboardingSlide>[
         _OnboardingSlide(
           icon: Icons.search_rounded,
-          startColor: const Color(0xFF8A4DFF),
-          endColor: const Color(0xFFE05BFF),
+          startColor: AppColors.gradientStart,
+          endColor: AppColors.gradientMid,
           title: l.onboardingDiscoverTitle,
           description: l.onboardingDiscoverBody,
         ),
         _OnboardingSlide(
           icon: Icons.place_rounded,
-          startColor: const Color(0xFF2D9CFF),
-          endColor: const Color(0xFF3EE4FF),
+          startColor: AppColors.accent,
+          endColor: const Color(0xFF4DD0E1),
           title: l.onboardingBranchesTitle,
           description: l.onboardingBranchesBody,
         ),
         _OnboardingSlide(
           icon: Icons.casino_rounded,
-          startColor: const Color(0xFFFF3F8E),
-          endColor: const Color(0xFFFF7B65),
+          startColor: AppColors.gradientMid,
+          endColor: AppColors.gradientEnd,
           title: l.onboardingSpinTitle,
           description: l.onboardingSpinBody,
         ),
@@ -101,15 +103,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final List<_OnboardingSlide> slides = _slides(l10n);
     final bool isLast = _currentIndex == slides.length - 1;
 
+    final BrandGradients? gradients =
+        Theme.of(context).extension<BrandGradients>();
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFFFDF2FF), Color(0xFFF8F5FF)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: gradients?.background),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),

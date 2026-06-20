@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 
 class HomeSpinCtaCard extends StatelessWidget {
@@ -10,6 +11,8 @@ class HomeSpinCtaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final BrandGradients? gradients =
+        Theme.of(context).extension<BrandGradients>();
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadii.lg),
       onTap: onTap,
@@ -17,11 +20,7 @@ class HomeSpinCtaCard extends StatelessWidget {
         height: 64,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.lg),
-          gradient: const LinearGradient(
-            colors: <Color>[Color(0xFFFF7B65), Color(0xFFFF3F8E)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
+          gradient: gradients?.primary,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(

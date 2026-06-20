@@ -6,6 +6,7 @@ import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurants_results_header.dart";
 
 class CategoryRestaurantsPage extends ConsumerStatefulWidget {
   const CategoryRestaurantsPage({
@@ -24,15 +25,31 @@ class CategoryRestaurantsPage extends ConsumerStatefulWidget {
 
 class _CategoryRestaurantsPageState
     extends ConsumerState<CategoryRestaurantsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _localSearchQuery = "";
+
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(
+        () => _localSearchQuery = _searchController.text.trim().toLowerCase(),
+      );
+    });
     Future<void>.microtask(() async {
       ref.read(restaurantsFilterProvider.notifier).state = RestaurantsFilter(
         categoryId: widget.categoryId,
       );
       await ref.read(restaurantsControllerProvider.notifier).refresh();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -45,19 +62,28 @@ class _CategoryRestaurantsPageState
     return Scaffold(
       body: Column(
         children: <Widget>[
-          _Header(title: widget.categoryName),
+          RestaurantsResultsHeader(
+            title: widget.categoryName,
+            searchController: _searchController,
+            searchFocusNode: _searchFocusNode,
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: restaurantsAsync.when(
                 data: (List<RestaurantEntity> restaurants) {
+                  final List<RestaurantEntity> filtered =
+                      filterRestaurantsByQuery(restaurants, _localSearchQuery);
                   if (restaurants.isEmpty) {
                     return Center(child: Text(l10n.restaurantsNoneFound));
                   }
+                  if (filtered.isEmpty) {
+                    return Center(child: Text(l10n.searchNoResults));
+                  }
                   return ListView.builder(
-                    itemCount: restaurants.length,
+                    itemCount: filtered.length,
                     itemBuilder: (BuildContext context, int index) {
-                      final RestaurantEntity restaurant = restaurants[index];
+                      final RestaurantEntity restaurant = filtered[index];
                       return _RestaurantCard(restaurant: restaurant);
                     },
                   );
@@ -67,52 +93,6 @@ class _CategoryRestaurantsPageState
                 error: (Object error, StackTrace stack) =>
                     Center(child: Text(l10n.restaurantsLoadError)),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 48, bottom: 24),
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[Color(0xFF8A4DFF), Color(0xFFFF3F8E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ],

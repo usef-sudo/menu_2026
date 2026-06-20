@@ -1,27 +1,33 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/core/network/safe_request.dart";
+import "package:menu_2026/features/voting/domain/branch_vote_state.dart";
 
 class VotingController
-    extends AutoDisposeFamilyAsyncNotifier<Map<String, int>, String> {
+    extends AutoDisposeFamilyAsyncNotifier<BranchVoteState, String> {
   @override
-  Future<Map<String, int>> build(String arg) async {
-    final result = await safeRequest<Map<String, int>>(
+  Future<BranchVoteState> build(String arg) async {
+    final result = await safeRequest<BranchVoteState>(
       () => ref.read(menuApiProvider).getBranchVotes(arg),
     );
     return result.when(
-      success: (Map<String, int> data) => data,
+      success: (BranchVoteState data) => data,
       failure: (failure) => throw failure,
     );
   }
 
-  Future<void> vote(int value) async {
-    final branchId = arg;
-    await safeRequest<void>(
+  Future<bool> vote(int value) async {
+    final String branchId = arg;
+    final result = await safeRequest<BranchVoteState>(
       () => ref.read(menuApiProvider).voteForBranch(branchId, value),
     );
-    state = await AsyncValue.guard(
-      () => ref.read(menuApiProvider).getBranchVotes(branchId),
+
+    return result.when(
+      success: (BranchVoteState summary) {
+        state = AsyncData(summary);
+        return true;
+      },
+      failure: (_) => false,
     );
   }
 }
@@ -29,6 +35,6 @@ class VotingController
 final votingControllerProvider =
     AutoDisposeAsyncNotifierProviderFamily<
       VotingController,
-      Map<String, int>,
+      BranchVoteState,
       String
     >(VotingController.new);

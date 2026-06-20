@@ -7,12 +7,16 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData light() {
-    final scheme = ColorScheme.fromSeed(
+    final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.light,
       primary: AppColors.primary,
+      onPrimary: Colors.white,
       secondary: AppColors.secondary,
+      onSecondary: AppColors.textDark,
+      tertiary: AppColors.accent,
       surface: AppColors.surfaceLight,
+      onSurface: AppColors.textDark,
     );
 
     return ThemeData(
@@ -20,36 +24,56 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.backgroundLight,
       extensions: const <ThemeExtension<dynamic>>[BrandGradients.light],
-      appBarTheme: const AppBarTheme(centerTitle: true),
+      appBarTheme: AppBarTheme(
+        centerTitle: true,
+        backgroundColor: AppColors.backgroundLight,
+        foregroundColor: AppColors.textDark,
+      ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceLight,
         elevation: 1,
+        shadowColor: AppColors.primary.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
         ),
       ),
       chipTheme: ChipThemeData(
+        selectedColor: AppColors.primary.withValues(alpha: 0.15),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceLight,
+        focusColor: AppColors.primary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadii.md),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
     );
   }
 
   static ThemeData dark() {
-    final scheme = ColorScheme.fromSeed(
+    final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
-      primary: AppColors.primary,
+      primary: const Color(0xFFFFB74D),
+      onPrimary: AppColors.textDark,
       secondary: AppColors.secondary,
+      tertiary: AppColors.accent,
       surface: AppColors.surfaceDark,
+      onSurface: AppColors.textLight,
     );
 
     return ThemeData(
@@ -63,6 +87,12 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
         ),
       ),
     );

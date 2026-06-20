@@ -638,6 +638,42 @@ abstract class AppLocalizations {
   /// **'Update your information'**
   String get profileEditSubtitle;
 
+  /// No description provided for @profileAccountDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Account details'**
+  String get profileAccountDetails;
+
+  /// No description provided for @profileSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get profileSaveChanges;
+
+  /// No description provided for @profileUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully'**
+  String get profileUpdateSuccess;
+
+  /// No description provided for @profileUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update profile'**
+  String get profileUpdateFailed;
+
+  /// No description provided for @profileLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load profile'**
+  String get profileLoadError;
+
+  /// No description provided for @profileEmailReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Email cannot be changed here'**
+  String get profileEmailReadOnly;
+
   /// No description provided for @profileLogout.
   ///
   /// In en, this message translates to:
@@ -2066,6 +2102,12 @@ abstract class AppLocalizations {
   /// **'Search categories...'**
   String get categoriesSearchHint;
 
+  /// No description provided for @restaurantsSearchInResultsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in these results...'**
+  String get restaurantsSearchInResultsHint;
+
   /// No description provided for @categoriesLoadError.
   ///
   /// In en, this message translates to:
@@ -2366,6 +2408,18 @@ abstract class AppLocalizations {
   /// **'Please log in to vote.'**
   String get voteLoginRequired;
 
+  /// No description provided for @voteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote saved'**
+  String get voteSuccess;
+
+  /// No description provided for @voteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your vote. Try again.'**
+  String get voteFailed;
+
   /// No description provided for @spinWhatToEat.
   ///
   /// In en, this message translates to:
@@ -2407,6 +2461,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Address'**
   String get branchAddressLabel;
+
+  /// No description provided for @branchCallNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Call branch now'**
+  String get branchCallNow;
+
+  /// No description provided for @branchGetDirections.
+  ///
+  /// In en, this message translates to:
+  /// **'Get directions'**
+  String get branchGetDirections;
+
+  /// No description provided for @branchNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number not available'**
+  String get branchNoPhone;
+
+  /// No description provided for @branchToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get branchToday;
 
   /// No description provided for @branchHoursNotAvailable.
   ///
@@ -2515,6 +2593,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Explore this category'**
   String get spinExploreCategory;
+
+  /// No description provided for @spinResultPlaceholderCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Spin the wheel to discover what to eat'**
+  String get spinResultPlaceholderCategory;
+
+  /// No description provided for @spinResultPlaceholderRestaurant.
+  ///
+  /// In en, this message translates to:
+  /// **'Spin the wheel to discover where to eat'**
+  String get spinResultPlaceholderRestaurant;
+
+  /// No description provided for @spinResultSpinningHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost there…'**
+  String get spinResultSpinningHint;
 
   /// No description provided for @mapNoOpenBranches.
   ///

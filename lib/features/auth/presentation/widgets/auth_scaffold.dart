@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
 
 class AuthScaffold extends StatelessWidget {
@@ -36,15 +37,11 @@ class AuthScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
+    final BrandGradients? gradients =
+        Theme.of(context).extension<BrandGradients>();
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: <Color>[Color(0xFFFDF2FF), Color(0xFFF8F5FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        decoration: BoxDecoration(gradient: gradients?.background),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -121,18 +118,14 @@ class _AppLogo extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     return Column(
       children: <Widget>[
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              colors: <Color>[Color(0xFF8A4DFF), Color(0xFFFF3F8E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Image.asset(
+            "assets/images/menu_logo.png",
+            width: 88,
+            height: 88,
+            fit: BoxFit.cover,
           ),
-          child: const Icon(Icons.restaurant_rounded, color: Colors.white),
         ),
         const SizedBox(height: 16),
         Text(

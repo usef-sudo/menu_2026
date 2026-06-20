@@ -6,6 +6,7 @@ import "package:flutter_fortune_wheel/flutter_fortune_wheel.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/theme/tokens/app_colors.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/widgets/gradient_primary_button.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
@@ -265,13 +266,14 @@ class _SpinPageState extends ConsumerState<SpinPage> {
                 ),
               ),
             ),
-            if (result != null)
-              _ResultCard(
-                result: result,
-                onClearResult: () {
-                  ref.read(spinControllerProvider.notifier).clearResult();
-                },
-              ),
+            _ResultCard(
+              mode: _mode,
+              result: result,
+              isSpinning: _isSpinning,
+              onClearResult: () {
+                ref.read(spinControllerProvider.notifier).clearResult();
+              },
+            ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -383,16 +385,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
     }
 
     _segments = min<int>(8, items.length);
-    const List<Color> segmentColors = <Color>[
-      Color(0xFF8A4DFF),
-      Color(0xFF6B3FAF),
-      Color(0xFFFF3F8E),
-      Color(0xFFE8357A),
-      Color(0xFF8A4DFF),
-      Color(0xFF6B3FAF),
-      Color(0xFFFF3F8E),
-      Color(0xFFE8357A),
-    ];
+    const List<Color> segmentColors = AppColors.wheelSegmentColors;
 
     return FortuneWheel(
       selected: _selectedIndexController.stream,
@@ -400,7 +393,7 @@ class _SpinPageState extends ConsumerState<SpinPage> {
       indicators: const <FortuneIndicator>[
         FortuneIndicator(
           alignment: Alignment.topCenter,
-          child: TriangleIndicator(color: Color(0xFFFFD700)),
+          child: TriangleIndicator(color: AppColors.secondary),
         ),
       ],
       items: List.generate(_segments, (int index) {
@@ -434,15 +427,26 @@ class _SpinPageState extends ConsumerState<SpinPage> {
 }
 
 class _ResultCard extends StatelessWidget {
-  const _ResultCard({required this.result, required this.onClearResult});
+  const _ResultCard({
+    required this.mode,
+    required this.result,
+    required this.isSpinning,
+    required this.onClearResult,
+  });
 
-  final SpinResult result;
+  final SpinKind mode;
+  final SpinResult? result;
+  final bool isSpinning;
   final VoidCallback onClearResult;
+
+  bool get _hasResult => result != null && result!.kind == mode;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
+    final Color mutedColor = theme.colorScheme.onSurface.withValues(alpha: 0.55);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
@@ -455,7 +459,7 @@ class _ResultCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                result.kind == SpinKind.category
+                mode == SpinKind.category
                     ? l10n.spinYouShouldEat
                     : l10n.spinWhereToEatEllipsis,
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -464,59 +468,105 @@ class _ResultCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                result.name,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              if (result.distanceKm != null) ...<Widget>[
-                const SizedBox(height: 4),
-                Text(
-                  l10n.distanceKm(result.distanceKm!.toStringAsFixed(1)),
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-              if (result.reason != null) ...<Widget>[
-                const SizedBox(height: 8),
-                Text(
-                  result.reason!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        if (result.kind == SpinKind.category &&
-                            result.id != null) {
-                          context.push(
-                            "/categories/${result.id}",
-                            extra: result.name,
-                          );
-                        } else if (result.kind == SpinKind.restaurant &&
-                            result.id != null) {
-                          context.push("/restaurant/${result.id}");
-                        }
-                      },
+              if (isSpinning)
+                Row(
+                  children: <Widget>[
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Text(
-                        result.kind == SpinKind.category
-                            ? l10n.spinExploreCategory
-                            : l10n.offersViewRestaurant,
+                        l10n.spinResultSpinningHint,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: mutedColor,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
+                  ],
+                )
+              else if (_hasResult) ...<Widget>[
+                Text(
+                  result!.name,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: onClearResult,
-                    child: Text(l10n.spinTryAgain),
+                ),
+                if (result!.distanceKm != null) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.distanceKm(result!.distanceKm!.toStringAsFixed(1)),
+                    style: theme.textTheme.bodySmall,
                   ),
                 ],
-              ),
+                if (result!.reason != null) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Text(
+                    result!.reason!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ]
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(
+                      Icons.casino_outlined,
+                      size: 28,
+                      color: mutedColor,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        mode == SpinKind.category
+                            ? l10n.spinResultPlaceholderCategory
+                            : l10n.spinResultPlaceholderRestaurant,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: mutedColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              if (_hasResult && !isSpinning) ...<Widget>[
+                const SizedBox(height: 12),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          if (result!.kind == SpinKind.category &&
+                              result!.id != null) {
+                            context.push(
+                              "/categories/${result!.id}",
+                              extra: result!.name,
+                            );
+                          } else if (result!.kind == SpinKind.restaurant &&
+                              result!.id != null) {
+                            context.push("/restaurant/${result!.id}");
+                          }
+                        },
+                        child: Text(
+                          result!.kind == SpinKind.category
+                              ? l10n.spinExploreCategory
+                              : l10n.offersViewRestaurant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: onClearResult,
+                      child: Text(l10n.spinTryAgain),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

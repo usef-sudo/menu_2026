@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/theme/theme_extensions/brand_gradients.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
@@ -66,14 +67,9 @@ class FavoritesPage extends ConsumerWidget {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppRadii.lg),
-                      gradient: const LinearGradient(
-                        colors: <Color>[
-                          Color(0xFF8A4DFF),
-                          Color(0xFFFF3F8E),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: Theme.of(context)
+                          .extension<BrandGradients>()
+                          ?.primary,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

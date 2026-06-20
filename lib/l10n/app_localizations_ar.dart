@@ -283,6 +283,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileEditSubtitle => 'تحديث معلوماتك';
 
   @override
+  String get profileAccountDetails => 'تفاصيل الحساب';
+
+  @override
+  String get profileSaveChanges => 'حفظ التغييرات';
+
+  @override
+  String get profileUpdateSuccess => 'تم تحديث الملف بنجاح';
+
+  @override
+  String get profileUpdateFailed => 'تعذّر تحديث الملف';
+
+  @override
+  String get profileLoadError => 'تعذّر تحميل الملف';
+
+  @override
+  String get profileEmailReadOnly => 'لا يمكن تغيير البريد من هنا';
+
+  @override
   String get profileLogout => 'تسجيل الخروج';
 
   @override
@@ -1023,6 +1041,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get categoriesSearchHint => 'ابحث في التصنيفات...';
 
   @override
+  String get restaurantsSearchInResultsHint => 'ابحث في هذه النتائج...';
+
+  @override
   String get categoriesLoadError => 'تعذّر تحميل التصنيفات';
 
   @override
@@ -1182,6 +1203,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voteLoginRequired => 'يرجى تسجيل الدخول للتصويت.';
 
   @override
+  String get voteSuccess => 'تم حفظ التصويت';
+
+  @override
+  String get voteFailed => 'تعذّر حفظ التصويت. حاول مرة أخرى.';
+
+  @override
   String get spinWhatToEat => 'ماذا تأكل؟';
 
   @override
@@ -1201,6 +1228,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get branchAddressLabel => 'العنوان';
+
+  @override
+  String get branchCallNow => 'اتصل بالفرع الآن';
+
+  @override
+  String get branchGetDirections => 'احصل على الاتجاهات';
+
+  @override
+  String get branchNoPhone => 'رقم الهاتف غير متوفر';
+
+  @override
+  String get branchToday => 'اليوم';
 
   @override
   String get branchHoursNotAvailable => 'الأوقات غير متوفرة';
@@ -1260,6 +1299,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get spinExploreCategory => 'استكشف هذا التصنيف';
+
+  @override
+  String get spinResultPlaceholderCategory => 'دوّر العجلة لاكتشاف ماذا تأكل';
+
+  @override
+  String get spinResultPlaceholderRestaurant => 'دوّر العجلة لاكتشاف أين تأكل';
+
+  @override
+  String get spinResultSpinningHint => 'لحظات…';
 
   @override
   String get mapNoOpenBranches => 'لا فروع مفتوحة قريبة';

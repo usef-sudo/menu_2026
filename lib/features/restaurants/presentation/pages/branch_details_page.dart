@@ -9,9 +9,10 @@ import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
-import "package:menu_2026/features/profile/presentation/controllers/profile_stats_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/menu_images_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
+import "package:menu_2026/features/voting/domain/branch_vote_state.dart";
 import "package:menu_2026/features/voting/presentation/controllers/voting_controller.dart";
 import "package:url_launcher/url_launcher.dart";
 
@@ -29,38 +30,68 @@ class BranchDetailsPage extends ConsumerWidget {
             : (branch.branch.nameEn.isNotEmpty
                 ? branch.branch.nameEn
                 : branch.branch.nameAr);
-    final AsyncValue<Map<String, int>> votes =
+    final AsyncValue<BranchVoteState> votes =
         ref.watch(votingControllerProvider(branch.branch.id));
+    final String phone = ref
+            .watch(restaurantDetailsControllerProvider(branch.branch.restaurantId))
+            .valueOrNull
+            ?.phone
+            .trim() ??
+        "";
+    final bool openNow = branch.branch.isEffectivelyOpenNow();
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(branchTitle),
+        centerTitle: false,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: <Widget>[
-          _AddressCard(address: branch.branch.address),
+
+          _BranchContactCard(
+            branch: branch,
+            openNow: openNow,
+            phone: phone,
+            onCall: () => _callBranch(context, phone),
+            onNavigate: () => _openMaps(branch),
+          ),
           const SizedBox(height: 12),
-          // _MapCard(
-          //   lat: branch.branch.latitude,
-          //   lng: branch.branch.longitude,
-          //   onTap: () => _openMaps(branch),
-          // ),
-          // const SizedBox(height: 12),
-          _OpeningHoursCard(branch: branch),
+
+          _ViewMenuButton(branchId: branch.branch.id),
+
+          const SizedBox(height: 12),
+          _OpeningHoursExpandableCard(branch: branch),
           const SizedBox(height: 12),
           _FacilitiesSection(branch: branch),
           const SizedBox(height: 12),
-          _VotesSummaryCard(votes: votes),
-          const SizedBox(height: 16),
-          _NavigateButton(onPressed: () => _openMaps(branch)),
-          const SizedBox(height: 16),
-          _ViewMenuButton(branchId: branch.branch.id),
-          const SizedBox(height: 16),
-          _VoteButtons(branchId: branch.branch.id),
+          _VotesSummaryCard(
+            branchId: branch.branch.id,
+            votes: votes,
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _callBranch(BuildContext context, String phone) async {
+    final l10n = context.l10n;
+    final String digits = phone.replaceAll(RegExp(r"[^\d+]"), "");
+    if (digits.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.branchNoPhone)),
+      );
+      return;
+    }
+    final Uri uri = Uri(scheme: "tel", path: digits);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.branchNoPhone)),
+      );
+    }
   }
 
   Future<void> _openMaps(BranchWithDistance b) async {
@@ -73,30 +104,123 @@ class BranchDetailsPage extends ConsumerWidget {
   }
 }
 
-class _AddressCard extends StatelessWidget {
-  const _AddressCard({required this.address});
+class _BranchContactCard extends StatelessWidget {
+  const _BranchContactCard({
+    required this.branch,
+    required this.openNow,
+    required this.phone,
+    required this.onCall,
+    required this.onNavigate,
+  });
 
-  final String address;
+  final BranchWithDistance branch;
+  final bool openNow;
+  final String phone;
+  final VoidCallback onCall;
+  final VoidCallback onNavigate;
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
+    final bool hasPhone = phone.isNotEmpty;
+    final String address = branch.branch.address.trim();
+
     return _InfoCard(
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(Icons.place_outlined, color: Colors.purple),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  context.l10n.branchAddressLabel,
-                  style: Theme.of(context).textTheme.bodySmall,
+          Row(
+            children: <Widget>[
+              _StatusChip(openNow: openNow),
+              const Spacer(),
+              Icon(
+                Icons.near_me_rounded,
+                size: 16,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                l10n.distanceKm(branch.distanceKm.toStringAsFixed(1)),
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: 4),
-                Text(address),
-              ],
-            ),
+              ),
+            ],
+          ),
+          // const SizedBox(height: 16),
+          // Row(
+          //   crossAxisAlignment: CrossAxisAlignment.start,
+          //   children: <Widget>[
+          //     Container(
+          //       width: 44,
+          //       height: 44,
+          //       decoration: BoxDecoration(
+          //         color: theme.colorScheme.primaryContainer,
+          //         borderRadius: BorderRadius.circular(AppRadii.md),
+          //       ),
+          //       child: Icon(
+          //         Icons.place_rounded,
+          //         color: theme.colorScheme.onPrimaryContainer,
+          //       ),
+          //     ),
+          //     const SizedBox(width: 12),
+          //     Expanded(
+          //       child: Column(
+          //         crossAxisAlignment: CrossAxisAlignment.start,
+          //         children: <Widget>[
+          //           Text(
+          //             l10n.branchAddressLabel,
+          //             style: theme.textTheme.labelMedium?.copyWith(
+          //               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          //               fontWeight: FontWeight.w600,
+          //             ),
+          //           ),
+          //           const SizedBox(height: 4),
+          //           Text(
+          //             address.isNotEmpty ? address : "—",
+          //             style: theme.textTheme.bodyLarge?.copyWith(
+          //               fontWeight: FontWeight.w600,
+          //               height: 1.35,
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          const SizedBox(height: 16),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: hasPhone ? onCall : null,
+                  icon: const Icon(Icons.phone_in_talk_rounded, size: 20),
+                  label: Text(l10n.branchCallNow),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onNavigate,
+                  icon: const Icon(Icons.directions_rounded, size: 20),
+                  label: Text(l10n.branchGetDirections),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -104,92 +228,301 @@ class _AddressCard extends StatelessWidget {
   }
 }
 
-class _MapCard extends StatelessWidget {
-  const _MapCard({required this.lat, required this.lng, required this.onTap});
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.openNow});
 
-  final double lat;
-  final double lng;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: 140,
-          child: Center(
-            child: Icon(
-              Icons.location_on_rounded,
-              size: 40,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OpeningHoursCard extends StatelessWidget {
-  const _OpeningHoursCard({required this.branch});
-
-  final BranchWithDistance branch;
+  final bool openNow;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final List<BranchOpeningHour> hours = branch.branch.openingHours;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: openNow
+            ? const Color(0xFF00C853).withValues(alpha: 0.12)
+            : const Color(0xFFD50000).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            openNow ? Icons.circle : Icons.circle_outlined,
+            size: 10,
+            color: openNow ? const Color(0xFF00C853) : const Color(0xFFD50000),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            openNow ? l10n.openNow : l10n.closed,
+            style: TextStyle(
+              color: openNow ? const Color(0xFF00C853) : const Color(0xFFD50000),
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    final Widget schedule;
+class _OpeningHoursExpandableCard extends StatefulWidget {
+  const _OpeningHoursExpandableCard({required this.branch});
+
+  final BranchWithDistance branch;
+
+  @override
+  State<_OpeningHoursExpandableCard> createState() =>
+      _OpeningHoursExpandableCardState();
+}
+
+class _OpeningHoursExpandableCardState
+    extends State<_OpeningHoursExpandableCard> {
+  bool _expanded = false;
+
+  String _todaySummary(BuildContext context) {
+    final l10n = context.l10n;
+    final String? today = widget.branch.branch.todaysHoursRangeLabel();
+    if (today == null) return l10n.branchHoursNotAvailable;
+    if (today.isEmpty) return l10n.branchClosedToday;
+    return today;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
+    final int todayWd = DateTime.now().weekday;
+    final String locale = Localizations.localeOf(context).toString();
+    final List<BranchOpeningHour> hours = widget.branch.branch.openingHours;
+
+    return _InfoCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: <Widget>[
+          InkWell(
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                    ),
+                    child: Icon(
+                      Icons.schedule_rounded,
+                      color: theme.colorScheme.onSecondaryContainer,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          l10n.branchOpeningHours,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (!_expanded) ...<Widget>[
+                          const SizedBox(height: 4),
+                          Text(
+                            "${l10n.branchToday}: ${_todaySummary(context)}",
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.65),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstCurve: Curves.easeOut,
+            secondCurve: Curves.easeIn,
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 220),
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              children: <Widget>[
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  child: _buildSchedule(
+                    context: context,
+                    theme: theme,
+                    hours: hours,
+                    todayWd: todayWd,
+                    locale: locale,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSchedule({
+    required BuildContext context,
+    required ThemeData theme,
+    required List<BranchOpeningHour> hours,
+    required int todayWd,
+    required String locale,
+  }) {
+    final l10n = context.l10n;
+
     if (hours.isEmpty) {
-      final String? open = branch.branch.openTime;
-      final String? close = branch.branch.closeTime;
+      final String? open = widget.branch.branch.openTime;
+      final String? close = widget.branch.branch.closeTime;
       final String text =
           (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
-              ? "${BranchEntity.formatHm12(open)} - ${BranchEntity.formatHm12(close)}"
+              ? "${BranchEntity.formatHm12(open)} – ${BranchEntity.formatHm12(close)}"
               : l10n.branchHoursNotAvailable;
-      schedule = Text(text);
-    } else {
-      final List<BranchOpeningHour> sorted = List<BranchOpeningHour>.from(hours)
-        ..sort((BranchOpeningHour a, BranchOpeningHour b) {
-          final int c = a.dayOfWeek.compareTo(b.dayOfWeek);
-          if (c != 0) return c;
-          return a.slotIndex.compareTo(b.slotIndex);
-        });
-      final String locale = Localizations.localeOf(context).toString();
-      schedule = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ...sorted.map((BranchOpeningHour h) {
-            final DateTime anchor = DateTime(2024, 1, h.dayOfWeek);
-            final String day = DateFormat.E(locale).format(anchor);
-            final String suffix = h.closesNextDay ? "" : "";
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                "${BranchEntity.formatHm12(h.openTime)} – ${BranchEntity.formatHm12(h.closeTime)}  ($day)$suffix",
-              ),
-            );
-          }),
-        ],
+      return Text(
+        text,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
       );
     }
 
-    return _InfoCard(
+    final Map<int, List<BranchOpeningHour>> byDay = <int, List<BranchOpeningHour>>{};
+    for (final BranchOpeningHour h in hours) {
+      byDay.putIfAbsent(h.dayOfWeek, () => <BranchOpeningHour>[]).add(h);
+    }
+    for (final List<BranchOpeningHour> list in byDay.values) {
+      list.sort(
+        (BranchOpeningHour a, BranchOpeningHour b) =>
+            a.slotIndex.compareTo(b.slotIndex),
+      );
+    }
+
+    final bool hasOvernight =
+        hours.any((BranchOpeningHour h) => h.closesNextDay);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (int day = 1; day <= 7; day++) ...<Widget>[
+          if (byDay.containsKey(day))
+            _DayHoursRow(
+              day: day,
+              slots: byDay[day]!,
+              isToday: day == todayWd,
+              locale: locale,
+              todayLabel: l10n.branchToday,
+            )
+          else
+            _DayHoursRow(
+              day: day,
+              slots: const <BranchOpeningHour>[],
+              isToday: day == todayWd,
+              locale: locale,
+              todayLabel: l10n.branchToday,
+              closedLabel: l10n.branchClosedToday,
+            ),
+        ],
+        if (hasOvernight) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            l10n.branchHoursOvernightFootnote,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DayHoursRow extends StatelessWidget {
+  const _DayHoursRow({
+    required this.day,
+    required this.slots,
+    required this.isToday,
+    required this.locale,
+    required this.todayLabel,
+    this.closedLabel,
+  });
+
+  final int day;
+  final List<BranchOpeningHour> slots;
+  final bool isToday;
+  final String locale;
+  final String todayLabel;
+  final String? closedLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final DateTime anchor = DateTime(2024, 1, day);
+    final String dayName = DateFormat.E(locale).format(anchor);
+
+    final String timesText = slots.isEmpty
+        ? (closedLabel ?? "—")
+        : slots
+            .map(
+              (BranchOpeningHour h) =>
+                  "${BranchEntity.formatHm12(h.openTime)} – ${BranchEntity.formatHm12(h.closeTime)}",
+            )
+            .join(", ");
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(Icons.access_time_rounded, color: Colors.purple),
-          const SizedBox(width: 12),
+          SizedBox(
+            width: 88,
+            child: Text(
+              isToday ? todayLabel : dayName,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                color: isToday
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.75),
+              ),
+            ),
+          ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(l10n.branchOpeningHours),
-                const SizedBox(height: 4),
-                schedule,
-              ],
+            child: Text(
+              timesText,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: isToday ? FontWeight.w600 : FontWeight.w500,
+                color: isToday
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.85),
+              ),
             ),
           ),
         ],
@@ -208,69 +541,131 @@ class _FacilitiesSection extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
     final List<String> facilities = branch.branch.facilities;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          l10n.branchServicesFacilities,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+
+    return _InfoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.local_offer_outlined,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.branchServicesFacilities,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 8),
-        if (facilities.isEmpty)
-          Text(l10n.branchNoFacilities)
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: facilities
-                .map(
-                  (String name) => Chip(
-                    label: Text(name),
-                    backgroundColor:
-                        theme.colorScheme.primary.withValues(alpha: 0.06),
-                    labelStyle: TextStyle(
-                      color: theme.colorScheme.primary,
+          const SizedBox(height: 12),
+          if (facilities.isEmpty)
+            Text(
+              l10n.branchNoFacilities,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: facilities
+                  .map(
+                    (String name) => Chip(
+                      label: Text(name),
+                      backgroundColor:
+                          theme.colorScheme.primary.withValues(alpha: 0.08),
+                      side: BorderSide(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      ),
+                      labelStyle: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-      ],
+                  )
+                  .toList(growable: false),
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _VotesSummaryCard extends StatelessWidget {
-  const _VotesSummaryCard({required this.votes});
+class _VotesSummaryCard extends ConsumerWidget {
+  const _VotesSummaryCard({
+    required this.branchId,
+    required this.votes,
+  });
 
-  final AsyncValue<Map<String, int>> votes;
+  final String branchId;
+  final AsyncValue<BranchVoteState> votes;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
+    final bool isAuth =
+        ref.watch(sessionControllerProvider).valueOrNull?.isAuthenticated ??
+            false;
+
+    Future<void> handleVote(int value) async {
+      if (!isAuth) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.voteLoginRequired)),
+        );
+        context.go("/auth/login");
+        return;
+      }
+      final bool success = await ref
+          .read(votingControllerProvider(branchId).notifier)
+          .vote(value);
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? l10n.voteSuccess : l10n.voteFailed),
+        ),
+      );
+    }
+
     return _InfoCard(
       child: votes.when(
-        data: (Map<String, int> v) {
-          final int up = v["upVotes"] ?? 0;
-          final int down = v["downVotes"] ?? 0;
+        data: (BranchVoteState voteState) {
           return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              Column(
-                children: <Widget>[
-                  const Icon(Icons.thumb_up_alt_outlined, color: Colors.green),
-                  const SizedBox(height: 4),
-                  Text(l10n.voteCountUp(up)),
-                ],
+              Expanded(
+                child: _VoteStatTile(
+                  icon: Icons.thumb_up_alt_rounded,
+                  color: const Color(0xFF00C853),
+                  countLabel: l10n.voteCountUp(voteState.upVotes),
+                  actionLabel: l10n.voteUp,
+                  theme: theme,
+                  isSelected: voteState.hasUpvoted,
+                  onTap: () => handleVote(1),
+                ),
               ),
-              Column(
-                children: <Widget>[
-                  const Icon(Icons.thumb_down_alt_outlined, color: Colors.red),
-                  const SizedBox(height: 4),
-                  Text(l10n.voteCountDown(down)),
-                ],
+              Container(
+                width: 1,
+                height: 56,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+              Expanded(
+                child: _VoteStatTile(
+                  icon: Icons.thumb_down_alt_rounded,
+                  color: const Color(0xFFD50000),
+                  countLabel: l10n.voteCountDown(voteState.downVotes),
+                  actionLabel: l10n.voteDown,
+                  theme: theme,
+                  isSelected: voteState.hasDownvoted,
+                  onTap: () => handleVote(-1),
+                ),
               ),
             ],
           );
@@ -284,26 +679,63 @@ class _VotesSummaryCard extends StatelessWidget {
   }
 }
 
-class _NavigateButton extends StatelessWidget {
-  const _NavigateButton({required this.onPressed});
+class _VoteStatTile extends StatelessWidget {
+  const _VoteStatTile({
+    required this.icon,
+    required this.color,
+    required this.countLabel,
+    required this.actionLabel,
+    required this.theme,
+    required this.isSelected,
+    required this.onTap,
+  });
 
-  final VoidCallback onPressed;
+  final IconData icon;
+  final Color color;
+  final String countLabel;
+  final String actionLabel;
+  final ThemeData theme;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.lg),
+    return Material(
+      color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadii.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Column(
+            children: <Widget>[
+              Icon(
+                icon,
+                color: color,
+                size: 28,
+                fill: isSelected ? 1.0 : 0.0,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                countLabel,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? color : null,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                actionLabel,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: color,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Colors.white,
         ),
-        onPressed: onPressed,
-        child: Text(context.l10n.branchNavigateGoogleMaps),
       ),
     );
   }
@@ -325,7 +757,8 @@ class _ViewMenuButton extends ConsumerWidget {
         final bool hasMenu = images.isNotEmpty;
         return SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          child: ElevatedButton.icon(
+
             onPressed: hasMenu
                 ? () {
                     Navigator.of(context).push(
@@ -444,69 +877,31 @@ class _BranchMenuFullScreenViewerState
   }
 }
 
-class _VoteButtons extends ConsumerWidget {
-  const _VoteButtons({required this.branchId});
-
-  final String branchId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final session = ref.watch(sessionControllerProvider);
-    final bool isAuth =
-        session.valueOrNull?.isAuthenticated ?? false;
-
-    Future<void> handleVote(int value) async {
-      if (!isAuth) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.voteLoginRequired),
-          ),
-        );
-        context.go("/auth/login");
-        return;
-      }
-      await ref.read(votingControllerProvider(branchId).notifier).vote(value);
-      await ref
-          .read(profileStatsControllerProvider.notifier)
-          .incrementReviews();
-    }
-
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => handleVote(1),
-            icon: const Icon(Icons.thumb_up_alt_outlined, color: Colors.green),
-            label: Text(l10n.voteUp),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => handleVote(-1),
-            icon: const Icon(Icons.thumb_down_alt_outlined, color: Colors.red),
-            label: Text(l10n.voteDown),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.child});
+  const _InfoCard({required this.child, this.padding});
 
   final Widget child;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: child,
     );
