@@ -32,6 +32,11 @@ class _AdminRestaurantDetailPageState extends ConsumerState<AdminRestaurantDetai
   final TextEditingController _logo = TextEditingController();
   final TextEditingController _descEn = TextEditingController();
   final TextEditingController _descAr = TextEditingController();
+  final TextEditingController _websiteUrl = TextEditingController();
+  final TextEditingController _instagramUrl = TextEditingController();
+  final TextEditingController _facebookUrl = TextEditingController();
+  final TextEditingController _talabatUrl = TextEditingController();
+  final TextEditingController _careemUrl = TextEditingController();
 
   List<CategoryDto> _allCategories = <CategoryDto>[];
   Set<String> _selectedCats = <String>{};
@@ -54,6 +59,11 @@ class _AdminRestaurantDetailPageState extends ConsumerState<AdminRestaurantDetai
     _logo.dispose();
     _descEn.dispose();
     _descAr.dispose();
+    _websiteUrl.dispose();
+    _instagramUrl.dispose();
+    _facebookUrl.dispose();
+    _talabatUrl.dispose();
+    _careemUrl.dispose();
     super.dispose();
   }
 
@@ -86,6 +96,15 @@ class _AdminRestaurantDetailPageState extends ConsumerState<AdminRestaurantDetai
         _logo.text = (d["logoUrl"] ?? d["logo_url"] ?? "").toString();
         _descEn.text = (d["descriptionEn"] ?? d["description_en"] ?? "").toString();
         _descAr.text = (d["descriptionAr"] ?? d["description_ar"] ?? "").toString();
+        _websiteUrl.text =
+            (d["websiteUrl"] ?? d["website_url"] ?? "").toString();
+        _instagramUrl.text =
+            (d["instagramUrl"] ?? d["instagram_url"] ?? "").toString();
+        _facebookUrl.text =
+            (d["facebookUrl"] ?? d["facebook_url"] ?? "").toString();
+        _talabatUrl.text =
+            (d["talabatUrl"] ?? d["talabat_url"] ?? "").toString();
+        _careemUrl.text = (d["careemUrl"] ?? d["careem_url"] ?? "").toString();
         _allCategories = cats;
         _selectedCats = sel;
         _photos = ph;
@@ -112,6 +131,11 @@ class _AdminRestaurantDetailPageState extends ConsumerState<AdminRestaurantDetai
             logoUrl: _logo.text.trim().isEmpty ? null : _logo.text.trim(),
             descriptionEn: _descEn.text.trim().isEmpty ? null : _descEn.text.trim(),
             descriptionAr: _descAr.text.trim().isEmpty ? null : _descAr.text.trim(),
+            websiteUrl: _websiteUrl.text.trim(),
+            instagramUrl: _instagramUrl.text.trim(),
+            facebookUrl: _facebookUrl.text.trim(),
+            talabatUrl: _talabatUrl.text.trim(),
+            careemUrl: _careemUrl.text.trim(),
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -314,6 +338,35 @@ class _AdminRestaurantDetailPageState extends ConsumerState<AdminRestaurantDetai
               const SizedBox(height: 8),
               TextField(controller: _phone, decoration: InputDecoration(labelText: l10n.adminLabelPhone)),
               const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final XFile? file = await ImagePicker()
+                      .pickImage(source: ImageSource.gallery);
+                  if (!mounted || file == null) return;
+                  try {
+                    final List<int> bytes = await file.readAsBytes();
+                    final String url = await ref.read(menuApiProvider).uploadFile(
+                          imageBytes: bytes,
+                          filename: file.name,
+                        );
+                    if (!mounted) return;
+                    setState(() => _logo.text = url);
+                  } on DioException catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(dioErrorMessage(e))),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString())),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.photo_library_outlined),
+                label: const Text("Upload logo image"),
+              ),
+              const SizedBox(height: 8),
               TextField(controller: _logo, decoration: InputDecoration(labelText: l10n.adminLabelLogoUrl)),
               const SizedBox(height: 8),
               TextField(
@@ -326,6 +379,31 @@ class _AdminRestaurantDetailPageState extends ConsumerState<AdminRestaurantDetai
                 controller: _descAr,
                 decoration: InputDecoration(labelText: l10n.adminLabelDescAr),
                 maxLines: 3,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _websiteUrl,
+                decoration: const InputDecoration(labelText: "Website URL"),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _instagramUrl,
+                decoration: const InputDecoration(labelText: "Instagram URL"),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _facebookUrl,
+                decoration: const InputDecoration(labelText: "Facebook URL"),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _talabatUrl,
+                decoration: const InputDecoration(labelText: "Talabat URL"),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _careemUrl,
+                decoration: const InputDecoration(labelText: "Careem URL"),
               ),
               const SizedBox(height: 16),
               FilledButton(onPressed: _saveInfo, child: Text(l10n.commonSave)),

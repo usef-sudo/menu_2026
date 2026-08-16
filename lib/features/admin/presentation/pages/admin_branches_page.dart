@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_branch_editor_sheet.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_bulk_add_sheet.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
@@ -89,6 +90,26 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
     if (mounted) context.push("/admin/branches/${b.id}");
   }
 
+  Future<void> _openBulk() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    if (_restaurants.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.adminCreateRestaurantFirst)),
+      );
+      return;
+    }
+    final bool saved = await showAdminBulkBranchesSheet(
+      context: context,
+      l10n: l10n,
+      api: ref.read(menuApiProvider),
+      restaurants: _restaurants,
+      areas: _areas,
+      initialRestaurantId: _filterRestaurantId,
+    );
+    if (!mounted || !saved) return;
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
@@ -107,6 +128,11 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
           },
         ),
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.playlist_add),
+            tooltip: "Bulk add",
+            onPressed: _loading ? null : _openBulk,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.adminTooltipRefresh,

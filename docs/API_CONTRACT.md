@@ -2,8 +2,7 @@
 
 ## Base URL
 
-- Default dev: `http://localhost:8000/api`
-- Override via dart define: `--dart-define=API_BASE_URL=...`
+Default API base URL is the VPS: `http://169.58.151.217:8000` (override with `--dart-define=API_BASE_URL=...`).
 
 ## Response Normalization Strategy
 

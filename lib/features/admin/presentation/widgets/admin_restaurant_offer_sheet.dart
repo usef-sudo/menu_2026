@@ -1,5 +1,6 @@
 import "package:dio/dio.dart";
 import "package:flutter/material.dart";
+import "package:image_picker/image_picker.dart";
 import "package:intl/intl.dart";
 import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
@@ -54,6 +55,7 @@ class _AdminRestaurantOfferBodyState extends State<_AdminRestaurantOfferBody> {
   late DateTime _startDate;
   late DateTime _endDate;
   bool _submitting = false;
+  bool _uploadingImage = false;
 
   @override
   void initState() {
@@ -69,6 +71,37 @@ class _AdminRestaurantOfferBodyState extends State<_AdminRestaurantOfferBody> {
     _description.dispose();
     _imageUrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? file =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (file == null || !mounted) return;
+    setState(() => _uploadingImage = true);
+    try {
+      final List<int> bytes = await file.readAsBytes();
+      final String url = await widget.api.uploadFile(
+        imageBytes: bytes,
+        filename: file.name,
+      );
+      if (!mounted) return;
+      setState(() {
+        _imageUrl.text = url;
+        _uploadingImage = false;
+      });
+    } on DioException catch (err) {
+      if (!mounted) return;
+      setState(() => _uploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(dioErrorMessage(err))),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      setState(() => _uploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err.toString())),
+      );
+    }
   }
 
   Future<void> _pickStart() async {
@@ -175,10 +208,29 @@ class _AdminRestaurantOfferBodyState extends State<_AdminRestaurantOfferBody> {
                 maxLines: 5,
               ),
               const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed:
+                    (_submitting || _uploadingImage) ? null : _pickImage,
+                icon: _uploadingImage
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child:
+                            CircularProgressIndicator.adaptive(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.photo_library_outlined),
+                label: Text(
+                  _imageUrl.text.trim().isEmpty
+                      ? "Upload offer image"
+                      : "Replace offer image",
+                ),
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _imageUrl,
                 decoration: InputDecoration(
                   labelText: l10n.adminOfferImageUrlLabel,
+                  hintText: "Upload above or paste URL",
                 ),
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.next,
@@ -190,19 +242,19 @@ class _AdminRestaurantOfferBodyState extends State<_AdminRestaurantOfferBody> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(l10n.adminOfferStartDate),
                 subtitle: Text(_offerDateFmt.format(_startDate)),
-                trailing: const Icon(Icons.calendar_today_outlined),
+                trailing: const Icon(Icons.calendar_today),
                 onTap: _submitting ? null : _pickStart,
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(l10n.adminOfferEndDate),
                 subtitle: Text(_offerDateFmt.format(_endDate)),
-                trailing: const Icon(Icons.calendar_today_outlined),
+                trailing: const Icon(Icons.calendar_today),
                 onTap: _submitting ? null : _pickEnd,
               ),
               const SizedBox(height: 12),
               FilledButton(
-                onPressed: _submitting ? null : _submit,
+                onPressed: (_submitting || _uploadingImage) ? null : _submit,
                 child: _submitting
                     ? const SizedBox(
                         height: 22,

@@ -168,6 +168,14 @@ class _AdminFacilitiesPageState extends ConsumerState<AdminFacilitiesPage> {
                         itemBuilder: (BuildContext context, int i) {
                           final FacilityDto f = _items[i];
                           return ListTile(
+                            leading: CircleAvatar(
+                              child: Text(
+                                (f.icon != null && f.icon!.trim().isNotEmpty)
+                                    ? f.icon!.trim()
+                                    : "•",
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
                             title: Text(f.nameEn),
                             subtitle: Text(
                               f.nameAr,

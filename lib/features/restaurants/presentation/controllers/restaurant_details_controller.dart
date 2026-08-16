@@ -22,6 +22,11 @@ class RestaurantDetailsState {
     required this.avgRating,
     required this.reviewsCount,
     required this.facilities,
+    this.websiteUrl = "",
+    this.instagramUrl = "",
+    this.facebookUrl = "",
+    this.talabatUrl = "",
+    this.careemUrl = "",
   });
 
   final String id;
@@ -34,6 +39,11 @@ class RestaurantDetailsState {
   final double avgRating;
   final int reviewsCount;
   final List<RestaurantFacility> facilities;
+  final String websiteUrl;
+  final String instagramUrl;
+  final String facebookUrl;
+  final String talabatUrl;
+  final String careemUrl;
 }
 
 class RestaurantDetailsController
@@ -63,9 +73,10 @@ class RestaurantDetailsController
 
       return RestaurantDetailsState(
         id: (data["id"] ?? restaurantId).toString(),
-        nameEn: (data["nameEn"] ?? "").toString(),
+        nameEn: (data["nameEn"] ?? data["name_en"] ?? "").toString(),
         phone: (data["phone"] ?? "").toString(),
-        descriptionEn: (data["descriptionEn"] ?? "").toString(),
+        descriptionEn:
+            (data["descriptionEn"] ?? data["description_en"] ?? "").toString(),
         categoryName:
             category.isEmpty ? null : (category["nameEn"] ?? "").toString(),
         branchesCount: int.tryParse(
@@ -85,6 +96,15 @@ class RestaurantDetailsController
               data["reviewsCount"]?.toString() ?? "0",
             ) ??
             0,
+        websiteUrl:
+            (data["websiteUrl"] ?? data["website_url"] ?? "").toString(),
+        instagramUrl:
+            (data["instagramUrl"] ?? data["instagram_url"] ?? "").toString(),
+        facebookUrl:
+            (data["facebookUrl"] ?? data["facebook_url"] ?? "").toString(),
+        talabatUrl:
+            (data["talabatUrl"] ?? data["talabat_url"] ?? "").toString(),
+        careemUrl: (data["careemUrl"] ?? data["careem_url"] ?? "").toString(),
       );
     });
 

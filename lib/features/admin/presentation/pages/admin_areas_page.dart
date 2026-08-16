@@ -6,6 +6,7 @@ import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_area_editor_sheet.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_bulk_add_sheet.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 
 class AdminAreasPage extends ConsumerStatefulWidget {
@@ -63,6 +64,17 @@ class _AdminAreasPageState extends ConsumerState<AdminAreasPage> {
     await _load();
   }
 
+  Future<void> _openBulk() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final bool saved = await showAdminBulkAreasSheet(
+      context: context,
+      l10n: l10n,
+      api: ref.read(menuApiProvider),
+    );
+    if (!mounted || !saved) return;
+    await _load();
+  }
+
   Future<void> _delete(AreaDto a) async {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final bool? ok = await showDialog<bool>(
@@ -117,6 +129,11 @@ class _AdminAreasPageState extends ConsumerState<AdminAreasPage> {
           },
         ),
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.playlist_add),
+            tooltip: "Bulk add",
+            onPressed: _loading ? null : _openBulk,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.adminTooltipRefresh,

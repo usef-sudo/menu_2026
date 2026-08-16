@@ -1,4 +1,3 @@
-import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -6,12 +5,14 @@ import "package:intl/intl.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/core/utils/phone_launcher.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/menu_images_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/menu_flip_book_viewer.dart";
 import "package:menu_2026/features/voting/domain/branch_vote_state.dart";
 import "package:menu_2026/features/voting/presentation/controllers/voting_controller.dart";
 import "package:url_launcher/url_launcher.dart";
@@ -32,12 +33,15 @@ class BranchDetailsPage extends ConsumerWidget {
                 : branch.branch.nameAr);
     final AsyncValue<BranchVoteState> votes =
         ref.watch(votingControllerProvider(branch.branch.id));
-    final String phone = ref
+    final String restaurantPhone = ref
             .watch(restaurantDetailsControllerProvider(branch.branch.restaurantId))
             .valueOrNull
             ?.phone
             .trim() ??
         "";
+    final String branchPhone = branch.branch.phone?.trim() ?? "";
+    final String phone =
+        branchPhone.isNotEmpty ? branchPhone : restaurantPhone;
     final bool openNow = branch.branch.isEffectivelyOpenNow();
 
     return Scaffold(
@@ -77,17 +81,8 @@ class BranchDetailsPage extends ConsumerWidget {
 
   Future<void> _callBranch(BuildContext context, String phone) async {
     final l10n = context.l10n;
-    final String digits = phone.replaceAll(RegExp(r"[^\d+]"), "");
-    if (digits.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.branchNoPhone)),
-      );
-      return;
-    }
-    final Uri uri = Uri(scheme: "tel", path: digits);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (context.mounted) {
+    final bool ok = await launchPhoneCall(context, phone);
+    if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.branchNoPhone)),
       );
@@ -622,17 +617,22 @@ class _VotesSummaryCard extends ConsumerWidget {
         context.go("/auth/login");
         return;
       }
+      final BranchVoteState? current = votes.valueOrNull;
+      if (current != null && current.userVote == value) {
+        // Same vote already applied — update UI only, no toast spam.
+        return;
+      }
       final bool success = await ref
           .read(votingControllerProvider(branchId).notifier)
           .vote(value);
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? l10n.voteSuccess : l10n.voteFailed),
-        ),
-      );
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.voteFailed)),
+        );
+      }
     }
 
     return _InfoCard(
@@ -764,9 +764,7 @@ class _ViewMenuButton extends ConsumerWidget {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (BuildContext context) =>
-                            _BranchMenuFullScreenViewer(
-                          images: images,
-                        ),
+                            MenuFlipBookFullScreen(images: images),
                       ),
                     );
                   }
@@ -782,97 +780,6 @@ class _ViewMenuButton extends ConsumerWidget {
         child: CircularProgressIndicator.adaptive(),
       ),
       error: (Object error, StackTrace stackTrace) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _BranchMenuFullScreenViewer extends StatefulWidget {
-  const _BranchMenuFullScreenViewer({required this.images});
-
-  final List<MenuImageEntity> images;
-
-  @override
-  State<_BranchMenuFullScreenViewer> createState() =>
-      _BranchMenuFullScreenViewerState();
-}
-
-class _BranchMenuFullScreenViewerState
-    extends State<_BranchMenuFullScreenViewer> {
-  late final PageController _controller;
-  int _currentIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = PageController(initialPage: 0);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          l10n.tabMenu,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-              child: Text(
-                "${_currentIndex + 1}/${widget.images.length}",
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white70,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _controller,
-        onPageChanged: (int index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        itemCount: widget.images.length,
-        itemBuilder: (BuildContext context, int index) {
-          final MenuImageEntity image = widget.images[index];
-          return Center(
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 4,
-              child: CachedNetworkImage(
-                imageUrl: image.imageUrl,
-                fit: BoxFit.contain,
-                placeholder: (BuildContext context, String url) =>
-                    const Center(child: CircularProgressIndicator.adaptive()),
-                errorWidget:
-                    (BuildContext context, String url, Object error) =>
-                        const Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.white54,
-                  size: 64,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 }

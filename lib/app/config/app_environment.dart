@@ -1,4 +1,3 @@
-import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 enum AppFlavor { dev, staging, prod }
@@ -16,17 +15,9 @@ class AppEnvironment {
 
   bool get isProd => flavor == AppFlavor.prod;
 
-  /// Android emulators reach the host via [10.0.2.2]; iOS Simulator uses localhost.
-  /// Override with `--dart-define=API_BASE_URL=...` (e.g. LAN IP on a physical device).
-  static String _devDefaultApiBaseUrl() {
-    if (kIsWeb) {
-      return "http://localhost:8000";
-    }
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.android => "http://10.0.2.2:8000",
-      _ => "http://localhost:8000",
-    };
-  }
+  /// Bare-metal VPS API (HTTP). Override anytime with
+  /// `--dart-define=API_BASE_URL=http://localhost:8000` for a local API.
+  static const String vpsApiBaseUrl = "http://169.58.151.217:8000";
 
   static AppEnvironment fromDartDefine() {
     final flavorText = const String.fromEnvironment(
@@ -40,9 +31,9 @@ class AppEnvironment {
     };
 
     final defaultBaseUrl = switch (flavor) {
-      AppFlavor.prod => "https://api.menu.app",
-      AppFlavor.staging => "https://staging-api.menu.app",
-      AppFlavor.dev => _devDefaultApiBaseUrl(),
+      AppFlavor.prod => vpsApiBaseUrl,
+      AppFlavor.staging => vpsApiBaseUrl,
+      AppFlavor.dev => vpsApiBaseUrl,
     };
 
     return AppEnvironment(

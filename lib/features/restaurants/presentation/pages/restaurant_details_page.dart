@@ -14,8 +14,11 @@ import "package:menu_2026/features/restaurants/presentation/controllers/menu_ima
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/menu_flip_book_viewer.dart";
 import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
+import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
 import "package:menu_2026/features/reviews/presentation/controllers/reviews_controller.dart";
+import "package:url_launcher/url_launcher.dart";
 
 class RestaurantDetailsPage extends ConsumerStatefulWidget {
   const RestaurantDetailsPage({required this.restaurantId, super.key});
@@ -27,18 +30,19 @@ class RestaurantDetailsPage extends ConsumerStatefulWidget {
       _RestaurantDetailsPageState();
 }
 
-class _RestaurantDetailsPageState
-    extends ConsumerState<RestaurantDetailsPage> {
+class _RestaurantDetailsPageState extends ConsumerState<RestaurantDetailsPage> {
   @override
   Widget build(BuildContext context) {
-    final detailsAsync =
-        ref.watch(restaurantDetailsControllerProvider(widget.restaurantId));
+    final detailsAsync = ref.watch(
+      restaurantDetailsControllerProvider(widget.restaurantId),
+    );
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     final favorites =
         ref.watch(favoritesControllerProvider).valueOrNull ?? <String>{};
-    final branchesAsync =
-        ref.watch(restaurantBranchesProvider(widget.restaurantId));
+    final branchesAsync = ref.watch(
+      restaurantBranchesProvider(widget.restaurantId),
+    );
 
     return detailsAsync.when(
       loading: () => const Scaffold(
@@ -58,60 +62,67 @@ class _RestaurantDetailsPageState
             body: NestedScrollView(
               headerSliverBuilder:
                   (BuildContext context, bool innerBoxIsScrolled) {
-                return <Widget>[
-                  SliverToBoxAdapter(
-                    child: _HeroAndCard(
-                      restaurantId: details.id,
-                      nameEn: details.nameEn,
-                      descriptionEn: details.descriptionEn,
-                      categoryName: details.categoryName,
-                      branchesCount: details.branchesCount,
-                      totalVotes: details.totalVotes,
-                      avgRating: details.avgRating,
-                      facilities: details.facilities,
-                      isLoggedIn: isLoggedIn,
-                      isFavorite: favorites.contains(details.id),
-                      onFavoriteTap: () async {
-                        if (!isLoggedIn) {
-                          context.push("/auth/login");
-                          return;
-                        }
-                        final bool success = await ref
-                            .read(favoritesControllerProvider.notifier)
-                            .toggle(details.id);
-                        if (!success && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                context.l10n.favoriteUpdateError,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _TabBarDelegate(
-                      child: Material(
-                        color: Theme.of(context).colorScheme.surface,
-                        child: TabBar(
-                          indicatorColor: Theme.of(context).colorScheme.primary,
-                          labelColor: Theme.of(context).colorScheme.primary,
-                          unselectedLabelColor: Colors.grey,
-                          tabs: <Widget>[
-                            Tab(text: context.l10n.tabBranches),
-                            Tab(text: context.l10n.tabMenu),
-                            Tab(text: context.l10n.tabPhotos),
-                            Tab(text: context.l10n.tabReviews),
-                          ],
+                    return <Widget>[
+                      SliverToBoxAdapter(
+                        child: _HeroAndCard(
+                          restaurantId: details.id,
+                          nameEn: details.nameEn,
+                          descriptionEn: details.descriptionEn,
+                          categoryName: details.categoryName,
+                          branchesCount: details.branchesCount,
+                          totalVotes: details.totalVotes,
+                          avgRating: details.avgRating,
+                          facilities: details.facilities,
+                          websiteUrl: details.websiteUrl,
+                          instagramUrl: details.instagramUrl,
+                          facebookUrl: details.facebookUrl,
+                          talabatUrl: details.talabatUrl,
+                          careemUrl: details.careemUrl,
+                          isLoggedIn: isLoggedIn,
+                          isFavorite: favorites.contains(details.id),
+                          onFavoriteTap: () async {
+                            if (!isLoggedIn) {
+                              context.push("/auth/login");
+                              return;
+                            }
+                            final bool success = await ref
+                                .read(favoritesControllerProvider.notifier)
+                                .toggle(details.id);
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    context.l10n.favoriteUpdateError,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ),
-                    ),
-                  ),
-                ];
-              },
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _TabBarDelegate(
+                          child: Material(
+                            color: Theme.of(context).colorScheme.surface,
+                            child: TabBar(
+                              indicatorColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              labelColor: Theme.of(context).colorScheme.primary,
+                              unselectedLabelColor: Colors.grey,
+                              tabs: <Widget>[
+                                Tab(text: context.l10n.tabBranches),
+                                Tab(text: context.l10n.tabMenu),
+                                Tab(text: context.l10n.tabPhotos),
+                                Tab(text: context.l10n.tabReviews),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
               body: TabBarView(
                 children: <Widget>[
                   _BranchesTab(
@@ -120,7 +131,10 @@ class _RestaurantDetailsPageState
                   ),
                   _MenuTab(restaurantId: details.id),
                   _PhotosTab(restaurantId: details.id),
-                  _ReviewsTab(restaurantId: details.id),
+                  _ReviewsTab(
+                    restaurantId: details.id,
+                    restaurantAvgRating: details.avgRating,
+                  ),
                 ],
               ),
             ),
@@ -166,6 +180,11 @@ class _HeroAndCard extends ConsumerWidget {
     required this.totalVotes,
     required this.avgRating,
     required this.facilities,
+    required this.websiteUrl,
+    required this.instagramUrl,
+    required this.facebookUrl,
+    required this.talabatUrl,
+    required this.careemUrl,
     required this.isLoggedIn,
     required this.isFavorite,
     required this.onFavoriteTap,
@@ -179,6 +198,11 @@ class _HeroAndCard extends ConsumerWidget {
   final int totalVotes;
   final double avgRating;
   final List<RestaurantFacility> facilities;
+  final String websiteUrl;
+  final String instagramUrl;
+  final String facebookUrl;
+  final String talabatUrl;
+  final String careemUrl;
   final bool isLoggedIn;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
@@ -187,8 +211,9 @@ class _HeroAndCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
-    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
-        ref.watch(restaurantPhotosControllerProvider(restaurantId));
+    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync = ref.watch(
+      restaurantPhotosControllerProvider(restaurantId),
+    );
     final String? heroImageUrl = photosAsync.maybeWhen(
       data: (List<RestaurantPhotoEntity> photos) =>
           photos.isNotEmpty ? photos.first.imageUrl : null,
@@ -261,8 +286,8 @@ class _HeroAndCard extends ConsumerWidget {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration:  BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               boxShadow: <BoxShadow>[
                 BoxShadow(
@@ -283,7 +308,7 @@ class _HeroAndCard extends ConsumerWidget {
                         nameEn,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                      //    color: Colors.black87,
                         ),
                       ),
                     ),
@@ -336,6 +361,42 @@ class _HeroAndCard extends ConsumerWidget {
                     ),
                   ),
                 ],
+                Builder(
+                  builder: (BuildContext context) {
+                    final List<(String, String)> links = <(String, String)>[
+                      if (websiteUrl.trim().isNotEmpty)
+                        ("Website", websiteUrl.trim()),
+                      if (instagramUrl.trim().isNotEmpty)
+                        ("Instagram", instagramUrl.trim()),
+                      if (facebookUrl.trim().isNotEmpty)
+                        ("Facebook", facebookUrl.trim()),
+                      if (talabatUrl.trim().isNotEmpty)
+                        ("Talabat", talabatUrl.trim()),
+                      if (careemUrl.trim().isNotEmpty)
+                        ("Careem", careemUrl.trim()),
+                    ];
+                    if (links.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: links
+                            .map(
+                              ((String, String) e) => ActionChip(
+                                avatar: const Icon(Icons.link, size: 16),
+                                label: Text(e.$1),
+                                onPressed: () => launchUrl(
+                                  Uri.parse(e.$2),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -369,10 +430,8 @@ class _HeroAndCard extends ConsumerWidget {
                     runSpacing: 10,
                     children: facilities
                         .map(
-                          (RestaurantFacility f) => _FacilityChip(
-                            nameEn: f.nameEn,
-                            iconName: f.icon,
-                          ),
+                          (RestaurantFacility f) =>
+                              _FacilityChip(nameEn: f.nameEn, iconName: f.icon),
                         )
                         .toList(growable: false),
                   ),
@@ -398,7 +457,8 @@ class _FacilityChip extends StatelessWidget {
     if (n.contains("wifi") || n.contains("wi-fi")) return Icons.wifi;
     if (n.contains("park")) return Icons.local_parking;
     if (n.contains("kid") || n.contains("family")) return Icons.family_restroom;
-    if (n.contains("delivery") || n.contains("deliver")) return Icons.delivery_dining;
+    if (n.contains("delivery") || n.contains("deliver"))
+      return Icons.delivery_dining;
     return Icons.place;
   }
 
@@ -408,18 +468,16 @@ class _FacilityChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.6)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.6),
+        ),
         borderRadius: BorderRadius.circular(999),
         color: Colors.white,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(
-            _iconFor(iconName),
-            size: 18,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(_iconFor(iconName), size: 18, color: theme.colorScheme.primary),
           const SizedBox(width: 6),
           Text(
             nameEn,
@@ -435,10 +493,7 @@ class _FacilityChip extends StatelessWidget {
 }
 
 class _BranchesTab extends StatelessWidget {
-  const _BranchesTab({
-    required this.restaurantId,
-    required this.branchesAsync,
-  });
+  const _BranchesTab({required this.restaurantId, required this.branchesAsync});
 
   final String restaurantId;
   final AsyncValue<List<BranchWithDistance>> branchesAsync;
@@ -449,8 +504,9 @@ class _BranchesTab extends StatelessWidget {
     return branchesAsync.when(
       data: (List<BranchWithDistance> all) {
         final List<BranchWithDistance> branchesForRestaurant = all
-            .where((BranchWithDistance b) =>
-                b.branch.restaurantId == restaurantId)
+            .where(
+              (BranchWithDistance b) => b.branch.restaurantId == restaurantId,
+            )
             .toList(growable: false);
         if (branchesForRestaurant.isEmpty) {
           return Center(child: Text(l10n.restaurantNoBranches));
@@ -462,8 +518,7 @@ class _BranchesTab extends StatelessWidget {
               .toList(growable: false),
         );
       },
-      loading: () =>
-          const Center(child: CircularProgressIndicator.adaptive()),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: (Object error, StackTrace stack) =>
           Center(child: Text(l10n.restaurantBranchesLoadError)),
     );
@@ -510,12 +565,11 @@ class _BranchCard extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
     final String lang = Localizations.localeOf(context).languageCode;
-    final String branchName =
-        (lang == "ar" && branch.branch.nameAr.isNotEmpty)
-            ? branch.branch.nameAr
-            : (branch.branch.nameEn.isNotEmpty
-                ? branch.branch.nameEn
-                : branch.branch.nameAr);
+    final String branchName = (lang == "ar" && branch.branch.nameAr.isNotEmpty)
+        ? branch.branch.nameAr
+        : (branch.branch.nameEn.isNotEmpty
+              ? branch.branch.nameEn
+              : branch.branch.nameAr);
     final BranchEntity b = branch.branch;
     final bool openNow = b.isEffectivelyOpenNow();
     final String? todayHours = b.todaysHoursRangeLabel();
@@ -588,10 +642,6 @@ class _BranchCard extends StatelessWidget {
                 ),
               ),
             ],
-
-
-
-
           ],
         ),
       ),
@@ -599,15 +649,28 @@ class _BranchCard extends StatelessWidget {
   }
 }
 
-class _ReviewsTab extends ConsumerWidget {
-  const _ReviewsTab({required this.restaurantId});
+class _ReviewsTab extends ConsumerStatefulWidget {
+  const _ReviewsTab({
+    required this.restaurantId,
+    required this.restaurantAvgRating,
+  });
 
   final String restaurantId;
+  final double restaurantAvgRating;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReviewsTab> createState() => _ReviewsTabState();
+}
+
+class _ReviewsTabState extends ConsumerState<_ReviewsTab> {
+  String? _selectedBranchId;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final branchesAsync = ref.watch(restaurantBranchesProvider(restaurantId));
+    final branchesAsync = ref.watch(
+      restaurantBranchesProvider(widget.restaurantId),
+    );
     final session = ref.watch(sessionControllerProvider);
     final bool isLoggedIn = session.valueOrNull?.isAuthenticated ?? false;
     return branchesAsync.when(
@@ -615,26 +678,79 @@ class _ReviewsTab extends ConsumerWidget {
         if (branches.isEmpty) {
           return Center(child: Text(l10n.restaurantNoBranchesReview));
         }
-        final BranchWithDistance first = branches.first;
-        final reviewsAsync =
-            ref.watch(reviewsControllerProvider(first.branch.id));
+        final String effectiveBranchId =
+            (_selectedBranchId != null &&
+                branches.any((b) => b.branch.id == _selectedBranchId))
+            ? _selectedBranchId!
+            : branches.first.branch.id;
+        final reviewsAsync = ref.watch(
+          reviewsControllerProvider(effectiveBranchId),
+        );
         return reviewsAsync.when(
           data: (ReviewsState state) {
+            final double displayAvg = state.summary.total > 0
+                ? state.summary.avgRating
+                : widget.restaurantAvgRating;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: <Widget>[
-                _ReviewsSummary(summary: state.summary),
+                if (branches.length > 1) ...<Widget>[
+                  DropdownButtonFormField<String>(
+                    value: effectiveBranchId,
+                    decoration: InputDecoration(
+                      labelText: l10n.adminBranchTitle,
+                    ),
+                    items: branches
+                        .map(
+                          (BranchWithDistance b) => DropdownMenuItem<String>(
+                            value: b.branch.id,
+                            child: Text(
+                              b.branch.nameEn.isNotEmpty
+                                  ? b.branch.nameEn
+                                  : b.branch.nameAr,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (String? id) {
+                      if (id == null) return;
+                      setState(() => _selectedBranchId = id);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                _ReviewsSummary(
+                  avgRating: displayAvg,
+                  total: state.summary.total,
+                ),
                 const SizedBox(height: 12),
                 _WriteReviewButton(
-                  branchId: first.branch.id,
+                  branchId: effectiveBranchId,
                   isLoggedIn: isLoggedIn,
+                  existingReview: () {
+                    final String? myId =
+                        ref.watch(userProfileControllerProvider).valueOrNull?.id;
+                    if (myId == null || myId.isEmpty) return null;
+                    for (final ReviewEntity r in state.reviews) {
+                      if (r.userId == myId) return r;
+                    }
+                    return null;
+                  }(),
                 ),
                 const SizedBox(height: 16),
                 if (state.summary.total == 0)
                   Text(l10n.restaurantNoReviewsYet)
                 else
                   ...state.reviews.map(
-                    (ReviewEntity r) => _ReviewCard(review: r),
+                    (ReviewEntity r) => _ReviewCard(
+                      review: r,
+                      branchId: effectiveBranchId,
+                      isMine: ref
+                              .watch(userProfileControllerProvider)
+                              .valueOrNull
+                              ?.id ==
+                          r.userId,
+                    ),
                   ),
               ],
             );
@@ -652,37 +768,81 @@ class _ReviewsTab extends ConsumerWidget {
   }
 }
 
-class _MenuTab extends ConsumerWidget {
+class _MenuTab extends ConsumerStatefulWidget {
   const _MenuTab({required this.restaurantId});
 
   final String restaurantId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MenuTab> createState() => _MenuTabState();
+}
+
+class _MenuTabState extends ConsumerState<_MenuTab> {
+  String? _selectedBranchId;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final AsyncValue<List<BranchWithDistance>> branchesAsync =
-        ref.watch(restaurantBranchesProvider(restaurantId));
+    final AsyncValue<List<BranchWithDistance>> branchesAsync = ref.watch(
+      restaurantBranchesProvider(widget.restaurantId),
+    );
     return branchesAsync.when(
       data: (List<BranchWithDistance> branches) {
         if (branches.isEmpty) {
           return Center(child: Text(l10n.restaurantNoBranchesMenu));
         }
-        final BranchWithDistance firstBranch = branches.first;
-        final AsyncValue<List<MenuImageEntity>> imagesAsync =
-            ref.watch(menuImagesControllerProvider(firstBranch.branch.id));
-        return imagesAsync.when(
-          data: (List<MenuImageEntity> images) {
-            if (images.isEmpty) {
-              return Center(child: Text(l10n.restaurantMenuNotAvailable));
-            }
-            return _MenuImagesGrid(
-              images: images,
-            );
-          },
-          loading: () =>
-              const Center(child: CircularProgressIndicator.adaptive()),
-          error: (Object error, StackTrace stackTrace) =>
-              Center(child: Text(l10n.restaurantMenuImagesLoadError)),
+        final String effectiveBranchId =
+            (_selectedBranchId != null &&
+                branches.any((b) => b.branch.id == _selectedBranchId))
+            ? _selectedBranchId!
+            : branches.first.branch.id;
+        final AsyncValue<List<MenuImageEntity>> imagesAsync = ref.watch(
+          menuImagesControllerProvider(effectiveBranchId),
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (branches.length > 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: DropdownButtonFormField<String>(
+                  value: effectiveBranchId,
+                  decoration: InputDecoration(
+                    labelText: l10n.adminBranchTitle,
+                  ),
+                  items: branches
+                      .map(
+                        (BranchWithDistance b) => DropdownMenuItem<String>(
+                          value: b.branch.id,
+                          child: Text(
+                            b.branch.nameEn.isNotEmpty
+                                ? b.branch.nameEn
+                                : b.branch.nameAr,
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (String? id) {
+                    if (id == null) return;
+                    setState(() => _selectedBranchId = id);
+                  },
+                ),
+              ),
+            Expanded(
+              child: imagesAsync.when(
+                data: (List<MenuImageEntity> images) {
+                  if (images.isEmpty) {
+                    return Center(child: Text(l10n.restaurantMenuNotAvailable));
+                  }
+                  return MenuFlipBookViewer(images: images);
+                },
+                loading: () =>
+                    const Center(child: CircularProgressIndicator.adaptive()),
+                error: (Object error, StackTrace stackTrace) =>
+                    Center(child: Text(l10n.restaurantMenuImagesLoadError)),
+              ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
@@ -700,8 +860,9 @@ class _PhotosTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
-        ref.watch(restaurantPhotosControllerProvider(restaurantId));
+    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync = ref.watch(
+      restaurantPhotosControllerProvider(restaurantId),
+    );
     return photosAsync.when(
       data: (List<RestaurantPhotoEntity> photos) {
         if (photos.isEmpty) {
@@ -739,9 +900,7 @@ class _PhotosTab extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator.adaptive(),
-      ),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: (Object error, StackTrace stackTrace) =>
           Center(child: Text(l10n.restaurantPhotosLoadError)),
     );
@@ -790,9 +949,7 @@ class _PhotosFullScreenViewerState extends State<_PhotosFullScreenViewer> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           l10n.tabPhotos,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-          ),
+          style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
         ),
         actions: <Widget>[
           Padding(
@@ -827,147 +984,12 @@ class _PhotosFullScreenViewerState extends State<_PhotosFullScreenViewer> {
                 fit: BoxFit.contain,
                 placeholder: (BuildContext context, String url) =>
                     const Center(child: CircularProgressIndicator.adaptive()),
-                errorWidget:
-                    (BuildContext context, String url, Object error) =>
-                        const Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.white54,
-                  size: 64,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-class _MenuImagesGrid extends StatelessWidget {
-  const _MenuImagesGrid({required this.images});
-
-  final List<MenuImageEntity> images;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: images.length,
-      itemBuilder: (BuildContext context, int index) {
-        final MenuImageEntity image = images[index];
-        return InkWell(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (BuildContext context) => _FullScreenMenuViewer(
-                  images: images,
-                  initialIndex: index,
-                ),
-              ),
-            );
-          },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            child: CachedNetworkImage(
-              imageUrl: image.imageUrl,
-              fit: BoxFit.cover,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _FullScreenMenuViewer extends StatefulWidget {
-  const _FullScreenMenuViewer({
-    required this.images,
-    required this.initialIndex,
-  });
-
-  final List<MenuImageEntity> images;
-  final int initialIndex;
-
-  @override
-  State<_FullScreenMenuViewer> createState() => _FullScreenMenuViewerState();
-}
-
-class _FullScreenMenuViewerState extends State<_FullScreenMenuViewer> {
-  late final PageController _controller;
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-    _controller = PageController(initialPage: widget.initialIndex);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          l10n.tabMenu,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-              child: Text(
-                "${_currentIndex + 1}/${widget.images.length}",
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white70,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _controller,
-        onPageChanged: (int index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        itemCount: widget.images.length,
-        itemBuilder: (BuildContext context, int index) {
-          final MenuImageEntity image = widget.images[index];
-          return Center(
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 4,
-              child: CachedNetworkImage(
-                imageUrl: image.imageUrl,
-                fit: BoxFit.contain,
-                placeholder: (BuildContext context, String url) =>
-                    const Center(child: CircularProgressIndicator.adaptive()),
-                errorWidget:
-                    (BuildContext context, String url, Object error) =>
-                        const Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.white54,
-                  size: 64,
-                ),
+                errorWidget: (BuildContext context, String url, Object error) =>
+                    const Icon(
+                      Icons.broken_image_outlined,
+                      color: Colors.white54,
+                      size: 64,
+                    ),
               ),
             ),
           );
@@ -978,9 +1000,10 @@ class _FullScreenMenuViewerState extends State<_FullScreenMenuViewer> {
 }
 
 class _ReviewsSummary extends StatelessWidget {
-  const _ReviewsSummary({required this.summary});
+  const _ReviewsSummary({required this.avgRating, required this.total});
 
-  final ReviewSummary summary;
+  final double avgRating;
+  final int total;
 
   @override
   Widget build(BuildContext context) {
@@ -997,45 +1020,51 @@ class _ReviewsSummary extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                summary.avgRating.toStringAsFixed(1),
+                avgRating > 0 ? avgRating.toStringAsFixed(1) : "—",
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
               Row(
-                children: List<Widget>.generate(
-                  5,
-                  (int index) => Icon(
-                    index < summary.avgRating.round()
-                        ? Icons.star
-                        : Icons.star_border,
-                    color: Colors.amber,
-                    size: 18,
-                  ),
-                ),
+                children: List<Widget>.generate(5, (int index) {
+                  final double threshold = index + 1;
+                  final IconData icon;
+                  if (avgRating >= threshold) {
+                    icon = Icons.star;
+                  } else if (avgRating >= threshold - 0.5) {
+                    icon = Icons.star_half;
+                  } else {
+                    icon = Icons.star_border;
+                  }
+                  return Icon(icon, color: Colors.amber, size: 18);
+                }),
               ),
             ],
           ),
           const SizedBox(width: 16),
-          Text(
-            "${summary.total} reviews",
-            style: theme.textTheme.bodyMedium,
-          ),
+          Text("$total reviews", style: theme.textTheme.bodyMedium),
         ],
       ),
     );
   }
 }
 
-class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.review});
+class _ReviewCard extends ConsumerWidget {
+  const _ReviewCard({
+    required this.review,
+    required this.branchId,
+    required this.isMine,
+  });
 
   final ReviewEntity review;
+  final String branchId;
+  final bool isMine;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -1069,9 +1098,7 @@ class _ReviewCard extends StatelessWidget {
                 children: List<Widget>.generate(
                   5,
                   (int index) => Icon(
-                    index < review.rating
-                        ? Icons.star
-                        : Icons.star_border,
+                    index < review.rating ? Icons.star : Icons.star_border,
                     color: Colors.amber,
                     size: 16,
                   ),
@@ -1081,9 +1108,70 @@ class _ReviewCard extends StatelessWidget {
           ),
           if (review.comment.isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
-            Text(
-              review.comment,
-              style: theme.textTheme.bodySmall,
+            Text(review.comment, style: theme.textTheme.bodySmall),
+          ],
+          if (isMine) ...<Widget>[
+            const SizedBox(height: 8),
+            Row(
+              children: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                      ),
+                      builder: (BuildContext context) {
+                        return _ReviewFormSheet(
+                          branchId: branchId,
+                          initialRating: review.rating,
+                          initialComment: review.comment,
+                        );
+                      },
+                    );
+                  },
+                  child: const Text("Edit"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final bool? ok = await showDialog<bool>(
+                      context: context,
+                      builder: (BuildContext ctx) => AlertDialog(
+                        title: Text(l10n.commonDelete),
+                        content: const Text("Delete your review?"),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(l10n.commonCancel),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(l10n.commonDelete),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (ok != true || !context.mounted) return;
+                    final bool success = await ref
+                        .read(reviewsControllerProvider(branchId).notifier)
+                        .deleteMyReview(branchId: branchId);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? l10n.commonDeleted
+                              : l10n.reviewSubmitFailed,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(l10n.commonDelete),
+                ),
+              ],
             ),
           ],
         ],
@@ -1096,15 +1184,18 @@ class _WriteReviewButton extends ConsumerWidget {
   const _WriteReviewButton({
     required this.branchId,
     required this.isLoggedIn,
+    this.existingReview,
   });
 
   final String branchId;
   final bool isLoggedIn;
+  final ReviewEntity? existingReview;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
+    final bool hasMine = existingReview != null;
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         backgroundColor: theme.colorScheme.primary,
@@ -1116,11 +1207,9 @@ class _WriteReviewButton extends ConsumerWidget {
       ),
       onPressed: () {
         if (!isLoggedIn) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.reviewLoginRequired),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.reviewLoginRequired)));
           context.push("/auth/login");
           return;
         }
@@ -1131,33 +1220,53 @@ class _WriteReviewButton extends ConsumerWidget {
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           builder: (BuildContext context) {
-            return _ReviewFormSheet(branchId: branchId);
+            return _ReviewFormSheet(
+              branchId: branchId,
+              initialRating: existingReview?.rating,
+              initialComment: existingReview?.comment,
+            );
           },
         );
       },
-      icon: const Icon(Icons.rate_review_outlined),
+      icon: Icon(hasMine ? Icons.edit_outlined : Icons.rate_review_outlined),
       label: Text(
-        isLoggedIn
-            ? l10n.restaurantWriteReview
-            : l10n.restaurantLoginToWriteReview,
+        !isLoggedIn
+            ? l10n.restaurantLoginToWriteReview
+            : hasMine
+                ? "Edit review"
+                : l10n.restaurantWriteReview,
       ),
     );
   }
 }
 
 class _ReviewFormSheet extends ConsumerStatefulWidget {
-  const _ReviewFormSheet({required this.branchId});
+  const _ReviewFormSheet({
+    required this.branchId,
+    this.initialRating,
+    this.initialComment,
+  });
 
   final String branchId;
+  final int? initialRating;
+  final String? initialComment;
 
   @override
   ConsumerState<_ReviewFormSheet> createState() => _ReviewFormSheetState();
 }
 
 class _ReviewFormSheetState extends ConsumerState<_ReviewFormSheet> {
-  int _rating = 5;
-  final TextEditingController _commentController = TextEditingController();
+  late int _rating;
+  late final TextEditingController _commentController;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _rating = widget.initialRating ?? 5;
+    _commentController =
+        TextEditingController(text: widget.initialComment ?? "");
+  }
 
   @override
   void dispose() {
@@ -1189,9 +1298,7 @@ class _ReviewFormSheetState extends ConsumerState<_ReviewFormSheet> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          success ? l10n.reviewSubmitted : l10n.reviewSubmitFailed,
-        ),
+        content: Text(success ? l10n.reviewSubmitted : l10n.reviewSubmitFailed),
       ),
     );
   }
@@ -1231,23 +1338,20 @@ class _ReviewFormSheetState extends ConsumerState<_ReviewFormSheet> {
           ),
           const SizedBox(height: 12),
           Row(
-            children: List<Widget>.generate(
-              5,
-              (int index) {
-                final int starValue = index + 1;
-                return IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _rating = starValue;
-                    });
-                  },
-                  icon: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                  ),
-                );
-              },
-            ),
+            children: List<Widget>.generate(5, (int index) {
+              final int starValue = index + 1;
+              return IconButton(
+                onPressed: () {
+                  setState(() {
+                    _rating = starValue;
+                  });
+                },
+                icon: Icon(
+                  index < _rating ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                ),
+              );
+            }),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -1261,16 +1365,24 @@ class _ReviewFormSheetState extends ConsumerState<_ReviewFormSheet> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+              ),
               onPressed: _submitting ? null : _submit,
-              child: Text(
+              label: Text(
                 _submitting ? l10n.reviewSubmitting : l10n.submitReview,
               ),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 }
-

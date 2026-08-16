@@ -9,6 +9,11 @@ class RestaurantEntity extends Equatable {
     required this.descriptionEn,
     required this.descriptionAr,
     required this.phone,
+    this.websiteUrl = "",
+    this.instagramUrl = "",
+    this.facebookUrl = "",
+    this.talabatUrl = "",
+    this.careemUrl = "",
   });
 
   final String id;
@@ -18,6 +23,11 @@ class RestaurantEntity extends Equatable {
   final String descriptionEn;
   final String descriptionAr;
   final String phone;
+  final String websiteUrl;
+  final String instagramUrl;
+  final String facebookUrl;
+  final String talabatUrl;
+  final String careemUrl;
 
   @override
   List<Object?> get props => <Object?>[
@@ -28,5 +38,10 @@ class RestaurantEntity extends Equatable {
     descriptionEn,
     descriptionAr,
     phone,
+    websiteUrl,
+    instagramUrl,
+    facebookUrl,
+    talabatUrl,
+    careemUrl,
   ];
 }

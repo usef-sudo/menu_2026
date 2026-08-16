@@ -17,6 +17,7 @@ class BranchDto {
     this.distanceKm,
     this.openTime,
     this.closeTime,
+    this.phone,
     this.openNow,
     this.activeOfferCount,
     this.facilities = const <String>[],
@@ -38,12 +39,19 @@ class BranchDto {
   final double? distanceKm;
   final String? openTime;
   final String? closeTime;
+  final String? phone;
   final bool? openNow;
   final int? activeOfferCount;
   final List<String> facilities;
   final String? areaId;
   final int? costLevel;
   final List<BranchOpeningHourDto> openingHours;
+
+  static String? _optionalString(dynamic value) {
+    if (value == null) return null;
+    final String s = value.toString().trim();
+    return s.isEmpty ? null : s;
+  }
 
   static List<BranchOpeningHourDto> _parseOpeningHours(dynamic raw) {
     if (raw is! List<dynamic>) return const <BranchOpeningHourDto>[];
@@ -109,6 +117,7 @@ class BranchDto {
           0,
       openTime: (json["openTime"] ?? json["open_time"] ?? "").toString(),
       closeTime: (json["closeTime"] ?? json["close_time"] ?? "").toString(),
+      phone: _optionalString(json["phone"]),
       facilities: ((json["facilities"] as List<dynamic>?) ?? <dynamic>[])
           .map((dynamic item) => item.toString())
           .toList(growable: false),
@@ -137,6 +146,7 @@ class BranchDto {
       distanceKm: distanceKm,
       openTime: openTime?.isEmpty == true ? null : openTime,
       closeTime: closeTime?.isEmpty == true ? null : closeTime,
+      phone: phone,
       openNow: openNow,
       activeOfferCount: activeOfferCount,
       facilities: facilities,

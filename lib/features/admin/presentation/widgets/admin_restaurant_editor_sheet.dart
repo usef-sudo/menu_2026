@@ -1,5 +1,6 @@
 import "package:dio/dio.dart";
 import "package:flutter/material.dart";
+import "package:image_picker/image_picker.dart";
 import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_editor_header.dart";
@@ -41,7 +42,13 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
   final TextEditingController _descAr = TextEditingController();
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _logoUrl = TextEditingController();
+  final TextEditingController _websiteUrl = TextEditingController();
+  final TextEditingController _instagramUrl = TextEditingController();
+  final TextEditingController _facebookUrl = TextEditingController();
+  final TextEditingController _talabatUrl = TextEditingController();
+  final TextEditingController _careemUrl = TextEditingController();
   bool _submitting = false;
+  bool _uploadingLogo = false;
 
   @override
   void dispose() {
@@ -51,7 +58,43 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
     _descAr.dispose();
     _phone.dispose();
     _logoUrl.dispose();
+    _websiteUrl.dispose();
+    _instagramUrl.dispose();
+    _facebookUrl.dispose();
+    _talabatUrl.dispose();
+    _careemUrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLogo() async {
+    final XFile? file =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (file == null || !mounted) return;
+    setState(() => _uploadingLogo = true);
+    try {
+      final List<int> bytes = await file.readAsBytes();
+      final String url = await widget.api.uploadFile(
+        imageBytes: bytes,
+        filename: file.name,
+      );
+      if (!mounted) return;
+      setState(() {
+        _logoUrl.text = url;
+        _uploadingLogo = false;
+      });
+    } on DioException catch (err) {
+      if (!mounted) return;
+      setState(() => _uploadingLogo = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(dioErrorMessage(err))),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      setState(() => _uploadingLogo = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err.toString())),
+      );
+    }
   }
 
   Future<void> _submit() async {
@@ -63,6 +106,11 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
     final String dAr = _descAr.text.trim();
     final String phone = _phone.text.trim();
     final String logo = _logoUrl.text.trim();
+    final String website = _websiteUrl.text.trim();
+    final String instagram = _instagramUrl.text.trim();
+    final String facebook = _facebookUrl.text.trim();
+    final String talabat = _talabatUrl.text.trim();
+    final String careem = _careemUrl.text.trim();
 
     try {
       final RestaurantDto r = await widget.api.adminCreateRestaurant(
@@ -72,6 +120,11 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
         descriptionAr: dAr.isEmpty ? null : dAr,
         phone: phone.isEmpty ? null : phone,
         logoUrl: logo.isEmpty ? null : logo,
+        websiteUrl: website.isEmpty ? null : website,
+        instagramUrl: instagram.isEmpty ? null : instagram,
+        facebookUrl: facebook.isEmpty ? null : facebook,
+        talabatUrl: talabat.isEmpty ? null : talabat,
+        careemUrl: careem.isEmpty ? null : careem,
       );
       if (mounted) Navigator.of(context).pop(r);
     } on DioException catch (err) {
@@ -154,21 +207,81 @@ class _AdminRestaurantEditorBodyState extends State<_AdminRestaurantEditorBody> 
                     AdminFormValidators.optionalPhone(v, l10n),
               ),
               const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: (_submitting || _uploadingLogo) ? null : _pickLogo,
+                icon: _uploadingLogo
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.photo_library_outlined),
+                label: Text(
+                  _logoUrl.text.trim().isEmpty
+                      ? "Upload logo image"
+                      : "Replace logo image",
+                ),
+              ),
+              if (_logoUrl.text.trim().isNotEmpty) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(
+                  _logoUrl.text.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _logoUrl,
                 decoration: InputDecoration(
                   labelText: l10n.adminLabelLogoUrl,
-                  hintText: "https://",
+                  hintText: "https:// or upload above",
                 ),
                 keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.done,
+                textInputAction: TextInputAction.next,
                 validator: (String? v) =>
                     AdminFormValidators.optionalLogoUrl(v, l10n),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _websiteUrl,
+                decoration: const InputDecoration(labelText: "Website URL"),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _instagramUrl,
+                decoration: const InputDecoration(labelText: "Instagram URL"),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _facebookUrl,
+                decoration: const InputDecoration(labelText: "Facebook URL"),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _talabatUrl,
+                decoration: const InputDecoration(labelText: "Talabat URL"),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _careemUrl,
+                decoration: const InputDecoration(labelText: "Careem URL"),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.done,
                 onFieldSubmitted: _submitting ? null : (_) => _submit(),
               ),
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: _submitting ? null : _submit,
+                onPressed: (_submitting || _uploadingLogo) ? null : _submit,
                 child: _submitting
                     ? const SizedBox(
                         height: 22,

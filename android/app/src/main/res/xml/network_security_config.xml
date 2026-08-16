@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- VPS API is HTTP until TLS/domain is added. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">169.58.151.217</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

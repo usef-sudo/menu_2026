@@ -78,21 +78,24 @@ class PlacesListSection extends ConsumerWidget {
               );
             }
 
-            // Match category / price / facilities / hours (and API open-only) from [restaurantsControllerProvider].
-            final Set<String>? allowedRestaurantIds = restaurantsAsync
-                .maybeWhen(
-                  data: (List<RestaurantEntity> rests) =>
-                      rests.map((RestaurantEntity r) => r.id).toSet(),
-                  orElse: () => null,
-                );
-            if (allowedRestaurantIds != null) {
-              if (allowedRestaurantIds.isEmpty) {
-                filtered = filtered.where((_) => false);
-              } else {
-                filtered = filtered.where(
-                  (NearbyBranchWithDistance b) =>
-                      allowedRestaurantIds.contains(b.branch.restaurantId),
-                );
+            // Category / price / facilities filters apply to Recommended & Most voted only.
+            // Nearby stays location-based (distance + openOnly from home filter).
+            if (sort != HomePlacesSort.nearby) {
+              final Set<String>? allowedRestaurantIds = restaurantsAsync
+                  .maybeWhen(
+                    data: (List<RestaurantEntity> rests) =>
+                        rests.map((RestaurantEntity r) => r.id).toSet(),
+                    orElse: () => null,
+                  );
+              if (allowedRestaurantIds != null) {
+                if (allowedRestaurantIds.isEmpty) {
+                  filtered = filtered.where((_) => false);
+                } else {
+                  filtered = filtered.where(
+                    (NearbyBranchWithDistance b) =>
+                        allowedRestaurantIds.contains(b.branch.restaurantId),
+                  );
+                }
               }
             }
 
@@ -110,19 +113,18 @@ class PlacesListSection extends ConsumerWidget {
                 list.sort((a, b) => score(b).compareTo(score(a)));
                 break;
               case HomePlacesSort.recommended:
+                // Prefer open now, active offers, and proximity; votes are a weak tie-breaker
+                // so this list diverges from Most voted.
                 double score(NearbyBranchWithDistance x) {
-                  final int votes = x.branch.upVotes - x.branch.downVotes;
-                  final double openBoost = x.branch.isEffectivelyOpenNow()
-                      ? 2.0
-                      : 0.0;
+                  final int netVotes = x.branch.upVotes - x.branch.downVotes;
+                  final double openBoost =
+                      x.branch.isEffectivelyOpenNow() ? 20.0 : 0.0;
                   final int offers = x.branch.activeOfferCount ?? 0;
-                  final double offerBoost = offers > 0
-                      ? (3.0 + (offers * 0.5))
-                      : 0.0;
-                  return votes.toDouble() +
-                      openBoost +
-                      offerBoost -
-                      (x.distanceKm * 0.25);
+                  final double offerBoost =
+                      offers > 0 ? (25.0 + (offers * 3.0)) : 0.0;
+                  final double distancePenalty = x.distanceKm * 2.5;
+                  final double voteBoost = netVotes * 0.2;
+                  return openBoost + offerBoost + voteBoost - distancePenalty;
                 }
                 list.sort((a, b) => score(b).compareTo(score(a)));
                 break;

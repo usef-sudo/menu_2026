@@ -62,73 +62,92 @@ class ProfilePage extends ConsumerWidget {
         ),
         if (isLoggedIn) ...<Widget>[
           const SizedBox(height: 16),
-          userProfile.when(
-            data: (UserProfileDto? profile) {
+          _ProfileTile(
+            icon: Icons.person_outline,
+            label: l10n.profileEditProfile,
+            subtitle: l10n.profileEditSubtitle,
+            onTap: () {
+              final UserProfileDto? profile = userProfile.valueOrNull;
               if (profile == null) {
-                return _ProfileInfoCard(
-                  child: Text(
-                    l10n.profileLoadError,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.profileLoadError)),
                 );
+                return;
               }
-              return _ProfileInfoCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      l10n.profileAccountDetails,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    _InfoRow(
-                      icon: Icons.email_outlined,
-                      label: l10n.emailLabel,
-                      value: profile.email,
-                    ),
-                    if (profile.phoneNumber?.trim().isNotEmpty == true) ...<Widget>[
-                      const SizedBox(height: 10),
-                      _InfoRow(
-                        icon: Icons.phone_outlined,
-                        label: l10n.registerPhoneNumberLabel,
-                        value: profile.phoneNumber!,
-                      ),
-                    ],
-                    if (profile.birthDate?.trim().isNotEmpty == true) ...<Widget>[
-                      const SizedBox(height: 10),
-                      _InfoRow(
-                        icon: Icons.cake_outlined,
-                        label: l10n.registerBirthDateLabel,
-                        value: profile.birthDate!,
-                      ),
-                    ],
-                    if (profile.gender?.trim().isNotEmpty == true) ...<Widget>[
-                      const SizedBox(height: 10),
-                      _InfoRow(
-                        icon: Icons.wc_outlined,
-                        label: l10n.registerGender,
-                        value: genderLabel(l10n, profile.gender),
-                      ),
-                    ],
-                  ],
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => EditProfilePage(profile: profile),
                 ),
               );
             },
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: CircularProgressIndicator.adaptive(),
-              ),
-            ),
-            error: (_, __) => _ProfileInfoCard(
-              child: Text(
-                l10n.profileLoadError,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
           ),
+          // userProfile.when(
+          //   data: (UserProfileDto? profile) {
+          //     if (profile == null) {
+          //       return _ProfileInfoCard(
+          //         child: Text(
+          //           l10n.profileLoadError,
+          //           style: Theme.of(context).textTheme.bodyMedium,
+          //         ),
+          //       );
+          //     }
+          //     return _ProfileInfoCard(
+          //       child: Column(
+          //         crossAxisAlignment: CrossAxisAlignment.start,
+          //         children: <Widget>[
+          //           Text(
+          //             l10n.profileAccountDetails,
+          //             style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          //                   fontWeight: FontWeight.w700,
+          //                 ),
+          //           ),
+          //           const SizedBox(height: 12),
+          //           _InfoRow(
+          //             icon: Icons.email_outlined,
+          //             label: l10n.emailLabel,
+          //             value: profile.email,
+          //           ),
+          //           if (profile.phoneNumber?.trim().isNotEmpty == true) ...<Widget>[
+          //             const SizedBox(height: 10),
+          //             _InfoRow(
+          //               icon: Icons.phone_outlined,
+          //               label: l10n.registerPhoneNumberLabel,
+          //               value: profile.phoneNumber!,
+          //             ),
+          //           ],
+          //           if (profile.birthDate?.trim().isNotEmpty == true) ...<Widget>[
+          //             const SizedBox(height: 10),
+          //             _InfoRow(
+          //               icon: Icons.cake_outlined,
+          //               label: l10n.registerBirthDateLabel,
+          //               value: profile.birthDate!,
+          //             ),
+          //           ],
+          //           if (profile.gender?.trim().isNotEmpty == true) ...<Widget>[
+          //             const SizedBox(height: 10),
+          //             _InfoRow(
+          //               icon: Icons.wc_outlined,
+          //               label: l10n.registerGender,
+          //               value: genderLabel(l10n, profile.gender),
+          //             ),
+          //           ],
+          //         ],
+          //       ),
+          //     );
+          //   },
+          //   loading: () => const Center(
+          //     child: Padding(
+          //       padding: EdgeInsets.symmetric(vertical: 12),
+          //       child: CircularProgressIndicator.adaptive(),
+          //     ),
+          //   ),
+          //   error: (_, __) => _ProfileInfoCard(
+          //     child: Text(
+          //       l10n.profileLoadError,
+          //       style: Theme.of(context).textTheme.bodyMedium,
+          //     ),
+          //   ),
+          // ),
         ],
         const SizedBox(height: 24),
         if (isLoggedIn) ...<Widget>[
@@ -234,25 +253,7 @@ class ProfilePage extends ConsumerWidget {
           onTap: () => _openLegalUrl(context, LegalUrls.termsOfService),
         ),
         if (isLoggedIn) ...<Widget>[
-          _ProfileTile(
-            icon: Icons.person_outline,
-            label: l10n.profileEditProfile,
-            subtitle: l10n.profileEditSubtitle,
-            onTap: () {
-              final UserProfileDto? profile = userProfile.valueOrNull;
-              if (profile == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.profileLoadError)),
-                );
-                return;
-              }
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => EditProfilePage(profile: profile),
-                ),
-              );
-            },
-          ),
+
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: () async {

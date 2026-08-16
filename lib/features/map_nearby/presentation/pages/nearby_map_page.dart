@@ -17,6 +17,7 @@ import "package:menu_2026/features/map_nearby/presentation/controllers/map_filte
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
+import "package:menu_2026/core/utils/phone_launcher.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 import "package:url_launcher/url_launcher.dart";
@@ -247,9 +248,9 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
   }
 
   Future<BitmapDescriptor> _buildEmojiPinIcon({required bool isSelected}) async {
-    final double displayW = isSelected ? 28 : 24;
-    final double displayH = isSelected ? 34 : 30;
-    final double fontSize = isSelected ? 26 : 22;
+    final double displayW = isSelected ? 44 : 36;
+    final double displayH = isSelected ? 52 : 44;
+    final double fontSize = isSelected ? 38 : 32;
     final double scale = MediaQuery.of(context).devicePixelRatio.clamp(2.0, 3.0);
 
     final TextPainter painter = TextPainter(
@@ -265,8 +266,8 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
     final Canvas canvas = Canvas(recorder);
     painter.paint(canvas, Offset.zero);
     final ui.Image image = await recorder.endRecording().toImage(
-      width.ceil().clamp(1, 128),
-      height.ceil().clamp(1, 128),
+      width.ceil().clamp(1, 256),
+      height.ceil().clamp(1, 256),
     );
     final ByteData? png =
         await image.toByteData(format: ui.ImageByteFormat.png);
@@ -279,7 +280,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
 
   void _primePinIcons() {
     for (final bool isSelected in <bool>[false, true]) {
-      final String key = isSelected ? "sel" : "norm";
+      final String key = isSelected ? "sel_v2" : "norm_v2";
       if (_markerIconCache.containsKey(key) ||
           _markerIconInFlight.contains(key)) {
         continue;
@@ -319,7 +320,7 @@ class _NearbyMapPageState extends ConsumerState<NearbyMapPage> {
           snippet: l10n.distanceKm(item.distanceKm.toStringAsFixed(1)),
         ),
         anchor: const Offset(0.5, 0.92),
-        icon: _markerIconCache[isSelected ? "sel" : "norm"] ??
+        icon: _markerIconCache[isSelected ? "sel_v2" : "norm_v2"] ??
             BitmapDescriptor.defaultMarker,
         zIndexInt: isSelected ? 10 : 0,
         onTap: () {
@@ -1004,7 +1005,9 @@ class _BranchInfoContent extends ConsumerWidget {
     final RestaurantDetailsState? details = detailsAsync.valueOrNull;
     final String? categoryName = details?.categoryName;
     final String? description = details?.descriptionEn;
-    final String phone = details?.phone.trim() ?? "";
+    final String branchPhone = b.phone?.trim() ?? "";
+    final String phone =
+        branchPhone.isNotEmpty ? branchPhone : (details?.phone.trim() ?? "");
     final double avgRating = details?.avgRating ?? 0;
     final List<RestaurantFacility> facilities = details?.facilities ?? <RestaurantFacility>[];
     final String? imageUrl = photosAsync.valueOrNull?.isNotEmpty == true
@@ -1147,24 +1150,38 @@ class _BranchInfoContent extends ConsumerWidget {
         ],
         if (phone.isNotEmpty) ...<Widget>[
           const SizedBox(height: 10),
-          Row(
-            children: <Widget>[
-              Icon(
-                Icons.phone_outlined,
-                size: 18,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  phone,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w500,
+          InkWell(
+            onTap: () async {
+              final bool ok = await launchPhoneCall(context, phone);
+              if (!ok && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.branchNoPhone)),
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(AppRadii.sm),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.phone_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      phone,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
         if (description != null && description.isNotEmpty) ...<Widget>[

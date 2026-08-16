@@ -37,6 +37,16 @@ class ReviewsController
       return false;
     }
   }
+
+  Future<bool> deleteMyReview({required String branchId}) async {
+    try {
+      await ref.read(menuApiProvider).deleteMyReview(branchId: branchId);
+      await refresh(branchId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 final reviewsControllerProvider =

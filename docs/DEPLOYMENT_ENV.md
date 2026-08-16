@@ -7,7 +7,7 @@ Pass secrets and endpoints at **build time** with `--dart-define` (or your CI’
 | Define | Purpose |
 |--------|---------|
 | `APP_FLAVOR=prod` | Enables prod defaults in [`lib/app/config/app_environment.dart`](../lib/app/config/app_environment.dart) |
-| `API_BASE_URL` | HTTPS origin of the Menu API (no trailing `/api`) |
+| `API_BASE_URL` | Origin of the Menu API (no trailing `/api`). Current VPS: `http://169.58.151.217:8000` |
 | `SENTRY_DSN` | Crash reporting ([Sentry](https://sentry.io)); empty DSN disables reporting |
 
 ## Google Maps
@@ -27,7 +27,7 @@ Pass secrets and endpoints at **build time** with `--dart-define` (or your CI’
 ```bash
 flutter build apk \
   --dart-define=APP_FLAVOR=prod \
-  --dart-define=API_BASE_URL=https://api.yourdomain.com \
+  --dart-define=API_BASE_URL=http://169.58.151.217:8000 \
   --dart-define=SENTRY_DSN=https://your-key@o.ingest.sentry.io/project \
   --dart-define=LEGAL_PRIVACY_URL=https://yourdomain.com/privacy \
   --dart-define=LEGAL_TERMS_URL=https://yourdomain.com/terms

@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/network/menu_api.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_bulk_add_sheet.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_restaurant_editor_sheet.dart";
 import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
@@ -62,6 +63,17 @@ class _AdminRestaurantsPageState extends ConsumerState<AdminRestaurantsPage> {
     if (mounted) context.push("/admin/restaurants/${r.id}");
   }
 
+  Future<void> _openBulk() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final bool saved = await showAdminBulkRestaurantsSheet(
+      context: context,
+      l10n: l10n,
+      api: ref.read(menuApiProvider),
+    );
+    if (!mounted || !saved) return;
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
@@ -80,6 +92,11 @@ class _AdminRestaurantsPageState extends ConsumerState<AdminRestaurantsPage> {
           },
         ),
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.playlist_add),
+            tooltip: "Bulk add",
+            onPressed: _loading ? null : _openBulk,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.adminTooltipRefresh,

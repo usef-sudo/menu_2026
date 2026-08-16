@@ -7,7 +7,6 @@ import "package:menu_2026/core/theme/tokens/app_colors.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
 
 class CategoriesPage extends ConsumerStatefulWidget {
   const CategoriesPage({super.key});
@@ -269,9 +268,6 @@ class _CategoriesGrid extends ConsumerWidget {
           return _CategoryTile(
             category: category,
             onTap: () {
-              ref.read(restaurantsFilterProvider.notifier).state =
-                  RestaurantsFilter(categoryId: category.id);
-              ref.read(restaurantsControllerProvider.notifier).refresh();
               final String lang =
                   Localizations.localeOf(context).languageCode;
               final String routeTitle =

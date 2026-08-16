@@ -17,6 +17,7 @@ class BranchEntity extends Equatable {
     this.distanceKm,
     this.openTime,
     this.closeTime,
+    this.phone,
     this.openNow,
     this.activeOfferCount,
     this.facilities = const <String>[],
@@ -36,6 +37,7 @@ class BranchEntity extends Equatable {
   final double? distanceKm;
   final String? openTime;
   final String? closeTime;
+  final String? phone;
   /// Server-computed "open now" (single source of truth). If null, app computes locally.
   final bool? openNow;
   /// Server-computed count of currently active offers for this restaurant (0 if none/unknown).
@@ -152,6 +154,7 @@ class BranchEntity extends Equatable {
     distanceKm,
     openTime,
     closeTime,
+    phone,
     openNow,
     activeOfferCount,
     facilities,

@@ -5,6 +5,7 @@ import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_editor_header.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_form_validators.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_location_map_picker.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_weekly_hours_editor.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
@@ -283,28 +284,25 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
                     AdminFormValidators.optionalAddress(v, l10n),
               ),
               const SizedBox(height: 8),
+              AdminLocationMapPicker(
+                latController: _lat,
+                lngController: _lng,
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _lat,
+                readOnly: true,
                 decoration: InputDecoration(labelText: l10n.adminLabelLatitude),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                  signed: true,
-                ),
-                textInputAction: TextInputAction.next,
                 validator: (String? v) =>
                     AdminFormValidators.optionalCoordinate(v, l10n),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _lng,
+                readOnly: true,
                 decoration: InputDecoration(
                   labelText: l10n.adminLabelLongitude,
                 ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                  signed: true,
-                ),
-                textInputAction: TextInputAction.next,
                 validator: (String? v) =>
                     AdminFormValidators.optionalCoordinate(v, l10n),
               ),

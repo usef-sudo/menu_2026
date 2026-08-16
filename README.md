@@ -21,11 +21,31 @@ Menu is not a food ordering app.
 - Dio networking with interceptors
 - Sentry + logger observability
 
-## Run (Dev)
+## Run (Dev → VPS API)
+
+Default API base URL is the VPS: `http://169.58.151.217:8000` (see `lib/app/config/app_environment.dart`).
 
 ```bash
 flutter pub get
+flutter run --dart-define=APP_FLAVOR=dev
+```
+
+Local API instead:
+
+```bash
 flutter run --dart-define=APP_FLAVOR=dev --dart-define=API_BASE_URL=http://localhost:8000
+```
+
+## Backend pull & restart (VPS)
+
+On the server (`/opt/menu_jo_backend`):
+
+```bash
+cd /opt/menu_jo_backend
+sudo git pull
+sudo -u menuapi -- env HOME=/var/lib/menuapi bash -c 'cd /opt/menu_jo_backend && npm ci && npm run build'
+sudo systemctl restart menu-api
+curl -sS http://127.0.0.1:8000/api/health/ready
 ```
 
 ## Useful Commands

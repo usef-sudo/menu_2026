@@ -28,6 +28,8 @@ class _CategoryRestaurantsPageState
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String _localSearchQuery = "";
+  RestaurantsFilter? _previousFilter;
+  bool _didOverrideFilter = false;
 
   @override
   void initState() {
@@ -38,11 +40,21 @@ class _CategoryRestaurantsPageState
       );
     });
     Future<void>.microtask(() async {
+      _previousFilter = ref.read(restaurantsFilterProvider);
+      _didOverrideFilter = true;
       ref.read(restaurantsFilterProvider.notifier).state = RestaurantsFilter(
         categoryId: widget.categoryId,
       );
       await ref.read(restaurantsControllerProvider.notifier).refresh();
     });
+  }
+
+  void _restoreHomeFilter() {
+    if (!_didOverrideFilter) return;
+    _didOverrideFilter = false;
+    ref.read(restaurantsFilterProvider.notifier).state =
+        _previousFilter ?? const RestaurantsFilter();
+    ref.read(restaurantsControllerProvider.notifier).refresh();
   }
 
   @override
@@ -59,7 +71,13 @@ class _CategoryRestaurantsPageState
       restaurantsControllerProvider,
     );
 
-    return Scaffold(
+    return PopScope(
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          _restoreHomeFilter();
+        }
+      },
+      child: Scaffold(
       body: Column(
         children: <Widget>[
           RestaurantsResultsHeader(
@@ -96,6 +114,7 @@ class _CategoryRestaurantsPageState
             ),
           ),
         ],
+      ),
       ),
     );
   }

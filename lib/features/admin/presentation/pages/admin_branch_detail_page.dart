@@ -1,16 +1,17 @@
 import "package:dio/dio.dart";
 import "package:flutter/material.dart";
-import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:go_router/go_router.dart";
-import "package:image_picker/image_picker.dart";
 import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/features/admin/data/area_dto.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_location_map_picker.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_weekly_hours_editor.dart";
 import "package:menu_2026/features/branches/data/models/branch_dto.dart";
 import "package:menu_2026/features/facilities/data/models/facility_dto.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
+import "package:image_picker/image_picker.dart";
 
 class AdminBranchDetailPage extends ConsumerStatefulWidget {
   const AdminBranchDetailPage({super.key, required this.branchId});
@@ -271,9 +272,22 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
               const SizedBox(height: 8),
               TextField(controller: _address, decoration: const InputDecoration(labelText: "Address")),
               const SizedBox(height: 8),
-              TextField(controller: _lat, decoration: const InputDecoration(labelText: "Latitude")),
+              AdminLocationMapPicker(
+                latController: _lat,
+                lngController: _lng,
+              ),
               const SizedBox(height: 8),
-              TextField(controller: _lng, decoration: const InputDecoration(labelText: "Longitude")),
+              TextField(
+                controller: _lat,
+                readOnly: true,
+                decoration: const InputDecoration(labelText: "Latitude"),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _lng,
+                readOnly: true,
+                decoration: const InputDecoration(labelText: "Longitude"),
+              ),
               const SizedBox(height: 8),
               TextField(controller: _cost, decoration: const InputDecoration(labelText: "Cost level (1–5)")),
               const SizedBox(height: 8),

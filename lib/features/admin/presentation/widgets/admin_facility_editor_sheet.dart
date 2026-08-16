@@ -176,15 +176,51 @@ class _AdminFacilityEditorBodyState extends State<_AdminFacilityEditorBody> {
                 validator: _validateName,
               ),
               const SizedBox(height: 8),
+              Text(
+                l10n.adminIconOptional,
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Tap an emoji to set the icon",
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <String>[
+                  "🅿️", "♿", "📶", "❄️", "🔥", "👶", "🚬", "🚭",
+                  "🐕", "🎵", "🌳", "🚗", "🛵", "💳", "🕐", "🍽️",
+                ].map((String emoji) {
+                  final bool selected = _icon.text.trim() == emoji;
+                  return ChoiceChip(
+                    label: Text(emoji, style: const TextStyle(fontSize: 20)),
+                    selected: selected,
+                    onSelected: _submitting
+                        ? null
+                        : (bool value) {
+                            setState(() {
+                              _icon.text = value ? emoji : "";
+                            });
+                          },
+                  );
+                }).toList(growable: false),
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _icon,
                 decoration: InputDecoration(
                   labelText: l10n.adminIconOptional,
                   hintText: l10n.adminCategoryIconHint,
+                  prefixText: _icon.text.trim().isEmpty
+                      ? null
+                      : "${_icon.text.trim()}  ",
                 ),
                 textInputAction: TextInputAction.done,
                 maxLength: _kMaxFacilityIconLength,
                 validator: _validateIcon,
+                onChanged: (_) => setState(() {}),
                 onFieldSubmitted: _submitting ? null : (_) => _submit(),
               ),
               const SizedBox(height: 20),

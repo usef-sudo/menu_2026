@@ -270,6 +270,16 @@ class MenuApi {
     await _dio.delete<dynamic>("/areas/$id");
   }
 
+  Future<Map<String, dynamic>> adminBulkCreateAreas(
+    List<Map<String, String>> items,
+  ) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/areas/bulk",
+      data: <String, dynamic>{"items": items},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
   // —— Restaurants (admin) ——
   Future<RestaurantDto> adminCreateRestaurant({
     required String nameEn,
@@ -278,6 +288,11 @@ class MenuApi {
     String? descriptionAr,
     String? logoUrl,
     String? phone,
+    String? websiteUrl,
+    String? instagramUrl,
+    String? facebookUrl,
+    String? talabatUrl,
+    String? careemUrl,
     List<String>? categoryIds,
   }) async {
     final Response<dynamic> response = await _dio.post<dynamic>(
@@ -289,6 +304,11 @@ class MenuApi {
         if (descriptionAr != null) "descriptionAr": descriptionAr,
         if (logoUrl != null) "logoUrl": logoUrl,
         if (phone != null) "phone": phone,
+        if (websiteUrl != null) "websiteUrl": websiteUrl,
+        if (instagramUrl != null) "instagramUrl": instagramUrl,
+        if (facebookUrl != null) "facebookUrl": facebookUrl,
+        if (talabatUrl != null) "talabatUrl": talabatUrl,
+        if (careemUrl != null) "careemUrl": careemUrl,
         if (categoryIds != null) "categoryIds": categoryIds,
       },
     );
@@ -303,6 +323,11 @@ class MenuApi {
     String? descriptionAr,
     String? logoUrl,
     String? phone,
+    String? websiteUrl,
+    String? instagramUrl,
+    String? facebookUrl,
+    String? talabatUrl,
+    String? careemUrl,
     List<String>? categoryIds,
   }) async {
     final Map<String, dynamic> body = <String, dynamic>{};
@@ -312,6 +337,11 @@ class MenuApi {
     if (descriptionAr != null) body["descriptionAr"] = descriptionAr;
     if (logoUrl != null) body["logoUrl"] = logoUrl;
     if (phone != null) body["phone"] = phone;
+    if (websiteUrl != null) body["websiteUrl"] = websiteUrl;
+    if (instagramUrl != null) body["instagramUrl"] = instagramUrl;
+    if (facebookUrl != null) body["facebookUrl"] = facebookUrl;
+    if (talabatUrl != null) body["talabatUrl"] = talabatUrl;
+    if (careemUrl != null) body["careemUrl"] = careemUrl;
     if (categoryIds != null) body["categoryIds"] = categoryIds;
     final Response<dynamic> response =
         await _dio.put<dynamic>("/restaurants/$id", data: body);
@@ -320,6 +350,16 @@ class MenuApi {
 
   Future<void> adminDeleteRestaurant(String id) async {
     await _dio.delete<dynamic>("/restaurants/$id");
+  }
+
+  Future<Map<String, dynamic>> adminBulkCreateRestaurants(
+    List<Map<String, dynamic>> items,
+  ) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/restaurants/bulk",
+      data: <String, dynamic>{"items": items},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
   }
 
   Future<void> adminAssignRestaurantCategories(
@@ -376,6 +416,16 @@ class MenuApi {
       },
     );
     return BranchDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> adminBulkCreateBranches(
+    List<Map<String, dynamic>> items,
+  ) async {
+    final Response<dynamic> response = await _dio.post<dynamic>(
+      "/branches/bulk",
+      data: <String, dynamic>{"items": items},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
   }
 
   Future<BranchDto> adminReplaceBranchOpeningHours(
@@ -513,6 +563,30 @@ class MenuApi {
 
   Future<void> adminDeleteRestaurantPhoto(String photoId) async {
     await _dio.delete<dynamic>("/restaurant-photos/$photoId");
+  }
+
+  /// Upload a file via `POST /upload/single` and return the public URL.
+  Future<String> uploadFile({
+    required List<int> imageBytes,
+    required String filename,
+  }) async {
+    final FormData uploadForm = FormData.fromMap(<String, dynamic>{
+      "file": MultipartFile.fromBytes(imageBytes, filename: filename),
+    });
+    final Response<dynamic> uploadRes =
+        await _dio.post<dynamic>("/upload/single", data: uploadForm);
+    final dynamic root = uploadRes.data;
+    final dynamic data =
+        root is Map<String, dynamic> && root["data"] != null
+            ? root["data"]
+            : root;
+    final String url = (data is Map && data["url"] != null)
+        ? data["url"].toString()
+        : "";
+    if (url.isEmpty) {
+      throw StateError("Upload did not return a URL");
+    }
+    return url;
   }
 
   /// Upload via `/upload/single` then register on restaurant (`POST /restaurants/:id/photos`).
@@ -906,6 +980,7 @@ class MenuApi {
                 item as Map<String, dynamic>;
             return ReviewEntity(
               id: map["id"].toString(),
+              userId: (map["userId"] ?? "").toString(),
               userName: (map["userName"] as String?) ?? "User",
               rating: int.tryParse(map["rating"].toString()) ?? 0,
               comment: (map["comment"] as String?) ?? "",
@@ -939,6 +1014,10 @@ class MenuApi {
         if (comment != null && comment.isNotEmpty) "comment": comment,
       },
     );
+  }
+
+  Future<void> deleteMyReview({required String branchId}) async {
+    await _dio.delete<dynamic>("/reviews/branches/$branchId/reviews");
   }
 
   Future<List<MenuImageEntity>> getBranchMenuImages(String branchId) async {
