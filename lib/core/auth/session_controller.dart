@@ -1,9 +1,8 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:menu_2026/core/auth/token_store.dart";
 
 final tokenStoreProvider = Provider<TokenStore>((Ref ref) {
-  return TokenStore(const FlutterSecureStorage());
+  return TokenStore(TokenStore.createDefault());
 });
 
 class SessionState {
@@ -34,13 +33,18 @@ class SessionState {
 class SessionController extends AsyncNotifier<SessionState> {
   @override
   Future<SessionState> build() async {
-    final token = await ref.read(tokenStoreProvider).readToken();
-    final String? roleRaw = await ref.read(tokenStoreProvider).readUserRole();
-    final String? role = switch (roleRaw?.trim()) {
-      null || "" => null,
-      final String r => r.toLowerCase(),
-    };
-    return SessionState(token: token, role: role);
+    try {
+      final token = await ref.read(tokenStoreProvider).readToken();
+      final String? roleRaw = await ref.read(tokenStoreProvider).readUserRole();
+      final String? role = switch (roleRaw?.trim()) {
+        null || "" => null,
+        final String r => r.toLowerCase(),
+      };
+      return SessionState(token: token, role: role);
+    } catch (_) {
+      // Never block app start on storage failures.
+      return const SessionState(token: null, role: null);
+    }
   }
 
   Future<void> saveToken(String token) async {

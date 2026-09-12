@@ -23,12 +23,54 @@ class AppEntryPage extends ConsumerWidget {
       );
     }
 
+    if (settingsAsync.hasError || sessionAsync.hasError) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(context.l10n.unableToStartApp),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {
+                    ref.invalidate(appSettingsControllerProvider);
+                    ref.invalidate(sessionControllerProvider);
+                  },
+                  child: Text(context.l10n.commonRetry),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final settings = settingsAsync.valueOrNull;
     final session = sessionAsync.valueOrNull;
 
     if (settings == null || session == null) {
       return Scaffold(
-        body: Center(child: Text(context.l10n.unableToStartApp)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(context.l10n.unableToStartApp),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {
+                    ref.invalidate(appSettingsControllerProvider);
+                    ref.invalidate(sessionControllerProvider);
+                  },
+                  child: Text(context.l10n.commonRetry),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

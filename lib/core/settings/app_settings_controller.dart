@@ -33,7 +33,7 @@ class AppSettings {
   }
 }
 
-class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
+class AppSettingsController extends AsyncNotifier<AppSettings> {
   static const String _themeKey = "app_theme_mode";
   static const String _localeKey = "app_locale_code";
   static const String _hasSelectedLanguageKey = "app_has_selected_language";
@@ -43,35 +43,45 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
 
   @override
   Future<AppSettings> build() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    await _migrateOnboardingForLegacyUsers(prefs);
+      await _migrateOnboardingForLegacyUsers(prefs);
 
-    final String themeString = prefs.getString(_themeKey) ?? "system";
-    final String localeCode = prefs.getString(_localeKey) ?? "en";
-    final bool hasSelectedLanguage =
-        prefs.getBool(_hasSelectedLanguageKey) ?? false;
-    final bool hasCompletedOnboarding =
-        prefs.getBool(_hasCompletedOnboardingKey) ?? false;
+      final String themeString = prefs.getString(_themeKey) ?? "system";
+      final String localeCode = prefs.getString(_localeKey) ?? "en";
+      final bool hasSelectedLanguage =
+          prefs.getBool(_hasSelectedLanguageKey) ?? false;
+      final bool hasCompletedOnboarding =
+          prefs.getBool(_hasCompletedOnboardingKey) ?? false;
 
-    final ThemeMode themeMode;
-    switch (themeString) {
-      case "light":
-        themeMode = ThemeMode.light;
-        break;
-      case "dark":
-        themeMode = ThemeMode.dark;
-        break;
-      default:
-        themeMode = ThemeMode.system;
+      final ThemeMode themeMode;
+      switch (themeString) {
+        case "light":
+          themeMode = ThemeMode.light;
+          break;
+        case "dark":
+          themeMode = ThemeMode.dark;
+          break;
+        default:
+          themeMode = ThemeMode.system;
+      }
+
+      return AppSettings(
+        themeMode: themeMode,
+        localeCode: localeCode,
+        hasSelectedLanguage: hasSelectedLanguage,
+        hasCompletedOnboarding: hasCompletedOnboarding,
+      );
+    } catch (_) {
+      // Prefer a usable default over blocking app launch.
+      return const AppSettings(
+        themeMode: ThemeMode.system,
+        localeCode: "en",
+        hasSelectedLanguage: false,
+        hasCompletedOnboarding: false,
+      );
     }
-
-    return AppSettings(
-      themeMode: themeMode,
-      localeCode: localeCode,
-      hasSelectedLanguage: hasSelectedLanguage,
-      hasCompletedOnboarding: hasCompletedOnboarding,
-    );
   }
 
   /// Users who already had a locale before onboarding existed should not see the carousel.
@@ -131,7 +141,7 @@ class AppSettingsController extends AutoDisposeAsyncNotifier<AppSettings> {
 }
 
 final appSettingsControllerProvider =
-    AutoDisposeAsyncNotifierProvider<AppSettingsController, AppSettings>(
+    AsyncNotifierProvider<AppSettingsController, AppSettings>(
   AppSettingsController.new,
 );
 

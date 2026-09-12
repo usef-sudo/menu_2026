@@ -9,37 +9,64 @@ class TokenStore {
 
   final FlutterSecureStorage _storage;
 
+  /// Android Keystore can fail on some devices; encrypted prefs is more reliable.
+  static FlutterSecureStorage createDefault() {
+    return const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    );
+  }
+
   Future<void> saveToken(String token) async {
-    await _storage.write(key: _accessTokenKey, value: token);
+    try {
+      await _storage.write(key: _accessTokenKey, value: token);
+    } catch (_) {}
   }
 
   Future<String?> readToken() async {
-    return _storage.read(key: _accessTokenKey);
+    try {
+      return await _storage.read(key: _accessTokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> saveRefreshToken(String token) async {
-    await _storage.write(key: _refreshTokenKey, value: token);
+    try {
+      await _storage.write(key: _refreshTokenKey, value: token);
+    } catch (_) {}
   }
 
   Future<String?> readRefreshToken() async {
-    return _storage.read(key: _refreshTokenKey);
+    try {
+      return await _storage.read(key: _refreshTokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> saveUserRole(String? role) async {
-    if (role == null || role.isEmpty) {
-      await _storage.delete(key: _userRoleKey);
-      return;
-    }
-    await _storage.write(key: _userRoleKey, value: role);
+    try {
+      if (role == null || role.isEmpty) {
+        await _storage.delete(key: _userRoleKey);
+        return;
+      }
+      await _storage.write(key: _userRoleKey, value: role);
+    } catch (_) {}
   }
 
   Future<String?> readUserRole() async {
-    return _storage.read(key: _userRoleKey);
+    try {
+      return await _storage.read(key: _userRoleKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clear() async {
-    await _storage.delete(key: _accessTokenKey);
-    await _storage.delete(key: _refreshTokenKey);
-    await _storage.delete(key: _userRoleKey);
+    try {
+      await _storage.delete(key: _accessTokenKey);
+      await _storage.delete(key: _refreshTokenKey);
+      await _storage.delete(key: _userRoleKey);
+    } catch (_) {}
   }
 }
