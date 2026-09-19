@@ -285,7 +285,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+			shellScript = "export PATH=\"${SRCROOT}/scripts:${PATH}\"\nxattr -cr \"${TARGET_BUILD_DIR}/${WRAPPER_NAME}\" 2>/dev/null || true\n/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
 		4A4C7095D48A73876B5FEED8 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -361,7 +361,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+			shellScript = "/bin/bash \"${SRCROOT}/scripts/prepare_local_build_dir.sh\"\nexport PATH=\"${SRCROOT}/scripts:${PATH}\"\nif [ -n \"${BUILT_PRODUCTS_DIR}\" ]; then\n  mkdir -p \"${BUILT_PRODUCTS_DIR}\"\n  xattr -w com.apple.fileprovider.ignore#P 1 \"${BUILT_PRODUCTS_DIR}\" 2>/dev/null || true\n  xattr -cr \"${BUILT_PRODUCTS_DIR}\" 2>/dev/null || true\nfi\n/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
 		};
 		C43BE05DF10D3132A3C6E7C0 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
