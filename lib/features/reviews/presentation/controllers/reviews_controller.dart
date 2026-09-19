@@ -1,5 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/network/menu_api.dart";
+import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
 
 class ReviewsController
@@ -22,6 +23,7 @@ class ReviewsController
 
   Future<bool> submitReview({
     required String branchId,
+    String? restaurantId,
     required int rating,
     String? comment,
   }) async {
@@ -32,16 +34,27 @@ class ReviewsController
             comment: comment,
           );
       await refresh(branchId);
+      if (restaurantId != null && restaurantId.isNotEmpty) {
+        ref.invalidate(restaurantReviewsControllerProvider(restaurantId));
+        ref.invalidate(restaurantDetailsControllerProvider(restaurantId));
+      }
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  Future<bool> deleteMyReview({required String branchId}) async {
+  Future<bool> deleteMyReview({
+    required String branchId,
+    String? restaurantId,
+  }) async {
     try {
       await ref.read(menuApiProvider).deleteMyReview(branchId: branchId);
       await refresh(branchId);
+      if (restaurantId != null && restaurantId.isNotEmpty) {
+        ref.invalidate(restaurantReviewsControllerProvider(restaurantId));
+        ref.invalidate(restaurantDetailsControllerProvider(restaurantId));
+      }
       return true;
     } catch (_) {
       return false;
@@ -52,4 +65,18 @@ class ReviewsController
 final reviewsControllerProvider =
     AutoDisposeAsyncNotifierProviderFamily<ReviewsController, ReviewsState,
         String>(ReviewsController.new);
+
+class RestaurantReviewsController
+    extends AutoDisposeFamilyAsyncNotifier<ReviewsState, String> {
+  @override
+  Future<ReviewsState> build(String restaurantId) async {
+    return ref.read(menuApiProvider).getRestaurantReviews(restaurantId);
+  }
+}
+
+final restaurantReviewsControllerProvider =
+    AutoDisposeAsyncNotifierProviderFamily<
+        RestaurantReviewsController,
+        ReviewsState,
+        String>(RestaurantReviewsController.new);
 

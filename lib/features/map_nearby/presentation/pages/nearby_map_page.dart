@@ -8,6 +8,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:google_maps_flutter/google_maps_flutter.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/core/utils/phone_launcher.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/categories/domain/entities/category_entity.dart";
@@ -17,8 +18,8 @@ import "package:menu_2026/features/map_nearby/presentation/controllers/map_filte
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
-import "package:menu_2026/core/utils/phone_launcher.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_external_links.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 import "package:url_launcher/url_launcher.dart";
 
@@ -1192,6 +1193,23 @@ class _BranchInfoContent extends ConsumerWidget {
               color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               height: 1.5,
             ),
+          ),
+        ],
+        if (details != null &&
+            RestaurantExternalLinks.hasAny(
+              websiteUrl: details.websiteUrl,
+              instagramUrl: details.instagramUrl,
+              facebookUrl: details.facebookUrl,
+              talabatUrl: details.talabatUrl,
+              careemUrl: details.careemUrl,
+            )) ...<Widget>[
+          const SizedBox(height: 12),
+          RestaurantExternalLinks(
+            websiteUrl: details.websiteUrl,
+            instagramUrl: details.instagramUrl,
+            facebookUrl: details.facebookUrl,
+            talabatUrl: details.talabatUrl,
+            careemUrl: details.careemUrl,
           ),
         ],
         const SizedBox(height: 12),

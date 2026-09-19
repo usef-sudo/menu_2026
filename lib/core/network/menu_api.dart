@@ -280,6 +280,26 @@ class MenuApi {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
+  Future<List<int>> adminDownloadBulkTemplate(String path) async {
+    final Response<List<int>> response = await _dio.get<List<int>>(
+      path,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return response.data ?? <int>[];
+  }
+
+  Future<Map<String, dynamic>> adminUploadBulkExcel({
+    required String path,
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final FormData form = FormData.fromMap(<String, dynamic>{
+      "file": MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final Response<dynamic> response = await _dio.post<dynamic>(path, data: form);
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
   // —— Restaurants (admin) ——
   Future<RestaurantDto> adminCreateRestaurant({
     required String nameEn,
@@ -919,7 +939,7 @@ class MenuApi {
 
   Future<UserProfileDto> getCurrentUser() async {
     final Response<dynamic> response = await _dio.get<dynamic>("/users/me");
-    return UserProfileDto.fromJson(response.data as Map<String, dynamic>);
+    return UserProfileDto.fromJson(_asObjectMap(response.data));
   }
 
   Future<UserProfileDto> updateCurrentUser({
@@ -937,7 +957,18 @@ class MenuApi {
         "phoneNumber": phoneNumber,
       },
     );
-    return UserProfileDto.fromJson(response.data as Map<String, dynamic>);
+    return UserProfileDto.fromJson(_asObjectMap(response.data));
+  }
+
+  Map<String, dynamic> _asObjectMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      final Object? nested = raw["data"];
+      if (nested is Map<String, dynamic>) {
+        return nested;
+      }
+      return raw;
+    }
+    throw StateError("Expected a JSON object");
   }
 
   Future<Set<String>> getFavoriteRestaurantIds() async {
@@ -968,7 +999,17 @@ class MenuApi {
   Future<ReviewsState> getBranchReviews(String branchId) async {
     final Response<dynamic> response =
         await _dio.get<dynamic>("/reviews/branches/$branchId/reviews");
-    final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+    return _parseReviewsResponse(response.data);
+  }
+
+  Future<ReviewsState> getRestaurantReviews(String restaurantId) async {
+    final Response<dynamic> response =
+        await _dio.get<dynamic>("/reviews/restaurants/$restaurantId/reviews");
+    return _parseReviewsResponse(response.data);
+  }
+
+  ReviewsState _parseReviewsResponse(dynamic raw) {
+    final Map<String, dynamic> data = raw as Map<String, dynamic>;
     final List<dynamic> list = data["reviews"] as List<dynamic>? ?? <dynamic>[];
     final Map<String, dynamic> summary =
         data["summary"] as Map<String, dynamic>? ?? <String, dynamic>{};
@@ -980,7 +1021,7 @@ class MenuApi {
                 item as Map<String, dynamic>;
             return ReviewEntity(
               id: map["id"].toString(),
-              userId: (map["userId"] ?? "").toString(),
+              userId: (map["userId"] ?? map["user_id"] ?? "").toString(),
               userName: (map["userName"] as String?) ?? "User",
               rating: int.tryParse(map["rating"].toString()) ?? 0,
               comment: (map["comment"] as String?) ?? "",
@@ -988,6 +1029,7 @@ class MenuApi {
                     map["createdAt"]?.toString() ?? "",
                   ) ??
                   DateTime.now(),
+              branchId: (map["branchId"] ?? map["branch_id"] ?? "").toString(),
             );
           },
         )
@@ -1011,7 +1053,7 @@ class MenuApi {
       "/reviews/branches/$branchId/reviews",
       data: <String, dynamic>{
         "rating": rating,
-        if (comment != null && comment.isNotEmpty) "comment": comment,
+        "comment": comment ?? "",
       },
     );
   }

@@ -713,6 +713,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adminLabelLongitude => 'خط الطول';
 
   @override
+  String get adminPickLocationOnMap => 'تحديد الموقع على الخريطة';
+
+  @override
+  String get adminChangeLocationOnMap => 'تغيير';
+
+  @override
+  String get adminLocationRequired => 'حدّد الموقع على الخريطة';
+
+  @override
+  String get adminConfirmLocation => 'استخدام هذا الموقع';
+
+  @override
+  String get adminMapPickerHint =>
+      'اضغط على الخريطة لوضع الدبوس، ثم اسحبه للتعديل';
+
+  @override
+  String adminLocationPicked(String lat, String lng) {
+    return 'الموقع: $lat، $lng';
+  }
+
+  @override
   String get adminLabelCostLevel => 'مستوى التكلفة (1–5)';
 
   @override
@@ -1109,6 +1130,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get restaurantNoReviewsYet => 'لا مراجعات بعد';
 
   @override
+  String get reviewsAllBranches => 'كل الفروع';
+
+  @override
   String get restaurantReviewsLoadError => 'تعذّر تحميل المراجعات';
 
   @override
@@ -1152,6 +1176,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tabMenu => 'القائمة';
 
   @override
+  String get menuTapForFullView => 'اضغط للعرض الكامل';
+
+  @override
   String get tabPhotos => 'الصور';
 
   @override
@@ -1170,10 +1197,60 @@ class AppLocalizationsAr extends AppLocalizations {
   String get facilitiesSectionTitle => 'المرافق';
 
   @override
+  String get restaurantLinksTitle => 'الروابط';
+
+  @override
+  String get restaurantLinkWebsite => 'الموقع';
+
+  @override
+  String get restaurantLinkInstagram => 'إنستغرام';
+
+  @override
+  String get restaurantLinkFacebook => 'فيسبوك';
+
+  @override
+  String get restaurantLinkTalabat => 'طلبات';
+
+  @override
+  String get restaurantLinkCareem => 'كريم';
+
+  @override
+  String get restaurantLinkOpenFailed => 'تعذّر فتح هذا الرابط';
+
+  @override
   String get reviewSubmitted => 'تم إرسال المراجعة';
 
   @override
   String get reviewSubmitFailed => 'فشل إرسال المراجعة';
+
+  @override
+  String get reviewUpdated => 'تم تحديث المراجعة';
+
+  @override
+  String get reviewEdit => 'تعديل';
+
+  @override
+  String get reviewEditReview => 'تعديل المراجعة';
+
+  @override
+  String get reviewDeleteConfirm => 'حذف مراجعتك؟';
+
+  @override
+  String get reviewDeleted => 'تم حذف المراجعة';
+
+  @override
+  String get reviewDeleteFailed => 'تعذّر حذف المراجعة. حاول مرة أخرى.';
+
+  @override
+  String get reviewSaveChanges => 'حفظ التغييرات';
+
+  @override
+  String get reviewYours => 'مراجعتك';
+
+  @override
+  String reviewsCount(int count) {
+    return '$count مراجعة';
+  }
 
   @override
   String get rateThisBranch => 'قيّم هذا الفرع';
@@ -1348,4 +1425,40 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mapFilterAction => 'تصفية';
+
+  @override
+  String get adminBulkAddAreas => 'إضافة مناطق بالجملة';
+
+  @override
+  String get adminBulkAddRestaurants => 'إضافة مطاعم بالجملة';
+
+  @override
+  String get adminBulkAddBranches => 'إضافة فروع بالجملة';
+
+  @override
+  String get adminBulkDownloadTemplate => 'تنزيل قالب Excel';
+
+  @override
+  String get adminBulkUploadSheet => 'رفع ملف Excel المعبأ';
+
+  @override
+  String get adminBulkInstructions =>
+      'نزّل القالب الفارغ، املأ صفاً لكل سجل حسب أسماء الأعمدة، ثم ارفع الملف نفسه. لا تغيّر صف العناوين.';
+
+  @override
+  String get adminBulkBranchesHint =>
+      'نزّل القالب، املأ ورقة الفروع، واستخدم أسماء المطاعم والمناطق من أوراق المرجع، ثم ارفع الملف المعبأ.';
+
+  @override
+  String get adminBulkTemplateReady => 'القالب جاهز — احفظ ملف Excel أو شاركه';
+
+  @override
+  String adminBulkCreatedCount(int count) {
+    return 'تم إنشاء $count';
+  }
+
+  @override
+  String adminBulkFailedCount(int count) {
+    return 'فشل $count صف';
+  }
 }

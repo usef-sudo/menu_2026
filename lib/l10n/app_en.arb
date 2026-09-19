@@ -244,6 +244,18 @@
   "adminLabelAddress": "Address",
   "adminLabelLatitude": "Latitude",
   "adminLabelLongitude": "Longitude",
+  "adminPickLocationOnMap": "Select location on map",
+  "adminChangeLocationOnMap": "Change",
+  "adminLocationRequired": "Select a location on the map",
+  "adminConfirmLocation": "Use this location",
+  "adminMapPickerHint": "Tap the map to drop a pin, then drag it to adjust",
+  "adminLocationPicked": "Pinned at {lat}, {lng}",
+  "@adminLocationPicked": {
+    "placeholders": {
+      "lat": {"type": "String"},
+      "lng": {"type": "String"}
+    }
+  },
   "adminLabelCostLevel": "Cost level (1–5)",
   "adminLabelArea": "Area",
   "adminDeleteBranch": "Delete branch",
@@ -399,6 +411,7 @@
   "restaurantBranchesLoadError": "Unable to load branches",
   "restaurantNoBranchesReview": "No branches to review yet",
   "restaurantNoReviewsYet": "No reviews yet",
+  "reviewsAllBranches": "All branches",
   "restaurantReviewsLoadError": "Unable to load reviews",
   "restaurantBranchesForReviewsError": "Unable to load branches for reviews",
   "restaurantNoBranchesMenu": "No branches to show menu yet",
@@ -413,14 +426,34 @@
   "favoriteUpdateError": "Could not update favorite. Please try again.",
   "tabBranches": "Branches",
   "tabMenu": "Menu",
+  "menuTapForFullView": "Tap for full view",
   "tabPhotos": "Photos",
   "tabReviews": "Reviews",
   "labelCategory": "Category",
   "labelTotalVotes": "Total votes",
   "labelBranchesCount": "Branches",
   "facilitiesSectionTitle": "Facilities",
+  "restaurantLinksTitle": "Links",
+  "restaurantLinkWebsite": "Website",
+  "restaurantLinkInstagram": "Instagram",
+  "restaurantLinkFacebook": "Facebook",
+  "restaurantLinkTalabat": "Talabat",
+  "restaurantLinkCareem": "Careem",
+  "restaurantLinkOpenFailed": "This link could not be opened",
   "reviewSubmitted": "Review submitted",
   "reviewSubmitFailed": "Failed to submit review",
+  "reviewUpdated": "Review updated",
+  "reviewEdit": "Edit",
+  "reviewEditReview": "Edit review",
+  "reviewDeleteConfirm": "Delete your review?",
+  "reviewDeleted": "Review deleted",
+  "reviewDeleteFailed": "Could not delete your review. Try again.",
+  "reviewSaveChanges": "Save changes",
+  "reviewYours": "Your review",
+  "reviewsCount": "{count} reviews",
+  "@reviewsCount": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "rateThisBranch": "Rate this branch",
   "reviewCommentOptional": "Write your review (optional)",
   "reviewSubmitting": "Submitting...",
@@ -487,5 +520,21 @@
   },
   "mapFilteredSuffix": " (filtered)",
   "mapSheetRestaurantDetails": "Restaurant details",
-  "mapFilterAction": "Filter"
+  "mapFilterAction": "Filter",
+  "adminBulkAddAreas": "Bulk add areas",
+  "adminBulkAddRestaurants": "Bulk add restaurants",
+  "adminBulkAddBranches": "Bulk add branches",
+  "adminBulkDownloadTemplate": "Download Excel template",
+  "adminBulkUploadSheet": "Upload filled Excel",
+  "adminBulkInstructions": "Download the empty template, fill one row per record using the header names, then upload the same file. Do not rename the header row.",
+  "adminBulkBranchesHint": "Download the template, fill the branches sheet, and use restaurant/area names from the lookup sheets. Then upload the filled file.",
+  "adminBulkTemplateReady": "Template ready — save or share the Excel file",
+  "adminBulkCreatedCount": "Created {count}",
+  "@adminBulkCreatedCount": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "adminBulkFailedCount": "{count} row(s) failed",
+  "@adminBulkFailedCount": {
+    "placeholders": {"count": {"type": "int"}}
+  }
 }

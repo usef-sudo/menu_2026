@@ -131,7 +131,7 @@ class _AdminAreasPageState extends ConsumerState<AdminAreasPage> {
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.playlist_add),
-            tooltip: "Bulk add",
+            tooltip: l10n.adminBulkAddAreas,
             onPressed: _loading ? null : _openBulk,
           ),
           IconButton(

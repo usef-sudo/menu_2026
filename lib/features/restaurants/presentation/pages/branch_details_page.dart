@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
+import "package:menu_2026/core/auth/jwt_user_id.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
@@ -9,10 +10,15 @@ import "package:menu_2026/core/utils/phone_launcher.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
+import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/menu_images_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/widgets/menu_flip_book_viewer.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_external_links.dart";
+import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
+import "package:menu_2026/features/reviews/presentation/controllers/reviews_controller.dart";
+import "package:menu_2026/features/reviews/presentation/widgets/user_review_widgets.dart";
 import "package:menu_2026/features/voting/domain/branch_vote_state.dart";
 import "package:menu_2026/features/voting/presentation/controllers/voting_controller.dart";
 import "package:url_launcher/url_launcher.dart";
@@ -33,12 +39,10 @@ class BranchDetailsPage extends ConsumerWidget {
                 : branch.branch.nameAr);
     final AsyncValue<BranchVoteState> votes =
         ref.watch(votingControllerProvider(branch.branch.id));
-    final String restaurantPhone = ref
-            .watch(restaurantDetailsControllerProvider(branch.branch.restaurantId))
-            .valueOrNull
-            ?.phone
-            .trim() ??
-        "";
+    final RestaurantDetailsState? restaurantDetails = ref
+        .watch(restaurantDetailsControllerProvider(branch.branch.restaurantId))
+        .valueOrNull;
+    final String restaurantPhone = restaurantDetails?.phone.trim() ?? "";
     final String branchPhone = branch.branch.phone?.trim() ?? "";
     final String phone =
         branchPhone.isNotEmpty ? branchPhone : restaurantPhone;
@@ -61,6 +65,24 @@ class BranchDetailsPage extends ConsumerWidget {
             onCall: () => _callBranch(context, phone),
             onNavigate: () => _openMaps(branch),
           ),
+          if (restaurantDetails != null &&
+              RestaurantExternalLinks.hasAny(
+                websiteUrl: restaurantDetails.websiteUrl,
+                instagramUrl: restaurantDetails.instagramUrl,
+                facebookUrl: restaurantDetails.facebookUrl,
+                talabatUrl: restaurantDetails.talabatUrl,
+                careemUrl: restaurantDetails.careemUrl,
+              )) ...<Widget>[
+            const SizedBox(height: 12),
+            RestaurantExternalLinks(
+              websiteUrl: restaurantDetails.websiteUrl,
+              instagramUrl: restaurantDetails.instagramUrl,
+              facebookUrl: restaurantDetails.facebookUrl,
+              talabatUrl: restaurantDetails.talabatUrl,
+              careemUrl: restaurantDetails.careemUrl,
+              inCard: true,
+            ),
+          ],
           const SizedBox(height: 12),
 
           _ViewMenuButton(branchId: branch.branch.id),
@@ -73,6 +95,11 @@ class BranchDetailsPage extends ConsumerWidget {
           _VotesSummaryCard(
             branchId: branch.branch.id,
             votes: votes,
+          ),
+          const SizedBox(height: 12),
+          _BranchReviewsSection(
+            branchId: branch.branch.id,
+            restaurantId: branch.branch.restaurantId,
           ),
         ],
       ),
@@ -592,6 +619,98 @@ class _FacilitiesSection extends StatelessWidget {
   }
 }
 
+class _BranchReviewsSection extends ConsumerWidget {
+  const _BranchReviewsSection({
+    required this.branchId,
+    required this.restaurantId,
+  });
+
+  final String branchId;
+  final String restaurantId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final l10n = context.l10n;
+    final AsyncValue<ReviewsState> reviewsAsync =
+        ref.watch(reviewsControllerProvider(branchId));
+    final bool isLoggedIn =
+        ref.watch(sessionControllerProvider).valueOrNull?.isAuthenticated ??
+            false;
+    final String? profileId =
+        ref.watch(userProfileControllerProvider).valueOrNull?.id.trim();
+    final String? myId = (profileId != null && profileId.isNotEmpty)
+        ? profileId
+        : jwtUserId(ref.watch(sessionControllerProvider).valueOrNull?.token);
+
+    return reviewsAsync.when(
+      data: (ReviewsState state) {
+        final ReviewEntity? myReview = findMyReview(state.reviews, myId);
+        return _InfoCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.rate_review_outlined,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.tabReviews,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ReviewsSummaryHeader(
+                avgRating: state.summary.avgRating,
+                total: state.summary.total,
+              ),
+              const SizedBox(height: 12),
+              WriteReviewButton(
+                branchId: branchId,
+                restaurantId: restaurantId,
+                isLoggedIn: isLoggedIn,
+                existingReview: myReview,
+              ),
+              const SizedBox(height: 16),
+              if (state.reviews.isEmpty)
+                Text(
+                  l10n.restaurantNoReviewsYet,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                  ),
+                )
+              else
+                ...state.reviews.map(
+                  (ReviewEntity review) => UserReviewCard(
+                    review: review,
+                    branchId: review.branchId.isNotEmpty
+                        ? review.branchId
+                        : branchId,
+                    restaurantId: restaurantId,
+                    isMine: myId != null && myId == review.userId,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+      loading: () => const _InfoCard(
+        child: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: (Object error, StackTrace stack) => _InfoCard(
+        child: Text(l10n.restaurantReviewsLoadError),
+      ),
+    );
+  }
+}
+
 class _VotesSummaryCard extends ConsumerWidget {
   const _VotesSummaryCard({
     required this.branchId,
@@ -619,7 +738,6 @@ class _VotesSummaryCard extends ConsumerWidget {
       }
       final BranchVoteState? current = votes.valueOrNull;
       if (current != null && current.userVote == value) {
-        // Same vote already applied — update UI only, no toast spam.
         return;
       }
       final bool success = await ref
@@ -629,6 +747,7 @@ class _VotesSummaryCard extends ConsumerWidget {
         return;
       }
       if (!success) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.voteFailed)),
         );

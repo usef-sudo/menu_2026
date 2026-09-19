@@ -1472,6 +1472,42 @@ abstract class AppLocalizations {
   /// **'Longitude'**
   String get adminLabelLongitude;
 
+  /// No description provided for @adminPickLocationOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Select location on map'**
+  String get adminPickLocationOnMap;
+
+  /// No description provided for @adminChangeLocationOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get adminChangeLocationOnMap;
+
+  /// No description provided for @adminLocationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a location on the map'**
+  String get adminLocationRequired;
+
+  /// No description provided for @adminConfirmLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this location'**
+  String get adminConfirmLocation;
+
+  /// No description provided for @adminMapPickerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the map to drop a pin, then drag it to adjust'**
+  String get adminMapPickerHint;
+
+  /// No description provided for @adminLocationPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned at {lat}, {lng}'**
+  String adminLocationPicked(String lat, String lng);
+
   /// No description provided for @adminLabelCostLevel.
   ///
   /// In en, this message translates to:
@@ -2222,6 +2258,12 @@ abstract class AppLocalizations {
   /// **'No reviews yet'**
   String get restaurantNoReviewsYet;
 
+  /// No description provided for @reviewsAllBranches.
+  ///
+  /// In en, this message translates to:
+  /// **'All branches'**
+  String get reviewsAllBranches;
+
   /// No description provided for @restaurantReviewsLoadError.
   ///
   /// In en, this message translates to:
@@ -2306,6 +2348,12 @@ abstract class AppLocalizations {
   /// **'Menu'**
   String get tabMenu;
 
+  /// No description provided for @menuTapForFullView.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for full view'**
+  String get menuTapForFullView;
+
   /// No description provided for @tabPhotos.
   ///
   /// In en, this message translates to:
@@ -2342,6 +2390,48 @@ abstract class AppLocalizations {
   /// **'Facilities'**
   String get facilitiesSectionTitle;
 
+  /// No description provided for @restaurantLinksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Links'**
+  String get restaurantLinksTitle;
+
+  /// No description provided for @restaurantLinkWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get restaurantLinkWebsite;
+
+  /// No description provided for @restaurantLinkInstagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram'**
+  String get restaurantLinkInstagram;
+
+  /// No description provided for @restaurantLinkFacebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Facebook'**
+  String get restaurantLinkFacebook;
+
+  /// No description provided for @restaurantLinkTalabat.
+  ///
+  /// In en, this message translates to:
+  /// **'Talabat'**
+  String get restaurantLinkTalabat;
+
+  /// No description provided for @restaurantLinkCareem.
+  ///
+  /// In en, this message translates to:
+  /// **'Careem'**
+  String get restaurantLinkCareem;
+
+  /// No description provided for @restaurantLinkOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This link could not be opened'**
+  String get restaurantLinkOpenFailed;
+
   /// No description provided for @reviewSubmitted.
   ///
   /// In en, this message translates to:
@@ -2353,6 +2443,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to submit review'**
   String get reviewSubmitFailed;
+
+  /// No description provided for @reviewUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Review updated'**
+  String get reviewUpdated;
+
+  /// No description provided for @reviewEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get reviewEdit;
+
+  /// No description provided for @reviewEditReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit review'**
+  String get reviewEditReview;
+
+  /// No description provided for @reviewDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your review?'**
+  String get reviewDeleteConfirm;
+
+  /// No description provided for @reviewDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Review deleted'**
+  String get reviewDeleted;
+
+  /// No description provided for @reviewDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete your review. Try again.'**
+  String get reviewDeleteFailed;
+
+  /// No description provided for @reviewSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get reviewSaveChanges;
+
+  /// No description provided for @reviewYours.
+  ///
+  /// In en, this message translates to:
+  /// **'Your review'**
+  String get reviewYours;
+
+  /// No description provided for @reviewsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} reviews'**
+  String reviewsCount(int count);
 
   /// No description provided for @rateThisBranch.
   ///
@@ -2683,6 +2827,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter'**
   String get mapFilterAction;
+
+  /// No description provided for @adminBulkAddAreas.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulk add areas'**
+  String get adminBulkAddAreas;
+
+  /// No description provided for @adminBulkAddRestaurants.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulk add restaurants'**
+  String get adminBulkAddRestaurants;
+
+  /// No description provided for @adminBulkAddBranches.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulk add branches'**
+  String get adminBulkAddBranches;
+
+  /// No description provided for @adminBulkDownloadTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Excel template'**
+  String get adminBulkDownloadTemplate;
+
+  /// No description provided for @adminBulkUploadSheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload filled Excel'**
+  String get adminBulkUploadSheet;
+
+  /// No description provided for @adminBulkInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the empty template, fill one row per record using the header names, then upload the same file. Do not rename the header row.'**
+  String get adminBulkInstructions;
+
+  /// No description provided for @adminBulkBranchesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the template, fill the branches sheet, and use restaurant/area names from the lookup sheets. Then upload the filled file.'**
+  String get adminBulkBranchesHint;
+
+  /// No description provided for @adminBulkTemplateReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Template ready — save or share the Excel file'**
+  String get adminBulkTemplateReady;
+
+  /// No description provided for @adminBulkCreatedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Created {count}'**
+  String adminBulkCreatedCount(int count);
+
+  /// No description provided for @adminBulkFailedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} row(s) failed'**
+  String adminBulkFailedCount(int count);
 }
 
 class _AppLocalizationsDelegate

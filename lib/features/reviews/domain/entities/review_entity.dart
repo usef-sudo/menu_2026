@@ -8,6 +8,7 @@ class ReviewEntity extends Equatable {
     required this.rating,
     required this.comment,
     required this.createdAt,
+    this.branchId = "",
   });
 
   final String id;
@@ -16,10 +17,11 @@ class ReviewEntity extends Equatable {
   final int rating;
   final String comment;
   final DateTime createdAt;
+  final String branchId;
 
   @override
   List<Object?> get props =>
-      <Object?>[id, userId, userName, rating, comment, createdAt];
+      <Object?>[id, userId, userName, rating, comment, createdAt, branchId];
 }
 
 class ReviewSummary extends Equatable {

@@ -287,24 +287,8 @@ class _AdminBranchEditorBodyState extends State<_AdminBranchEditorBody> {
               AdminLocationMapPicker(
                 latController: _lat,
                 lngController: _lng,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _lat,
-                readOnly: true,
-                decoration: InputDecoration(labelText: l10n.adminLabelLatitude),
-                validator: (String? v) =>
-                    AdminFormValidators.optionalCoordinate(v, l10n),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _lng,
-                readOnly: true,
-                decoration: InputDecoration(
-                  labelText: l10n.adminLabelLongitude,
-                ),
-                validator: (String? v) =>
-                    AdminFormValidators.optionalCoordinate(v, l10n),
+                l10n: l10n,
+                locationRequired: true,
               ),
               const SizedBox(height: 8),
               TextFormField(

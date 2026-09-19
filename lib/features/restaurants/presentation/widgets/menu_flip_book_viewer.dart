@@ -4,8 +4,8 @@ import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:page_flip/page_flip.dart";
 
-/// Flip-book style menu viewer. Tap a page to open a zoomable fullscreen view.
-class MenuFlipBookViewer extends StatelessWidget {
+/// Flip-book style menu viewer. Tap a page to open a fullscreen flip + zoom view.
+class MenuFlipBookViewer extends StatefulWidget {
   const MenuFlipBookViewer({
     super.key,
     required this.images,
@@ -15,72 +15,81 @@ class MenuFlipBookViewer extends StatelessWidget {
   final List<MenuImageEntity> images;
   final EdgeInsets padding;
 
-  void _openZoom(BuildContext context, int index) {
-    Navigator.of(context).push(
+  @override
+  State<MenuFlipBookViewer> createState() => _MenuFlipBookViewerState();
+}
+
+class _MenuFlipBookViewerState extends State<MenuFlipBookViewer> {
+  bool _fullscreenOpen = false;
+  int _previewIndex = 0;
+
+  Future<void> _openFullscreen(int index) async {
+    setState(() {
+      _fullscreenOpen = true;
+      _previewIndex = index;
+    });
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => _MenuZoomViewer(
-          images: images,
+        builder: (BuildContext context) => MenuFlipBookFullScreen(
+          images: widget.images,
           initialIndex: index,
         ),
       ),
     );
+    if (mounted) {
+      setState(() => _fullscreenOpen = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<MenuImageEntity> images = widget.images;
     if (images.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    if (_fullscreenOpen) {
+      return Padding(
+        padding: widget.padding,
+        child: _MenuPageImage(
+          imageUrl: images[_previewIndex.clamp(0, images.length - 1)].imageUrl,
+        ),
+      );
+    }
+
     if (images.length == 1) {
       return Padding(
-        padding: padding,
+        padding: widget.padding,
         child: GestureDetector(
-          onTap: () => _openZoom(context, 0),
+          onTap: () => _openFullscreen(0),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: images.first.imageUrl,
-              fit: BoxFit.contain,
-              placeholder: (BuildContext context, String url) =>
-                  const Center(child: CircularProgressIndicator.adaptive()),
-              errorWidget: (BuildContext context, String url, Object error) =>
-                  const Icon(Icons.broken_image_outlined, size: 48),
-            ),
+            child: _MenuPageImage(imageUrl: images.first.imageUrl),
           ),
         ),
       );
     }
 
     return Padding(
-      padding: padding,
+      padding: widget.padding,
       child: PageFlipWidget(
         backgroundColor: Theme.of(context).colorScheme.surface,
+        isRightSwipe: Directionality.of(context) == TextDirection.rtl,
         children: List<Widget>.generate(images.length, (int index) {
           final MenuImageEntity image = images[index];
           return GestureDetector(
-            onTap: () => _openZoom(context, index),
+            onTap: () => _openFullscreen(index),
             child: ColoredBox(
               color: Theme.of(context).colorScheme.surface,
               child: Column(
                 children: <Widget>[
                   Expanded(
-                    child: CachedNetworkImage(
-                      imageUrl: image.imageUrl,
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      placeholder: (BuildContext context, String url) =>
-                          const Center(
-                        child: CircularProgressIndicator.adaptive(),
-                      ),
-                      errorWidget:
-                          (BuildContext context, String url, Object error) =>
-                              const Icon(Icons.broken_image_outlined, size: 48),
-                    ),
+                    child: _MenuPageImage(imageUrl: image.imageUrl),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      "${index + 1} / ${images.length}  ·  tap to zoom",
+                      "${index + 1} / ${images.length}  ·  ${context.l10n.menuTapForFullView}",
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -94,67 +103,100 @@ class MenuFlipBookViewer extends StatelessWidget {
   }
 }
 
-class MenuFlipBookFullScreen extends StatelessWidget {
-  const MenuFlipBookFullScreen({super.key, required this.images});
-
-  final List<MenuImageEntity> images;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          l10n.tabMenu,
-          style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
-        ),
-      ),
-      body: MenuFlipBookViewer(
-        images: images,
-        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-      ),
-    );
-  }
-}
-
-class _MenuZoomViewer extends StatefulWidget {
-  const _MenuZoomViewer({
+class MenuFlipBookFullScreen extends StatefulWidget {
+  const MenuFlipBookFullScreen({
+    super.key,
     required this.images,
-    required this.initialIndex,
+    this.initialIndex = 0,
   });
 
   final List<MenuImageEntity> images;
   final int initialIndex;
 
   @override
-  State<_MenuZoomViewer> createState() => _MenuZoomViewerState();
+  State<MenuFlipBookFullScreen> createState() => _MenuFlipBookFullScreenState();
 }
 
-class _MenuZoomViewerState extends State<_MenuZoomViewer> {
-  late final PageController _controller;
+class _MenuFlipBookFullScreenState extends State<MenuFlipBookFullScreen> {
   late int _currentIndex;
+  final PageFlipController _flipController = PageFlipController();
+  final TransformationController _transform = TransformationController();
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
-    _controller = PageController(initialPage: widget.initialIndex);
+    _currentIndex = widget.images.isEmpty
+        ? 0
+        : widget.initialIndex.clamp(0, widget.images.length - 1);
+    if (_currentIndex > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _flipController.goToPage(_currentIndex);
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _transform.dispose();
     super.dispose();
+  }
+
+  void _resetZoom() {
+    _transform.value = Matrix4.identity();
+  }
+
+  void _toggleZoom() {
+    if (_transform.value.getMaxScaleOnAxis() > 1.05) {
+      _resetZoom();
+      return;
+    }
+    _transform.value = Matrix4.identity()
+      ..translateByDouble(-80, -80, 0, 1)
+      ..scaleByDouble(2.2, 2.2, 1, 1);
+  }
+
+  Widget _zoomablePage(int index) {
+    final MenuImageEntity image = widget.images[index];
+    return ColoredBox(
+      color: Colors.black,
+      child: GestureDetector(
+        onDoubleTap: _toggleZoom,
+        child: InteractiveViewer(
+          transformationController: _transform,
+          minScale: 1,
+          maxScale: 5,
+          clipBehavior: Clip.hardEdge,
+          child: Center(
+            child: CachedNetworkImage(
+              imageUrl: image.imageUrl,
+              fit: BoxFit.contain,
+              placeholder: (BuildContext context, String url) => const Center(
+                child: CircularProgressIndicator.adaptive(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                ),
+              ),
+              errorWidget: (BuildContext context, String url, Object error) =>
+                  const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white54,
+                size: 64,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final l10n = context.l10n;
+    final int safeIndex = widget.images.isEmpty
+        ? 0
+        : widget.initialIndex.clamp(0, widget.images.length - 1);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -178,32 +220,45 @@ class _MenuZoomViewerState extends State<_MenuZoomViewer> {
           ),
         ],
       ),
-      body: PageView.builder(
-        controller: _controller,
-        onPageChanged: (int index) => setState(() => _currentIndex = index),
-        itemCount: widget.images.length,
-        itemBuilder: (BuildContext context, int index) {
-          final MenuImageEntity image = widget.images[index];
-          return Center(
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 5,
-              child: CachedNetworkImage(
-                imageUrl: image.imageUrl,
-                fit: BoxFit.contain,
-                placeholder: (BuildContext context, String url) =>
-                    const Center(child: CircularProgressIndicator.adaptive()),
-                errorWidget: (BuildContext context, String url, Object error) =>
-                    const Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.white54,
-                  size: 64,
+      body: widget.images.isEmpty
+          ? const SizedBox.shrink()
+          : widget.images.length == 1
+              ? _zoomablePage(0)
+              : PageFlipWidget(
+                  controller: _flipController,
+                  initialIndex: safeIndex,
+                  backgroundColor: Colors.black,
+                  isRightSwipe:
+                      Directionality.of(context) == TextDirection.rtl,
+                  onFlipStart: _resetZoom,
+                  onPageFlipped: (int page) {
+                    _resetZoom();
+                    setState(() => _currentIndex = page);
+                  },
+                  children: List<Widget>.generate(
+                    widget.images.length,
+                    _zoomablePage,
+                  ),
                 ),
-              ),
-            ),
-          );
-        },
-      ),
+    );
+  }
+}
+
+class _MenuPageImage extends StatelessWidget {
+  const _MenuPageImage({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.contain,
+      width: double.infinity,
+      placeholder: (BuildContext context, String url) =>
+          const Center(child: CircularProgressIndicator.adaptive()),
+      errorWidget: (BuildContext context, String url, Object error) =>
+          const Icon(Icons.broken_image_outlined, size: 48),
     );
   }
 }

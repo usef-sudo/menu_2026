@@ -94,7 +94,7 @@ class _AdminRestaurantsPageState extends ConsumerState<AdminRestaurantsPage> {
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.playlist_add),
-            tooltip: "Bulk add",
+            tooltip: l10n.adminBulkAddRestaurants,
             onPressed: _loading ? null : _openBulk,
           ),
           IconButton(

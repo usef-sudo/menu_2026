@@ -272,22 +272,13 @@ class _AdminBranchDetailPageState extends ConsumerState<AdminBranchDetailPage>
               const SizedBox(height: 8),
               TextField(controller: _address, decoration: const InputDecoration(labelText: "Address")),
               const SizedBox(height: 8),
-              AdminLocationMapPicker(
-                latController: _lat,
-                lngController: _lng,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _lat,
-                readOnly: true,
-                decoration: const InputDecoration(labelText: "Latitude"),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _lng,
-                readOnly: true,
-                decoration: const InputDecoration(labelText: "Longitude"),
-              ),
+              if (l10n != null)
+                AdminLocationMapPicker(
+                  latController: _lat,
+                  lngController: _lng,
+                  l10n: l10n,
+                  locationRequired: true,
+                ),
               const SizedBox(height: 8),
               TextField(controller: _cost, decoration: const InputDecoration(labelText: "Cost level (1–5)")),
               const SizedBox(height: 8),

@@ -2,454 +2,180 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:menu_2026/core/network/dio_error_message.dart";
 import "package:menu_2026/core/network/menu_api.dart";
-import "package:menu_2026/features/admin/data/area_dto.dart";
+import "package:menu_2026/core/theme/tokens/app_radii.dart";
+import "package:menu_2026/features/admin/presentation/widgets/admin_bulk_excel_io.dart";
 import "package:menu_2026/features/admin/presentation/widgets/admin_editor_header.dart";
-import "package:menu_2026/features/restaurants/data/models/restaurant_dto.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 
 Future<bool> showAdminBulkAreasSheet({
   required BuildContext context,
   required AppLocalizations l10n,
   required MenuApi api,
-}) async {
-  final bool? ok = await showModalBottomSheet<bool>(
+}) {
+  return _showBulkSheet(
     context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    useSafeArea: true,
-    builder: (BuildContext ctx) => _BulkAreasBody(l10n: l10n, api: api),
+    title: l10n.adminBulkAddAreas,
+    instructions: l10n.adminBulkInstructions,
+    templatePath: "/areas/bulk/template",
+    templateFilename: "areas_template.xlsx",
+    uploadPath: "/areas/bulk/upload",
+    api: api,
+    l10n: l10n,
   );
-  return ok == true;
 }
 
 Future<bool> showAdminBulkRestaurantsSheet({
   required BuildContext context,
   required AppLocalizations l10n,
   required MenuApi api,
-}) async {
-  final bool? ok = await showModalBottomSheet<bool>(
+}) {
+  return _showBulkSheet(
     context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    useSafeArea: true,
-    builder: (BuildContext ctx) => _BulkRestaurantsBody(l10n: l10n, api: api),
+    title: l10n.adminBulkAddRestaurants,
+    instructions: l10n.adminBulkInstructions,
+    templatePath: "/restaurants/bulk/template",
+    templateFilename: "restaurants_template.xlsx",
+    uploadPath: "/restaurants/bulk/upload",
+    api: api,
+    l10n: l10n,
   );
-  return ok == true;
 }
 
 Future<bool> showAdminBulkBranchesSheet({
   required BuildContext context,
   required AppLocalizations l10n,
   required MenuApi api,
-  required List<RestaurantDto> restaurants,
-  required List<AreaDto> areas,
+  required List<dynamic> restaurants,
+  required List<dynamic> areas,
   String? initialRestaurantId,
+}) {
+  if (restaurants.isEmpty) return Future<bool>.value(false);
+  return _showBulkSheet(
+    context: context,
+    title: l10n.adminBulkAddBranches,
+    instructions: l10n.adminBulkBranchesHint,
+    templatePath: "/branches/bulk/template",
+    templateFilename: "branches_template.xlsx",
+    uploadPath: "/branches/bulk/upload",
+    api: api,
+    l10n: l10n,
+  );
+}
+
+Future<bool> _showBulkSheet({
+  required BuildContext context,
+  required String title,
+  required String instructions,
+  required String templatePath,
+  required String templateFilename,
+  required String uploadPath,
+  required MenuApi api,
+  required AppLocalizations l10n,
 }) async {
-  if (restaurants.isEmpty) return false;
   final bool? ok = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
-    builder: (BuildContext ctx) => _BulkBranchesBody(
-      l10n: l10n,
+    builder: (BuildContext ctx) => _BulkExcelBody(
+      title: title,
+      instructions: instructions,
+      templatePath: templatePath,
+      templateFilename: templateFilename,
+      uploadPath: uploadPath,
       api: api,
-      restaurants: restaurants,
-      areas: areas,
-      initialRestaurantId: initialRestaurantId,
+      l10n: l10n,
     ),
   );
   return ok == true;
 }
 
-class _NamePairRow {
-  _NamePairRow()
-      : nameEn = TextEditingController(),
-        nameAr = TextEditingController();
-
-  final TextEditingController nameEn;
-  final TextEditingController nameAr;
-
-  void dispose() {
-    nameEn.dispose();
-    nameAr.dispose();
-  }
-}
-
-class _BulkAreasBody extends StatefulWidget {
-  const _BulkAreasBody({required this.l10n, required this.api});
-
-  final AppLocalizations l10n;
-  final MenuApi api;
-
-  @override
-  State<_BulkAreasBody> createState() => _BulkAreasBodyState();
-}
-
-class _BulkAreasBodyState extends State<_BulkAreasBody> {
-  final List<_NamePairRow> _rows = <_NamePairRow>[_NamePairRow()];
-  bool _submitting = false;
-
-  @override
-  void dispose() {
-    for (final _NamePairRow r in _rows) {
-      r.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final List<Map<String, String>> items = <Map<String, String>>[];
-    for (final _NamePairRow r in _rows) {
-      final String en = r.nameEn.text.trim();
-      final String ar = r.nameAr.text.trim();
-      if (en.isEmpty && ar.isEmpty) continue;
-      if (en.isEmpty || ar.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Each filled row needs English and Arabic names"),
-          ),
-        );
-        return;
-      }
-      items.add(<String, String>{"nameEn": en, "nameAr": ar});
-    }
-    if (items.isEmpty) return;
-    setState(() => _submitting = true);
-    try {
-      final Map<String, dynamic> result =
-          await widget.api.adminBulkCreateAreas(items);
-      if (!mounted) return;
-      final int created = int.tryParse(result["created"]?.toString() ?? "0") ?? 0;
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Created $created area(s)")),
-      );
-      Navigator.of(context).pop(created > 0);
-    } on DioException catch (err) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(dioErrorMessage(err))),
-      );
-    } catch (err) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err.toString())),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            AdminEditorHeader(
-              title: "Bulk add areas",
-              submitting: _submitting,
-              onClose: () => Navigator.of(context).pop(false),
-            ),
-            const SizedBox(height: 8),
-            for (int i = 0; i < _rows.length; i++) ...<Widget>[
-              Text("Row ${i + 1}", style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              TextField(
-                controller: _rows[i].nameEn,
-                decoration: InputDecoration(labelText: widget.l10n.adminNameEnglish),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _rows[i].nameAr,
-                decoration:
-                    InputDecoration(labelText: widget.l10n.adminNameArabicLabel),
-              ),
-              if (_rows.length > 1)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _submitting
-                        ? null
-                        : () {
-                            setState(() {
-                              _rows.removeAt(i).dispose();
-                            });
-                          },
-                    child: Text(widget.l10n.commonDelete),
-                  ),
-                ),
-              const Divider(height: 24),
-            ],
-            OutlinedButton.icon(
-              onPressed: _submitting
-                  ? null
-                  : () => setState(() => _rows.add(_NamePairRow())),
-              icon: const Icon(Icons.add),
-              label: const Text("Add row"),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                    )
-                  : Text(widget.l10n.commonCreate),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BulkRestaurantsBody extends StatefulWidget {
-  const _BulkRestaurantsBody({required this.l10n, required this.api});
-
-  final AppLocalizations l10n;
-  final MenuApi api;
-
-  @override
-  State<_BulkRestaurantsBody> createState() => _BulkRestaurantsBodyState();
-}
-
-class _BulkRestaurantsBodyState extends State<_BulkRestaurantsBody> {
-  final List<_NamePairRow> _rows = <_NamePairRow>[_NamePairRow()];
-  bool _submitting = false;
-
-  @override
-  void dispose() {
-    for (final _NamePairRow r in _rows) {
-      r.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
-    for (final _NamePairRow r in _rows) {
-      final String en = r.nameEn.text.trim();
-      final String ar = r.nameAr.text.trim();
-      if (en.isEmpty && ar.isEmpty) continue;
-      if (en.isEmpty || ar.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Each filled row needs English and Arabic names"),
-          ),
-        );
-        return;
-      }
-      items.add(<String, dynamic>{"nameEn": en, "nameAr": ar});
-    }
-    if (items.isEmpty) return;
-    setState(() => _submitting = true);
-    try {
-      final Map<String, dynamic> result =
-          await widget.api.adminBulkCreateRestaurants(items);
-      if (!mounted) return;
-      final int created = int.tryParse(result["created"]?.toString() ?? "0") ?? 0;
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Created $created restaurant(s)")),
-      );
-      Navigator.of(context).pop(created > 0);
-    } on DioException catch (err) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(dioErrorMessage(err))),
-      );
-    } catch (err) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err.toString())),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            AdminEditorHeader(
-              title: "Bulk add restaurants",
-              submitting: _submitting,
-              onClose: () => Navigator.of(context).pop(false),
-            ),
-            const SizedBox(height: 8),
-            for (int i = 0; i < _rows.length; i++) ...<Widget>[
-              Text("Row ${i + 1}", style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              TextField(
-                controller: _rows[i].nameEn,
-                decoration: InputDecoration(labelText: widget.l10n.adminNameEnglish),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _rows[i].nameAr,
-                decoration:
-                    InputDecoration(labelText: widget.l10n.adminNameArabicLabel),
-              ),
-              if (_rows.length > 1)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _submitting
-                        ? null
-                        : () {
-                            setState(() {
-                              _rows.removeAt(i).dispose();
-                            });
-                          },
-                    child: Text(widget.l10n.commonDelete),
-                  ),
-                ),
-              const Divider(height: 24),
-            ],
-            OutlinedButton.icon(
-              onPressed: _submitting
-                  ? null
-                  : () => setState(() => _rows.add(_NamePairRow())),
-              icon: const Icon(Icons.add),
-              label: const Text("Add row"),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                    )
-                  : Text(widget.l10n.commonCreate),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BranchBulkRow {
-  _BranchBulkRow({String? restaurantId})
-      : restaurantId = restaurantId,
-        nameEn = TextEditingController(),
-        nameAr = TextEditingController();
-
-  String? restaurantId;
-  String? areaId;
-  final TextEditingController nameEn;
-  final TextEditingController nameAr;
-
-  void dispose() {
-    nameEn.dispose();
-    nameAr.dispose();
-  }
-}
-
-class _BulkBranchesBody extends StatefulWidget {
-  const _BulkBranchesBody({
-    required this.l10n,
+class _BulkExcelBody extends StatefulWidget {
+  const _BulkExcelBody({
+    required this.title,
+    required this.instructions,
+    required this.templatePath,
+    required this.templateFilename,
+    required this.uploadPath,
     required this.api,
-    required this.restaurants,
-    required this.areas,
-    this.initialRestaurantId,
+    required this.l10n,
   });
 
-  final AppLocalizations l10n;
+  final String title;
+  final String instructions;
+  final String templatePath;
+  final String templateFilename;
+  final String uploadPath;
   final MenuApi api;
-  final List<RestaurantDto> restaurants;
-  final List<AreaDto> areas;
-  final String? initialRestaurantId;
+  final AppLocalizations l10n;
 
   @override
-  State<_BulkBranchesBody> createState() => _BulkBranchesBodyState();
+  State<_BulkExcelBody> createState() => _BulkExcelBodyState();
 }
 
-class _BulkBranchesBodyState extends State<_BulkBranchesBody> {
-  late final List<_BranchBulkRow> _rows;
-  bool _submitting = false;
+class _BulkExcelBodyState extends State<_BulkExcelBody> {
+  bool _busy = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final String? rid =
-        widget.initialRestaurantId ?? widget.restaurants.first.id;
-    _rows = <_BranchBulkRow>[_BranchBulkRow(restaurantId: rid)];
-  }
-
-  @override
-  void dispose() {
-    for (final _BranchBulkRow r in _rows) {
-      r.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
-    for (final _BranchBulkRow r in _rows) {
-      final String en = r.nameEn.text.trim();
-      final String ar = r.nameAr.text.trim();
-      if (en.isEmpty && ar.isEmpty) continue;
-      if (r.restaurantId == null || r.restaurantId!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.l10n.adminValidationSelectRestaurant)),
-        );
-        return;
-      }
-      if (en.isEmpty || ar.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Each filled row needs English and Arabic names"),
-          ),
-        );
-        return;
-      }
-      items.add(<String, dynamic>{
-        "restaurantId": r.restaurantId,
-        "nameEn": en,
-        "nameAr": ar,
-        if (r.areaId != null && r.areaId!.isNotEmpty) "areaId": r.areaId,
-      });
-    }
-    if (items.isEmpty) return;
-    setState(() => _submitting = true);
+  Future<void> _download() async {
+    setState(() => _busy = true);
     try {
-      final Map<String, dynamic> result =
-          await widget.api.adminBulkCreateBranches(items);
+      final List<int> bytes =
+          await widget.api.adminDownloadBulkTemplate(widget.templatePath);
       if (!mounted) return;
-      final int created = int.tryParse(result["created"]?.toString() ?? "0") ?? 0;
+      await shareExcelTemplate(
+        bytes: bytes,
+        filename: widget.templateFilename,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Created $created branch(es)")),
+        SnackBar(content: Text(widget.l10n.adminBulkTemplateReady)),
       );
-      Navigator.of(context).pop(created > 0);
     } on DioException catch (err) {
       if (!mounted) return;
-      setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(dioErrorMessage(err))),
       );
     } catch (err) {
       if (!mounted) return;
-      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _upload() async {
+    final ({List<int> bytes, String filename})? picked = await pickExcelFile();
+    if (picked == null) return;
+    setState(() => _busy = true);
+    try {
+      final Map<String, dynamic> result = await widget.api.adminUploadBulkExcel(
+        path: widget.uploadPath,
+        bytes: picked.bytes,
+        filename: picked.filename,
+      );
+      if (!mounted) return;
+      final int created =
+          int.tryParse(result["created"]?.toString() ?? "0") ?? 0;
+      final int failed =
+          int.tryParse(result["failed"]?.toString() ?? "0") ?? 0;
+      final String message = failed > 0
+          ? "${widget.l10n.adminBulkCreatedCount(created)} · ${widget.l10n.adminBulkFailedCount(failed)}"
+          : widget.l10n.adminBulkCreatedCount(created);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      Navigator.of(context).pop(created > 0);
+    } on DioException catch (err) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(dioErrorMessage(err))),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err.toString())),
       );
@@ -458,6 +184,7 @@ class _BulkBranchesBodyState extends State<_BulkBranchesBody> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -467,102 +194,47 @@ class _BulkBranchesBodyState extends State<_BulkBranchesBody> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             AdminEditorHeader(
-              title: "Bulk add branches",
-              submitting: _submitting,
+              title: widget.title,
+              submitting: _busy,
               onClose: () => Navigator.of(context).pop(false),
             ),
             const SizedBox(height: 8),
-            for (int i = 0; i < _rows.length; i++) ...<Widget>[
-              Text("Row ${i + 1}", style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              DropdownButtonFormField<String>(
-                value: _rows[i].restaurantId,
-                decoration: InputDecoration(
-                  labelText: widget.l10n.adminValidationSelectRestaurant,
-                ),
-                items: widget.restaurants
-                    .map(
-                      (RestaurantDto r) => DropdownMenuItem<String>(
-                        value: r.id,
-                        child: Text(r.nameEn),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _submitting
-                    ? null
-                    : (String? v) => setState(() => _rows[i].restaurantId = v),
+            Text(
+              widget.instructions,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                height: 1.45,
               ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String?>(
-                value: _rows[i].areaId,
-                decoration: const InputDecoration(labelText: "Area (optional)"),
-                items: <DropdownMenuItem<String?>>[
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text("None"),
-                  ),
-                  ...widget.areas.map(
-                    (AreaDto a) => DropdownMenuItem<String?>(
-                      value: a.id,
-                      child: Text(a.nameEn),
-                    ),
-                  ),
-                ],
-                onChanged: _submitting
-                    ? null
-                    : (String? v) => setState(() => _rows[i].areaId = v),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _rows[i].nameEn,
-                decoration: InputDecoration(labelText: widget.l10n.adminNameEnglish),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _rows[i].nameAr,
-                decoration:
-                    InputDecoration(labelText: widget.l10n.adminNameArabicLabel),
-              ),
-              if (_rows.length > 1)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _submitting
-                        ? null
-                        : () {
-                            setState(() {
-                              _rows.removeAt(i).dispose();
-                            });
-                          },
-                    child: Text(widget.l10n.commonDelete),
-                  ),
-                ),
-              const Divider(height: 24),
-            ],
-            OutlinedButton.icon(
-              onPressed: _submitting
-                  ? null
-                  : () => setState(
-                        () => _rows.add(
-                          _BranchBulkRow(
-                            restaurantId: widget.initialRestaurantId ??
-                                widget.restaurants.first.id,
-                          ),
-                        ),
-                      ),
-              icon: const Icon(Icons.add),
-              label: const Text("Add row"),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _download,
+              icon: const Icon(Icons.download_rounded),
+              label: Text(widget.l10n.adminBulkDownloadTemplate),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _busy ? null : _upload,
+              icon: _busy
                   ? const SizedBox(
-                      width: 22,
-                      height: 22,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                     )
-                  : Text(widget.l10n.commonCreate),
+                  : const Icon(Icons.upload_file_rounded),
+              label: Text(widget.l10n.adminBulkUploadSheet),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+              ),
             ),
           ],
         ),

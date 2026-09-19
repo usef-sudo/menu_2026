@@ -31,7 +31,7 @@ Future<void> bootstrap() async {
     );
   }, (Object error, StackTrace stackTrace) {
     logger.e(
-      "Unhandled zone error",
+      "Unhandled error",
       error: error,
       stackTrace: stackTrace,
     );

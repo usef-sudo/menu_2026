@@ -2,12 +2,14 @@ import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:menu_2026/core/auth/jwt_user_id.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/favorites/presentation/controllers/favorites_controller.dart";
+import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
 import "package:menu_2026/features/restaurants/domain/entities/menu_image_entity.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/menu_images_controller.dart";
@@ -15,10 +17,10 @@ import "package:menu_2026/features/restaurants/presentation/controllers/restaura
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
 import "package:menu_2026/features/restaurants/presentation/widgets/menu_flip_book_viewer.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_external_links.dart";
 import "package:menu_2026/features/reviews/domain/entities/review_entity.dart";
-import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
 import "package:menu_2026/features/reviews/presentation/controllers/reviews_controller.dart";
-import "package:url_launcher/url_launcher.dart";
+import "package:menu_2026/features/reviews/presentation/widgets/user_review_widgets.dart";
 
 class RestaurantDetailsPage extends ConsumerStatefulWidget {
   const RestaurantDetailsPage({required this.restaurantId, super.key});
@@ -133,7 +135,6 @@ class _RestaurantDetailsPageState extends ConsumerState<RestaurantDetailsPage> {
                   _PhotosTab(restaurantId: details.id),
                   _ReviewsTab(
                     restaurantId: details.id,
-                    restaurantAvgRating: details.avgRating,
                   ),
                 ],
               ),
@@ -361,42 +362,24 @@ class _HeroAndCard extends ConsumerWidget {
                     ),
                   ),
                 ],
-                Builder(
-                  builder: (BuildContext context) {
-                    final List<(String, String)> links = <(String, String)>[
-                      if (websiteUrl.trim().isNotEmpty)
-                        ("Website", websiteUrl.trim()),
-                      if (instagramUrl.trim().isNotEmpty)
-                        ("Instagram", instagramUrl.trim()),
-                      if (facebookUrl.trim().isNotEmpty)
-                        ("Facebook", facebookUrl.trim()),
-                      if (talabatUrl.trim().isNotEmpty)
-                        ("Talabat", talabatUrl.trim()),
-                      if (careemUrl.trim().isNotEmpty)
-                        ("Careem", careemUrl.trim()),
-                    ];
-                    if (links.isEmpty) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: links
-                            .map(
-                              ((String, String) e) => ActionChip(
-                                avatar: const Icon(Icons.link, size: 16),
-                                label: Text(e.$1),
-                                onPressed: () => launchUrl(
-                                  Uri.parse(e.$2),
-                                  mode: LaunchMode.externalApplication,
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
-                    );
-                  },
-                ),
+                if (RestaurantExternalLinks.hasAny(
+                  websiteUrl: websiteUrl,
+                  instagramUrl: instagramUrl,
+                  facebookUrl: facebookUrl,
+                  talabatUrl: talabatUrl,
+                  careemUrl: careemUrl,
+                )) ...<Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: RestaurantExternalLinks(
+                      websiteUrl: websiteUrl,
+                      instagramUrl: instagramUrl,
+                      facebookUrl: facebookUrl,
+                      talabatUrl: talabatUrl,
+                      careemUrl: careemUrl,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -652,18 +635,32 @@ class _BranchCard extends StatelessWidget {
 class _ReviewsTab extends ConsumerStatefulWidget {
   const _ReviewsTab({
     required this.restaurantId,
-    required this.restaurantAvgRating,
   });
 
   final String restaurantId;
-  final double restaurantAvgRating;
 
   @override
   ConsumerState<_ReviewsTab> createState() => _ReviewsTabState();
 }
 
 class _ReviewsTabState extends ConsumerState<_ReviewsTab> {
-  String? _selectedBranchId;
+  static const String _allBranchesId = "__all__";
+  String _selectedBranchId = _allBranchesId;
+
+  double _displayAvg(ReviewsState state) {
+    if (state.reviews.isEmpty) {
+      return 0;
+    }
+    if (state.summary.total > 0 &&
+        state.reviews.length >= state.summary.total) {
+      final int sum = state.reviews.fold<int>(
+        0,
+        (int acc, ReviewEntity r) => acc + r.rating,
+      );
+      return sum / state.reviews.length;
+    }
+    return state.summary.avgRating;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -678,40 +675,55 @@ class _ReviewsTabState extends ConsumerState<_ReviewsTab> {
         if (branches.isEmpty) {
           return Center(child: Text(l10n.restaurantNoBranchesReview));
         }
-        final String effectiveBranchId =
-            (_selectedBranchId != null &&
-                branches.any((b) => b.branch.id == _selectedBranchId))
-            ? _selectedBranchId!
-            : branches.first.branch.id;
-        final reviewsAsync = ref.watch(
-          reviewsControllerProvider(effectiveBranchId),
-        );
+        final bool viewingAll =
+            _selectedBranchId == _allBranchesId ||
+            !branches.any((b) => b.branch.id == _selectedBranchId);
+        final AsyncValue<ReviewsState> reviewsAsync = viewingAll
+            ? ref.watch(
+                restaurantReviewsControllerProvider(widget.restaurantId),
+              )
+            : ref.watch(reviewsControllerProvider(_selectedBranchId));
         return reviewsAsync.when(
           data: (ReviewsState state) {
-            final double displayAvg = state.summary.total > 0
-                ? state.summary.avgRating
-                : widget.restaurantAvgRating;
+            final String? profileId =
+                ref.watch(userProfileControllerProvider).valueOrNull?.id.trim();
+            final String? myId =
+                (profileId != null && profileId.isNotEmpty)
+                    ? profileId
+                    : jwtUserId(session.valueOrNull?.token);
+            final ReviewEntity? myReview = findMyReview(state.reviews, myId);
+            final String writeBranchId =
+                (myReview != null && myReview.branchId.isNotEmpty)
+                ? myReview.branchId
+                : (viewingAll
+                    ? branches.first.branch.id
+                    : _selectedBranchId);
+            final double displayAvg = _displayAvg(state);
             return ListView(
               padding: const EdgeInsets.all(16),
               children: <Widget>[
                 if (branches.length > 1) ...<Widget>[
                   DropdownButtonFormField<String>(
-                    value: effectiveBranchId,
+                    value: viewingAll ? _allBranchesId : _selectedBranchId,
                     decoration: InputDecoration(
                       labelText: l10n.adminBranchTitle,
                     ),
-                    items: branches
-                        .map(
-                          (BranchWithDistance b) => DropdownMenuItem<String>(
-                            value: b.branch.id,
-                            child: Text(
-                              b.branch.nameEn.isNotEmpty
-                                  ? b.branch.nameEn
-                                  : b.branch.nameAr,
-                            ),
+                    items: <DropdownMenuItem<String>>[
+                      DropdownMenuItem<String>(
+                        value: _allBranchesId,
+                        child: Text(l10n.reviewsAllBranches),
+                      ),
+                      ...branches.map(
+                        (BranchWithDistance b) => DropdownMenuItem<String>(
+                          value: b.branch.id,
+                          child: Text(
+                            b.branch.nameEn.isNotEmpty
+                                ? b.branch.nameEn
+                                : b.branch.nameAr,
                           ),
-                        )
-                        .toList(growable: false),
+                        ),
+                      ),
+                    ],
                     onChanged: (String? id) {
                       if (id == null) return;
                       setState(() => _selectedBranchId = id);
@@ -724,32 +736,24 @@ class _ReviewsTabState extends ConsumerState<_ReviewsTab> {
                   total: state.summary.total,
                 ),
                 const SizedBox(height: 12),
-                _WriteReviewButton(
-                  branchId: effectiveBranchId,
+                WriteReviewButton(
+                  branchId: writeBranchId,
+                  restaurantId: widget.restaurantId,
                   isLoggedIn: isLoggedIn,
-                  existingReview: () {
-                    final String? myId =
-                        ref.watch(userProfileControllerProvider).valueOrNull?.id;
-                    if (myId == null || myId.isEmpty) return null;
-                    for (final ReviewEntity r in state.reviews) {
-                      if (r.userId == myId) return r;
-                    }
-                    return null;
-                  }(),
+                  existingReview: myReview,
                 ),
                 const SizedBox(height: 16),
                 if (state.summary.total == 0)
                   Text(l10n.restaurantNoReviewsYet)
                 else
                   ...state.reviews.map(
-                    (ReviewEntity r) => _ReviewCard(
+                    (ReviewEntity r) => UserReviewCard(
                       review: r,
-                      branchId: effectiveBranchId,
-                      isMine: ref
-                              .watch(userProfileControllerProvider)
-                              .valueOrNull
-                              ?.id ==
-                          r.userId,
+                      branchId: r.branchId.isNotEmpty
+                          ? r.branchId
+                          : writeBranchId,
+                      restaurantId: widget.restaurantId,
+                      isMine: myId != null && myId == r.userId,
                     ),
                   ),
               ],
@@ -1014,375 +1018,7 @@ class _ReviewsSummary extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
-      child: Row(
-        children: <Widget>[
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                avgRating > 0 ? avgRating.toStringAsFixed(1) : "—",
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: List<Widget>.generate(5, (int index) {
-                  final double threshold = index + 1;
-                  final IconData icon;
-                  if (avgRating >= threshold) {
-                    icon = Icons.star;
-                  } else if (avgRating >= threshold - 0.5) {
-                    icon = Icons.star_half;
-                  } else {
-                    icon = Icons.star_border;
-                  }
-                  return Icon(icon, color: Colors.amber, size: 18);
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Text("$total reviews", style: theme.textTheme.bodyMedium),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReviewCard extends ConsumerWidget {
-  const _ReviewCard({
-    required this.review,
-    required this.branchId,
-    required this.isMine,
-  });
-
-  final ReviewEntity review;
-  final String branchId;
-  final bool isMine;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadii.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              CircleAvatar(
-                radius: 14,
-                child: Text(
-                  review.userName.isNotEmpty
-                      ? review.userName[0].toUpperCase()
-                      : "?",
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  review.userName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Row(
-                children: List<Widget>.generate(
-                  5,
-                  (int index) => Icon(
-                    index < review.rating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (review.comment.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(review.comment, style: theme.textTheme.bodySmall),
-          ],
-          if (isMine) ...<Widget>[
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                TextButton(
-                  onPressed: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                      ),
-                      builder: (BuildContext context) {
-                        return _ReviewFormSheet(
-                          branchId: branchId,
-                          initialRating: review.rating,
-                          initialComment: review.comment,
-                        );
-                      },
-                    );
-                  },
-                  child: const Text("Edit"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final bool? ok = await showDialog<bool>(
-                      context: context,
-                      builder: (BuildContext ctx) => AlertDialog(
-                        title: Text(l10n.commonDelete),
-                        content: const Text("Delete your review?"),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: Text(l10n.commonCancel),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: Text(l10n.commonDelete),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (ok != true || !context.mounted) return;
-                    final bool success = await ref
-                        .read(reviewsControllerProvider(branchId).notifier)
-                        .deleteMyReview(branchId: branchId);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          success
-                              ? l10n.commonDeleted
-                              : l10n.reviewSubmitFailed,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Text(l10n.commonDelete),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _WriteReviewButton extends ConsumerWidget {
-  const _WriteReviewButton({
-    required this.branchId,
-    required this.isLoggedIn,
-    this.existingReview,
-  });
-
-  final String branchId;
-  final bool isLoggedIn;
-  final ReviewEntity? existingReview;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    final bool hasMine = existingReview != null;
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        minimumSize: const Size.fromHeight(44),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-        ),
-      ),
-      onPressed: () {
-        if (!isLoggedIn) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.reviewLoginRequired)));
-          context.push("/auth/login");
-          return;
-        }
-        showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          builder: (BuildContext context) {
-            return _ReviewFormSheet(
-              branchId: branchId,
-              initialRating: existingReview?.rating,
-              initialComment: existingReview?.comment,
-            );
-          },
-        );
-      },
-      icon: Icon(hasMine ? Icons.edit_outlined : Icons.rate_review_outlined),
-      label: Text(
-        !isLoggedIn
-            ? l10n.restaurantLoginToWriteReview
-            : hasMine
-                ? "Edit review"
-                : l10n.restaurantWriteReview,
-      ),
-    );
-  }
-}
-
-class _ReviewFormSheet extends ConsumerStatefulWidget {
-  const _ReviewFormSheet({
-    required this.branchId,
-    this.initialRating,
-    this.initialComment,
-  });
-
-  final String branchId;
-  final int? initialRating;
-  final String? initialComment;
-
-  @override
-  ConsumerState<_ReviewFormSheet> createState() => _ReviewFormSheetState();
-}
-
-class _ReviewFormSheetState extends ConsumerState<_ReviewFormSheet> {
-  late int _rating;
-  late final TextEditingController _commentController;
-  bool _submitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _rating = widget.initialRating ?? 5;
-    _commentController =
-        TextEditingController(text: widget.initialComment ?? "");
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_rating < 1 || _rating > 5) {
-      return;
-    }
-    setState(() {
-      _submitting = true;
-    });
-    final bool success = await ref
-        .read(reviewsControllerProvider(widget.branchId).notifier)
-        .submitReview(
-          branchId: widget.branchId,
-          rating: _rating,
-          comment: _commentController.text.trim(),
-        );
-    if (!mounted) {
-      return;
-    }
-    final l10n = context.l10n;
-    setState(() {
-      _submitting = false;
-    });
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success ? l10n.reviewSubmitted : l10n.reviewSubmitFailed),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final l10n = context.l10n;
-    final MediaQueryData mediaQuery = MediaQuery.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: mediaQuery.viewInsets.bottom + 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          Text(
-            l10n.rateThisBranch,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: List<Widget>.generate(5, (int index) {
-              final int starValue = index + 1;
-              return IconButton(
-                onPressed: () {
-                  setState(() {
-                    _rating = starValue;
-                  });
-                },
-                icon: Icon(
-                  index < _rating ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _commentController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              labelText: l10n.reviewCommentOptional,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                minimumSize: const Size.fromHeight(44),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                ),
-              ),
-              onPressed: _submitting ? null : _submit,
-              label: Text(
-                _submitting ? l10n.reviewSubmitting : l10n.submitReview,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
+      child: ReviewsSummaryHeader(avgRating: avgRating, total: total),
     );
   }
 }

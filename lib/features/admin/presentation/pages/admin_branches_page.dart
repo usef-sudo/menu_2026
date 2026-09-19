@@ -130,7 +130,7 @@ class _AdminBranchesPageState extends ConsumerState<AdminBranchesPage> {
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.playlist_add),
-            tooltip: "Bulk add",
+            tooltip: l10n.adminBulkAddBranches,
             onPressed: _loading ? null : _openBulk,
           ),
           IconButton(

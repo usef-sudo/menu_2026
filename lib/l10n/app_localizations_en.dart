@@ -715,6 +715,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminLabelLongitude => 'Longitude';
 
   @override
+  String get adminPickLocationOnMap => 'Select location on map';
+
+  @override
+  String get adminChangeLocationOnMap => 'Change';
+
+  @override
+  String get adminLocationRequired => 'Select a location on the map';
+
+  @override
+  String get adminConfirmLocation => 'Use this location';
+
+  @override
+  String get adminMapPickerHint =>
+      'Tap the map to drop a pin, then drag it to adjust';
+
+  @override
+  String adminLocationPicked(String lat, String lng) {
+    return 'Pinned at $lat, $lng';
+  }
+
+  @override
   String get adminLabelCostLevel => 'Cost level (1–5)';
 
   @override
@@ -1111,6 +1132,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restaurantNoReviewsYet => 'No reviews yet';
 
   @override
+  String get reviewsAllBranches => 'All branches';
+
+  @override
   String get restaurantReviewsLoadError => 'Unable to load reviews';
 
   @override
@@ -1156,6 +1180,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabMenu => 'Menu';
 
   @override
+  String get menuTapForFullView => 'Tap for full view';
+
+  @override
   String get tabPhotos => 'Photos';
 
   @override
@@ -1174,10 +1201,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get facilitiesSectionTitle => 'Facilities';
 
   @override
+  String get restaurantLinksTitle => 'Links';
+
+  @override
+  String get restaurantLinkWebsite => 'Website';
+
+  @override
+  String get restaurantLinkInstagram => 'Instagram';
+
+  @override
+  String get restaurantLinkFacebook => 'Facebook';
+
+  @override
+  String get restaurantLinkTalabat => 'Talabat';
+
+  @override
+  String get restaurantLinkCareem => 'Careem';
+
+  @override
+  String get restaurantLinkOpenFailed => 'This link could not be opened';
+
+  @override
   String get reviewSubmitted => 'Review submitted';
 
   @override
   String get reviewSubmitFailed => 'Failed to submit review';
+
+  @override
+  String get reviewUpdated => 'Review updated';
+
+  @override
+  String get reviewEdit => 'Edit';
+
+  @override
+  String get reviewEditReview => 'Edit review';
+
+  @override
+  String get reviewDeleteConfirm => 'Delete your review?';
+
+  @override
+  String get reviewDeleted => 'Review deleted';
+
+  @override
+  String get reviewDeleteFailed => 'Could not delete your review. Try again.';
+
+  @override
+  String get reviewSaveChanges => 'Save changes';
+
+  @override
+  String get reviewYours => 'Your review';
+
+  @override
+  String reviewsCount(int count) {
+    return '$count reviews';
+  }
 
   @override
   String get rateThisBranch => 'Rate this branch';
@@ -1355,4 +1432,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapFilterAction => 'Filter';
+
+  @override
+  String get adminBulkAddAreas => 'Bulk add areas';
+
+  @override
+  String get adminBulkAddRestaurants => 'Bulk add restaurants';
+
+  @override
+  String get adminBulkAddBranches => 'Bulk add branches';
+
+  @override
+  String get adminBulkDownloadTemplate => 'Download Excel template';
+
+  @override
+  String get adminBulkUploadSheet => 'Upload filled Excel';
+
+  @override
+  String get adminBulkInstructions =>
+      'Download the empty template, fill one row per record using the header names, then upload the same file. Do not rename the header row.';
+
+  @override
+  String get adminBulkBranchesHint =>
+      'Download the template, fill the branches sheet, and use restaurant/area names from the lookup sheets. Then upload the filled file.';
+
+  @override
+  String get adminBulkTemplateReady =>
+      'Template ready — save or share the Excel file';
+
+  @override
+  String adminBulkCreatedCount(int count) {
+    return 'Created $count';
+  }
+
+  @override
+  String adminBulkFailedCount(int count) {
+    return '$count row(s) failed';
+  }
 }
