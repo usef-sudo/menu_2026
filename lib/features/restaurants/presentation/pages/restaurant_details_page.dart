@@ -5,6 +5,7 @@ import "package:go_router/go_router.dart";
 import "package:menu_2026/core/auth/jwt_user_id.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/l10n/hours_label.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
@@ -73,7 +74,6 @@ class _RestaurantDetailsPageState extends ConsumerState<RestaurantDetailsPage> {
                           categoryName: details.categoryName,
                           branchesCount: details.branchesCount,
                           totalVotes: details.totalVotes,
-                          avgRating: details.avgRating,
                           facilities: details.facilities,
                           websiteUrl: details.websiteUrl,
                           instagramUrl: details.instagramUrl,
@@ -179,7 +179,6 @@ class _HeroAndCard extends ConsumerWidget {
     required this.categoryName,
     required this.branchesCount,
     required this.totalVotes,
-    required this.avgRating,
     required this.facilities,
     required this.websiteUrl,
     required this.instagramUrl,
@@ -197,7 +196,6 @@ class _HeroAndCard extends ConsumerWidget {
   final String? categoryName;
   final int branchesCount;
   final int totalVotes;
-  final double avgRating;
   final List<RestaurantFacility> facilities;
   final String websiteUrl;
   final String instagramUrl;
@@ -313,35 +311,6 @@ class _HeroAndCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (avgRating > 0) ...<Widget>[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade100,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            const Icon(
-                              Icons.star,
-                              size: 18,
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              avgRating.toStringAsFixed(1),
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(width: 8),
                     IconButton(
                       onPressed: onFavoriteTap,
@@ -555,7 +524,12 @@ class _BranchCard extends StatelessWidget {
               : branch.branch.nameAr);
     final BranchEntity b = branch.branch;
     final bool openNow = b.isEffectivelyOpenNow();
-    final String? todayHours = b.todaysHoursRangeLabel();
+    final String locale = Localizations.localeOf(context).toString();
+    final String? todayHours = localizedTodaysHours(
+      branch: b,
+      l10n: l10n,
+      locale: locale,
+    );
     return InkWell(
       onTap: () {
         Navigator.of(context).push(
@@ -731,11 +705,13 @@ class _ReviewsTabState extends ConsumerState<_ReviewsTab> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                _ReviewsSummary(
-                  avgRating: displayAvg,
-                  total: state.summary.total,
-                ),
-                const SizedBox(height: 12),
+                if (!viewingAll) ...<Widget>[
+                  _ReviewsSummary(
+                    avgRating: displayAvg,
+                    total: state.summary.total,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 WriteReviewButton(
                   branchId: writeBranchId,
                   restaurantId: widget.restaurantId,

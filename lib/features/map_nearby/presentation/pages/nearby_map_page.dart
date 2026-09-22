@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
-import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:google_maps_flutter/google_maps_flutter.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/l10n/hours_label.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/utils/phone_launcher.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
@@ -15,10 +15,9 @@ import "package:menu_2026/features/categories/domain/entities/category_entity.da
 import "package:menu_2026/features/categories/presentation/controllers/categories_controller.dart";
 import "package:menu_2026/features/map_nearby/presentation/controllers/location_controller.dart";
 import "package:menu_2026/features/map_nearby/presentation/controllers/map_filter_controller.dart";
-import "package:menu_2026/features/restaurants/domain/entities/restaurant_photo_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/branch_details_page.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_cover_image.dart";
 import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_external_links.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 import "package:url_launcher/url_launcher.dart";
@@ -993,15 +992,18 @@ class _BranchInfoContent extends ConsumerWidget {
     final String lang = Localizations.localeOf(context).languageCode;
     final BranchEntity b = branch.branch;
     final bool openNow = b.isEffectivelyOpenNow();
-    final String? todayHours = b.todaysHoursRangeLabel();
+    final String locale = Localizations.localeOf(context).toString();
+    final String? todayHours = localizedTodaysHours(
+      branch: b,
+      l10n: l10n,
+      locale: locale,
+    );
     final String branchName =
         (lang == "ar" && b.nameAr.isNotEmpty)
             ? b.nameAr
             : (b.nameEn.isNotEmpty ? b.nameEn : b.nameAr);
     final AsyncValue<RestaurantDetailsState> detailsAsync =
         ref.watch(restaurantDetailsControllerProvider(b.restaurantId));
-    final AsyncValue<List<RestaurantPhotoEntity>> photosAsync =
-        ref.watch(restaurantPhotosControllerProvider(b.restaurantId));
 
     final RestaurantDetailsState? details = detailsAsync.valueOrNull;
     final String? categoryName = details?.categoryName;
@@ -1009,36 +1011,17 @@ class _BranchInfoContent extends ConsumerWidget {
     final String branchPhone = b.phone?.trim() ?? "";
     final String phone =
         branchPhone.isNotEmpty ? branchPhone : (details?.phone.trim() ?? "");
-    final double avgRating = details?.avgRating ?? 0;
     final List<RestaurantFacility> facilities = details?.facilities ?? <RestaurantFacility>[];
-    final String? imageUrl = photosAsync.valueOrNull?.isNotEmpty == true
-        ? photosAsync.valueOrNull!.first.imageUrl
-        : null;
     final String restaurantName = details?.nameEn ?? "";
 
     return ListView(
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       children: <Widget>[
-        Container(
+        RestaurantCoverImage(
+          restaurantId: b.restaurantId,
           height: 160,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadii.md),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (BuildContext context, String url) =>
-                        _ImagePlaceholder(theme: theme),
-                    errorWidget: (BuildContext context, String url, _) =>
-                        _ImagePlaceholder(theme: theme),
-                  )
-                : _ImagePlaceholder(theme: theme),
-          ),
+          borderRadius: BorderRadius.circular(AppRadii.md),
         ),
         const SizedBox(height: 16),
         Text(
@@ -1098,24 +1081,6 @@ class _BranchInfoContent extends ConsumerWidget {
                 ),
               ),
             ),
-            if (avgRating > 0)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(
-                    Icons.star_rounded,
-                    size: 16,
-                    color: Colors.amber.shade700,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    avgRating.toStringAsFixed(1),
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
           ],
         ),
         if (todayHours != null && todayHours.isNotEmpty) ...<Widget>[
@@ -1318,37 +1283,6 @@ class _BranchActionBar extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ImagePlaceholder extends StatelessWidget {
-  const _ImagePlaceholder({required this.theme});
-
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.restaurant_rounded,
-          size: 56,
-          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
         ),
       ),
     );

@@ -32,7 +32,9 @@ class HomeDiscoveryPage extends ConsumerWidget {
                 onSearch: (String value) {
                   final String query = value.trim();
                   ref.read(restaurantsFilterProvider.notifier).state =
-                      RestaurantsFilter(search: query.isNotEmpty ? query : null);
+                      RestaurantsFilter(
+                    search: query.isNotEmpty ? query : null,
+                  );
                   ref.invalidate(restaurantsControllerProvider);
                   context.push("/search/results", extra: query);
                 },
@@ -48,13 +50,13 @@ class HomeDiscoveryPage extends ConsumerWidget {
                       onApply: (HomeFilter applied) {
                         ref.read(homeFilterProvider.notifier).state = applied;
                         Navigator.of(context).pop();
-                        context.push("/search/results", extra: "");
                       },
                       onReset: () {
                         ref.read(homeFilterProvider.notifier).state =
                             const HomeFilter();
                         ref.read(restaurantsFilterProvider.notifier).state =
                             const RestaurantsFilter();
+                        ref.invalidate(nearbyBranchesControllerProvider);
                         ref.read(restaurantsControllerProvider.notifier).refresh();
                         Navigator.of(context).pop();
                       },

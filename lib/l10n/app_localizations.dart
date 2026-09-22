@@ -2144,6 +2144,30 @@ abstract class AppLocalizations {
   /// **'Search in these results...'**
   String get restaurantsSearchInResultsHint;
 
+  /// No description provided for @restaurantsSearchAllHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search all restaurants...'**
+  String get restaurantsSearchAllHint;
+
+  /// No description provided for @hoursFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get hoursFrom;
+
+  /// No description provided for @hoursTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get hoursTo;
+
+  /// No description provided for @hoursFromTo.
+  ///
+  /// In en, this message translates to:
+  /// **'From {from} to {to}'**
+  String hoursFromTo(String from, String to);
+
   /// No description provided for @categoriesLoadError.
   ///
   /// In en, this message translates to:

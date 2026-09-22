@@ -5,6 +5,7 @@ import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_cover_image.dart";
 import "package:menu_2026/features/restaurants/presentation/widgets/restaurants_results_header.dart";
 
 class SearchResultsPage extends ConsumerStatefulWidget {
@@ -22,32 +23,35 @@ class SearchResultsPage extends ConsumerStatefulWidget {
 class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  String _localSearchQuery = "";
+  late String _submittedQuery;
 
   @override
   void initState() {
     super.initState();
-    _searchController.text = widget.query;
-    _localSearchQuery = widget.query.trim().toLowerCase();
-    _searchController.addListener(() {
-      setState(
-        () => _localSearchQuery = _searchController.text.trim().toLowerCase(),
-      );
-    });
-    Future<void>.microtask(() async {
-      final RestaurantsFilter current = ref.read(restaurantsFilterProvider);
-      ref.read(restaurantsFilterProvider.notifier).state = RestaurantsFilter(
-        categoryId: current.categoryId,
-        search: widget.query.isNotEmpty ? widget.query : current.search,
-        minCostLevel: current.minCostLevel,
-        maxCostLevel: current.maxCostLevel,
-        openOnly: current.openOnly,
-        sort: current.sort,
-        facilityIds: current.facilityIds,
-        openHoursFilter: current.openHoursFilter,
-      );
-      await ref.read(restaurantsControllerProvider.notifier).refresh();
-    });
+    _submittedQuery = widget.query.trim();
+    _searchController.text = _submittedQuery;
+    Future<void>.microtask(() => _runCatalogSearch(_submittedQuery));
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchResultsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.query != widget.query) {
+      _submittedQuery = widget.query.trim();
+      _searchController.text = _submittedQuery;
+      _runCatalogSearch(_submittedQuery);
+    }
+  }
+
+  Future<void> _runCatalogSearch(String raw) async {
+    final String query = raw.trim();
+    ref.read(restaurantsFilterProvider.notifier).state = RestaurantsFilter(
+      search: query.isEmpty ? null : query,
+    );
+    await ref.read(restaurantsControllerProvider.notifier).refresh();
+    if (mounted) {
+      setState(() => _submittedQuery = query);
+    }
   }
 
   @override
@@ -62,9 +66,9 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
     final l10n = context.l10n;
     final AsyncValue<List<RestaurantEntity>> restaurantsAsync =
         ref.watch(restaurantsControllerProvider);
-    final String headerTitle = widget.query.isEmpty
+    final String headerTitle = _submittedQuery.isEmpty
         ? l10n.searchAllRestaurants
-        : l10n.searchResultsFor(widget.query);
+        : l10n.searchResultsFor(_submittedQuery);
 
     return Scaffold(
       body: Column(
@@ -73,25 +77,27 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
             title: headerTitle,
             searchController: _searchController,
             searchFocusNode: _searchFocusNode,
+            searchHint: l10n.restaurantsSearchAllHint,
+            onSearchSubmitted: _runCatalogSearch,
           ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: restaurantsAsync.when(
                 data: (List<RestaurantEntity> restaurants) {
-                  final List<RestaurantEntity> filtered =
-                      filterRestaurantsByQuery(restaurants, _localSearchQuery);
                   if (restaurants.isEmpty) {
-                    return Center(child: Text(l10n.restaurantsNoneFound));
-                  }
-                  if (filtered.isEmpty) {
-                    return Center(child: Text(l10n.searchNoResults));
+                    return Center(
+                      child: Text(
+                        _submittedQuery.isEmpty
+                            ? l10n.restaurantsNoneFound
+                            : l10n.searchNoResults,
+                      ),
+                    );
                   }
                   return ListView.builder(
-                    itemCount: filtered.length,
+                    itemCount: restaurants.length,
                     itemBuilder: (BuildContext context, int index) {
-                      final RestaurantEntity restaurant = filtered[index];
-                      return _RestaurantCard(restaurant: restaurant);
+                      return _RestaurantCard(restaurant: restaurants[index]);
                     },
                   );
                 },
@@ -148,15 +154,10 @@ class _RestaurantCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
+            RestaurantCoverImage(
+              restaurantId: restaurant.id,
+              logoUrl: restaurant.logoUrl,
               height: 160,
-              color: Colors.grey.shade300,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.restaurant_rounded,
-                size: 40,
-                color: Colors.white,
-              ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),

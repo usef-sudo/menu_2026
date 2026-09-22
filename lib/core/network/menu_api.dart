@@ -758,7 +758,7 @@ class MenuApi {
         if (sort != null && sort.isNotEmpty) "sort": sort,
         if (facilityIds != null && facilityIds.isNotEmpty)
           "facilityIds": facilityIds.join(","),
-        if (limit != null) "limit": limit,
+        "limit": limit ?? 200,
         if (offset != null) "offset": offset,
       },
     );
@@ -799,6 +799,7 @@ class MenuApi {
         if (areaId != null && areaId.isNotEmpty) "areaId": areaId,
         if (openAtWeekday != null) "openAtWeekday": openAtWeekday,
         if (openAtTime != null && openAtTime.isNotEmpty) "openAtTime": openAtTime,
+        "limit": 200,
       },
     );
     final envelope = ApiEnvelope.fromDynamic<List<BranchDto>>(response.data, (
@@ -823,12 +824,20 @@ class MenuApi {
   Future<List<BranchDto>> getNearbyBranches({
     required double latitude,
     required double longitude,
+    double? radiusKm,
+    bool? openNow,
+    int? limit,
+    int? offset,
   }) async {
     final response = await _dio.get<dynamic>(
       "/branches/nearby",
       queryParameters: <String, dynamic>{
         "lat": latitude,
         "lng": longitude,
+        if (radiusKm != null) "radiusKm": radiusKm,
+        if (openNow == true) "openNow": "true",
+        "limit": limit ?? 200,
+        if (offset != null) "offset": offset,
       },
     );
     final envelope = ApiEnvelope.fromDynamic<List<BranchDto>>(response.data, (

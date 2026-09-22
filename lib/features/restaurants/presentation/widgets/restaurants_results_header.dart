@@ -28,12 +28,16 @@ class RestaurantsResultsHeader extends StatelessWidget {
     required this.title,
     required this.searchController,
     required this.searchFocusNode,
+    this.searchHint,
+    this.onSearchSubmitted,
     super.key,
   });
 
   final String title;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
+  final String? searchHint;
+  final ValueChanged<String>? onSearchSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +80,9 @@ class RestaurantsResultsHeader extends StatelessWidget {
             focusNode: searchFocusNode,
             style: theme.textTheme.bodyLarge?.copyWith(color: Colors.black87),
             textInputAction: TextInputAction.search,
+            onSubmitted: onSearchSubmitted,
             decoration: InputDecoration(
-              hintText: l10n.restaurantsSearchInResultsHint,
+              hintText: searchHint ?? l10n.restaurantsSearchInResultsHint,
               hintStyle: TextStyle(color: Colors.grey.shade500),
               prefixIcon: Icon(
                 Icons.search_rounded,
@@ -96,7 +101,10 @@ class RestaurantsResultsHeader extends StatelessWidget {
                       size: 20,
                       color: Colors.grey.shade600,
                     ),
-                    onPressed: searchController.clear,
+                    onPressed: () {
+                      searchController.clear();
+                      onSearchSubmitted?.call("");
+                    },
                   );
                 },
               ),

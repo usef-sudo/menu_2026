@@ -1,4 +1,3 @@
-import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -6,6 +5,7 @@ import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_cover_image.dart";
 import "package:menu_2026/features/restaurants/presentation/widgets/restaurants_results_header.dart";
 
 class CategoryRestaurantsPage extends ConsumerStatefulWidget {
@@ -160,41 +160,10 @@ class _RestaurantCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            SizedBox(
+            RestaurantCoverImage(
+              restaurantId: restaurant.id,
+              logoUrl: restaurant.logoUrl,
               height: 160,
-              width: double.infinity,
-              child: restaurant.logoUrl.trim().isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: restaurant.logoUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey.shade200,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.restaurant_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey.shade300,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.restaurant_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.grey.shade300,
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.restaurant_rounded,
-                        size: 40,
-                        color: Colors.white,
-                      ),
-                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),

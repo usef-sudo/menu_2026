@@ -1065,6 +1065,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get restaurantsSearchInResultsHint => 'ابحث في هذه النتائج...';
 
   @override
+  String get restaurantsSearchAllHint => 'ابحث في كل المطاعم...';
+
+  @override
+  String get hoursFrom => 'من';
+
+  @override
+  String get hoursTo => 'إلى';
+
+  @override
+  String hoursFromTo(String from, String to) {
+    return 'من $from إلى $to';
+  }
+
+  @override
   String get categoriesLoadError => 'تعذّر تحميل التصنيفات';
 
   @override

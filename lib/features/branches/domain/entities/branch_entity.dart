@@ -48,13 +48,13 @@ class BranchEntity extends Equatable {
   static final RegExp _hm =
       RegExp(r"^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$");
 
-  static String formatHm12(String value) {
+  static String formatHm12(String value, [String? locale]) {
     final RegExpMatch? m = _hm.firstMatch(value.trim());
     if (m == null) return value;
     final int h = int.parse(m.group(1)!);
     final int min = int.parse(m.group(2)!);
     final DateTime dt = DateTime(2000, 1, 1, h, min);
-    return DateFormat("h:mm a").format(dt);
+    return DateFormat("h:mm a", locale).format(dt);
   }
 
   /// Whether [when] falls inside any weekly interval (ignores admin [isOpen]).
@@ -110,8 +110,14 @@ class BranchEntity extends Equatable {
     return _legacyDailyOpenAt(when);
   }
 
-  /// Today's first slot range like `11:00–23:00`, `""` if closed today, `null` if unknown.
-  String? todaysHoursRangeLabel([DateTime? now]) {
+  /// Today's first slot range, `""` if closed today, `null` if unknown.
+  String? todaysHoursRangeLabel([
+    DateTime? now,
+    String Function(String open, String close)? formatRange,
+  ]) {
+    String pair(String open, String close) =>
+        formatRange?.call(open, close) ??
+        "${formatHm12(open)}–${formatHm12(close)}";
     final DateTime when = now ?? DateTime.now();
     final int wd = when.weekday;
     if (openingHours.isEmpty) {
@@ -119,7 +125,7 @@ class BranchEntity extends Equatable {
           closeTime != null &&
           openTime!.isNotEmpty &&
           closeTime!.isNotEmpty) {
-        return "${formatHm12(openTime!)}–${formatHm12(closeTime!)}";
+        return pair(openTime!, closeTime!);
       }
       return null;
     }
@@ -133,8 +139,7 @@ class BranchEntity extends Equatable {
     if (today.isEmpty) return "";
     return today
         .map(
-          (BranchOpeningHour s) =>
-              "${formatHm12(s.openTime)}–${formatHm12(s.closeTime)}${s.closesNextDay ? "" : ""}",
+          (BranchOpeningHour s) => pair(s.openTime, s.closeTime),
         )
         .join(", ");
   }

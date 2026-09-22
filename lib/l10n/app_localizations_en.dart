@@ -1067,6 +1067,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restaurantsSearchInResultsHint => 'Search in these results...';
 
   @override
+  String get restaurantsSearchAllHint => 'Search all restaurants...';
+
+  @override
+  String get hoursFrom => 'From';
+
+  @override
+  String get hoursTo => 'To';
+
+  @override
+  String hoursFromTo(String from, String to) {
+    return 'From $from to $to';
+  }
+
+  @override
   String get categoriesLoadError => 'Unable to load categories';
 
   @override

@@ -32,20 +32,27 @@ class HomeFilter {
 
   HomeFilter copyWith({
     double? maxDistanceKm,
+    bool clearMaxDistanceKm = false,
     bool? openOnly,
     int? priceMin,
+    bool clearPriceMin = false,
     int? priceMax,
+    bool clearPriceMax = false,
     double? minRating,
+    bool clearMinRating = false,
     String? categoryId,
+    bool clearCategoryId = false,
     List<String>? dietaryOptions,
   }) {
     return HomeFilter(
-      maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
+      maxDistanceKm: clearMaxDistanceKm
+          ? null
+          : (maxDistanceKm ?? this.maxDistanceKm),
       openOnly: openOnly ?? this.openOnly,
-      priceMin: priceMin ?? this.priceMin,
-      priceMax: priceMax ?? this.priceMax,
-      minRating: minRating ?? this.minRating,
-      categoryId: categoryId ?? this.categoryId,
+      priceMin: clearPriceMin ? null : (priceMin ?? this.priceMin),
+      priceMax: clearPriceMax ? null : (priceMax ?? this.priceMax),
+      minRating: clearMinRating ? null : (minRating ?? this.minRating),
+      categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
       dietaryOptions: dietaryOptions ?? this.dietaryOptions,
     );
   }

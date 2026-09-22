@@ -118,6 +118,7 @@ class RestaurantsController
         openOnly: filter.openOnly,
         sort: filter.sort,
         facilityIds: filter.facilityIds,
+        limit: 200,
       );
       final List<RestaurantEntity> restaurants = dtos
           .map((dto) => dto.toEntity())

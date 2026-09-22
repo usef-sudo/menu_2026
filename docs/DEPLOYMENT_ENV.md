@@ -34,3 +34,28 @@ flutter build apk \
 ```
 
 Set `GOOGLE_MAPS_API_KEY` in the environment for the Gradle step (Android) and provide `ios/Secrets.xcconfig` for Xcode (iOS).
+
+## Flutter web (Firebase Hosting)
+
+Firebase Hosting is HTTPS. The current VPS API (`http://169.58.151.217:8000`) is HTTP. Browsers **block mixed content**, so a Hosting deploy will not load the API or images until the API is served over HTTPS.
+
+Required before a working web deploy:
+
+1. Point a domain at `169.58.151.217` and terminate TLS (nginx/caddy + Let’s Encrypt).
+2. Set `PUBLIC_BASE_URL=https://api.YOUR_DOMAIN` on the VPS so `/api/media` URLs are HTTPS.
+3. Set `CORS_ORIGINS` to the Hosting origin, e.g. `https://YOUR_PROJECT.web.app`.
+4. In Firebase Console create a project (Hosting only is enough). Replace `YOUR_FIREBASE_PROJECT_ID` in `.firebaserc`.
+5. Restrict the Maps JS key in [web/index.html](../web/index.html) to the Hosting HTTP referrer.
+
+Build and deploy (from `menu_2026/`):
+
+```bash
+flutter build web --release \
+  --dart-define=APP_FLAVOR=prod \
+  --dart-define=API_BASE_URL=https://api.YOUR_DOMAIN
+
+firebase deploy --only hosting
+```
+
+Do **not** point the web build at `http://169.58.151.217:8000`. That URL will fail in the browser on an HTTPS Hosting origin.
+

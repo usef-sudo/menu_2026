@@ -467,7 +467,10 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
   }
 
   String _displayHm12(String value) {
-    return BranchEntity.formatHm12(value);
+    return BranchEntity.formatHm12(
+      value,
+      Localizations.localeOf(context).toString(),
+    );
   }
 
   Future<void> _pickTime({
@@ -595,14 +598,14 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                                             controller: _hoursFromCtrls[i],
                                           ),
                                     style: OutlinedButton.styleFrom(
-                                      alignment: Alignment.centerLeft,
+                                      alignment: AlignmentDirectional.centerStart,
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 12,
                                       ),
                                     ),
                                     child: Text(
-                                      "${l10n.filterMin}: ${_displayHm12(_hoursFromCtrls[i].text)}",
+                                      "${l10n.hoursFrom}: ${_displayHm12(_hoursFromCtrls[i].text)}",
                                     ),
                                   ),
                                 ),
@@ -615,14 +618,14 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                                             controller: _hoursToCtrls[i],
                                           ),
                                     style: OutlinedButton.styleFrom(
-                                      alignment: Alignment.centerLeft,
+                                      alignment: AlignmentDirectional.centerStart,
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 12,
                                       ),
                                     ),
                                     child: Text(
-                                      "${l10n.filterMax}: ${_displayHm12(_hoursToCtrls[i].text)}",
+                                      "${l10n.hoursTo}: ${_displayHm12(_hoursToCtrls[i].text)}",
                                     ),
                                   ),
                                 ),
@@ -842,6 +845,7 @@ class _HomeSuperFilterSheetState extends ConsumerState<HomeSuperFilterSheet> {
                           facilityIds: _selectedFacilityIds,
                           openHoursFilter: openHoursFilter,
                           sort: "newest",
+                          search: null,
                         );
                         ref.read(restaurantsControllerProvider.notifier).refresh();
                         widget.onApply(_currentFilter);

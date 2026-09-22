@@ -5,9 +5,9 @@ import "package:intl/intl.dart";
 import "package:menu_2026/core/auth/jwt_user_id.dart";
 import "package:menu_2026/core/auth/session_controller.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/l10n/hours_label.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/utils/phone_launcher.dart";
-import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_opening_hour.dart";
 import "package:menu_2026/features/branches/presentation/controllers/branches_controller.dart";
 import "package:menu_2026/features/profile/presentation/controllers/user_profile_controller.dart";
@@ -305,7 +305,12 @@ class _OpeningHoursExpandableCardState
 
   String _todaySummary(BuildContext context) {
     final l10n = context.l10n;
-    final String? today = widget.branch.branch.todaysHoursRangeLabel();
+    final String locale = Localizations.localeOf(context).toString();
+    final String? today = localizedTodaysHours(
+      branch: widget.branch.branch,
+      l10n: l10n,
+      locale: locale,
+    );
     if (today == null) return l10n.branchHoursNotAvailable;
     if (today.isEmpty) return l10n.branchClosedToday;
     return today;
@@ -426,7 +431,12 @@ class _OpeningHoursExpandableCardState
       final String? close = widget.branch.branch.closeTime;
       final String text =
           (open != null && close != null && open.isNotEmpty && close.isNotEmpty)
-              ? "${BranchEntity.formatHm12(open)} – ${BranchEntity.formatHm12(close)}"
+              ? localizedHoursRange(
+                  l10n: l10n,
+                  locale: locale,
+                  open: open,
+                  close: close,
+                )
               : l10n.branchHoursNotAvailable;
       return Text(
         text,
@@ -514,8 +524,12 @@ class _DayHoursRow extends StatelessWidget {
         ? (closedLabel ?? "—")
         : slots
             .map(
-              (BranchOpeningHour h) =>
-                  "${BranchEntity.formatHm12(h.openTime)} – ${BranchEntity.formatHm12(h.closeTime)}",
+              (BranchOpeningHour h) => localizedHoursRange(
+                l10n: context.l10n,
+                locale: locale,
+                open: h.openTime,
+                close: h.closeTime,
+              ),
             )
             .join(", ");
 

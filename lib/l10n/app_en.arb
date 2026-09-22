@@ -380,6 +380,16 @@
   "categoriesExploreSubtitle": "Explore restaurants by category",
   "categoriesSearchHint": "Search categories...",
   "restaurantsSearchInResultsHint": "Search in these results...",
+  "restaurantsSearchAllHint": "Search all restaurants...",
+  "hoursFrom": "From",
+  "hoursTo": "To",
+  "hoursFromTo": "From {from} to {to}",
+  "@hoursFromTo": {
+    "placeholders": {
+      "from": {"type": "String"},
+      "to": {"type": "String"}
+    }
+  },
   "categoriesLoadError": "Unable to load categories",
   "categoriesNoMatch": "No categories match \"{query}\"",
   "@categoriesNoMatch": {

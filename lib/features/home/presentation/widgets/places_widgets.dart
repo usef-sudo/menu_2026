@@ -1,8 +1,8 @@
-import "package:cached_network_image/cached_network_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
+import "package:menu_2026/core/l10n/hours_label.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
 import "package:menu_2026/features/branches/presentation/controllers/nearby_branches_controller.dart";
@@ -11,7 +11,7 @@ import "package:menu_2026/features/home/presentation/controllers/home_places_sor
 import "package:menu_2026/features/restaurants/domain/entities/restaurant_entity.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_details_controller.dart";
 import "package:menu_2026/features/restaurants/presentation/controllers/restaurants_controller.dart";
-import "package:menu_2026/features/restaurants/presentation/controllers/restaurant_photos_controller.dart";
+import "package:menu_2026/features/restaurants/presentation/widgets/restaurant_cover_image.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
 
 class PlacesListSection extends ConsumerWidget {
@@ -188,7 +188,8 @@ class NearbyRestaurantCard extends ConsumerWidget {
     );
 
     final bool openNow = branch.isEffectivelyOpenNow();
-    final String? hoursLine = _todaysHoursLine(branch, l10n);
+    final String locale = Localizations.localeOf(context).toString();
+    final String? hoursLine = _todaysHoursLine(branch, l10n, locale);
 
     final AsyncValue<List<RestaurantEntity>> restaurantsAsync = ref.watch(
       restaurantsControllerProvider,
@@ -196,20 +197,15 @@ class NearbyRestaurantCard extends ConsumerWidget {
     final detailsAsync = ref.watch(
       restaurantDetailsControllerProvider(branch.restaurantId),
     );
-    final photosAsync = ref.watch(
-      restaurantPhotosControllerProvider(branch.restaurantId),
-    );
 
     final String? categoryName = detailsAsync.valueOrNull?.categoryName;
-    final double rating = detailsAsync.valueOrNull?.avgRating ?? 0;
-    final String? imageUrl = photosAsync.valueOrNull?.isNotEmpty == true
-        ? photosAsync.valueOrNull!.first.imageUrl
-        : null;
+    String logoUrl = "";
 
     String? restaurantName = restaurantsAsync.maybeWhen(
       data: (List<RestaurantEntity> rests) {
         for (final RestaurantEntity r in rests) {
           if (r.id == branch.restaurantId) {
+            logoUrl = r.logoUrl;
             return _localizedEntityName(
               lang: lang,
               nameEn: r.nameEn,
@@ -257,17 +253,11 @@ class NearbyRestaurantCard extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
-                  if (imageUrl != null && imageUrl.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          _ImageFallback(theme: theme),
-                      errorWidget: (context, url, error) =>
-                          _ImageFallback(theme: theme),
-                    )
-                  else
-                    _ImageFallback(theme: theme),
+                  RestaurantCoverImage(
+                    restaurantId: branch.restaurantId,
+                    logoUrl: logoUrl,
+                    height: 180,
+                  ),
                   Positioned(
                     top: 14,
                     right: 14,
@@ -331,8 +321,6 @@ class NearbyRestaurantCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  if (rating > 0.1) _RatingPill(rating: rating, theme: theme),
                 ],
               ),
             ),
@@ -368,8 +356,16 @@ String _placeCardTitle({
   return "$restaurant ($branch)";
 }
 
-String? _todaysHoursLine(BranchEntity branch, AppLocalizations l10n) {
-  final String? r = branch.todaysHoursRangeLabel();
+String? _todaysHoursLine(
+  BranchEntity branch,
+  AppLocalizations l10n,
+  String locale,
+) {
+  final String? r = localizedTodaysHours(
+    branch: branch,
+    l10n: l10n,
+    locale: locale,
+  );
   if (r == null) return null;
   if (r.isEmpty) return l10n.branchClosedToday;
   return r;
@@ -394,65 +390,6 @@ class _StatusPill extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _RatingPill extends StatelessWidget {
-  const _RatingPill({required this.rating, required this.theme});
-
-  final double rating;
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF9E6),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.star_rounded, color: Color(0xFFFFC107), size: 20),
-          const SizedBox(width: 8),
-          Text(
-            rating.toStringAsFixed(1),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ImageFallback extends StatelessWidget {
-  const _ImageFallback({required this.theme});
-
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.restaurant_rounded,
-          size: 56,
-          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.75),
         ),
       ),
     );

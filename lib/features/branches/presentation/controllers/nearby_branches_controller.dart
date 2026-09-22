@@ -2,6 +2,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:menu_2026/core/network/menu_api.dart";
 import "package:menu_2026/core/network/safe_request.dart";
 import "package:menu_2026/features/branches/domain/entities/branch_entity.dart";
+import "package:menu_2026/features/home/presentation/controllers/home_filter.dart";
 import "package:menu_2026/features/map_nearby/presentation/controllers/location_controller.dart";
 
 class NearbyBranchWithDistance {
@@ -20,16 +21,26 @@ class NearbyBranchesController
   Future<List<NearbyBranchWithDistance>> build() async {
     final UserLocation location =
         await ref.watch(locationControllerProvider.future);
-    return _load(location: location);
+    final HomeFilter filter = ref.watch(homeFilterProvider);
+    return _load(
+      location: location,
+      radiusKm: filter.maxDistanceKm,
+      openNow: filter.openOnly,
+    );
   }
 
   Future<List<NearbyBranchWithDistance>> _load({
     required UserLocation location,
+    double? radiusKm,
+    bool openNow = false,
   }) async {
     final result = await safeRequest<List<NearbyBranchWithDistance>>(() async {
       final dtos = await ref.read(menuApiProvider).getNearbyBranches(
             latitude: location.latitude,
             longitude: location.longitude,
+            radiusKm: radiusKm,
+            openNow: openNow ? true : null,
+            limit: 200,
           );
       final branches = dtos
           .map((dto) => dto.toEntity())
