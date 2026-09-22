@@ -1,7 +1,9 @@
 import "dart:async";
 
+import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_web_plugins/url_strategy.dart";
 import "package:menu_2026/app/app.dart";
 import "package:menu_2026/app/config/app_environment.dart";
 import "package:menu_2026/core/observability/app_logger.dart";
@@ -10,6 +12,9 @@ import "package:sentry_flutter/sentry_flutter.dart";
 Future<void> bootstrap() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    if (kIsWeb) {
+      usePathUrlStrategy();
+    }
     final environment = AppEnvironment.fromDartDefine();
 
     await SentryFlutter.init(

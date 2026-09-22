@@ -7,13 +7,14 @@ Pass secrets and endpoints at **build time** with `--dart-define` (or your CI’
 | Define | Purpose |
 |--------|---------|
 | `APP_FLAVOR=prod` | Enables prod defaults in [`lib/app/config/app_environment.dart`](../lib/app/config/app_environment.dart) |
-| `API_BASE_URL` | Origin of the Menu API (no trailing `/api`). Current VPS: `http://169.58.151.217:8000` |
+| `API_BASE_URL` | Origin of the Menu API (no trailing `/api`). HTTPS (Caddy): `https://169.58.151.217.sslip.io`. Direct HTTP still available at `http://169.58.151.217:8000` for existing mobile builds. |
 | `SENTRY_DSN` | Crash reporting ([Sentry](https://sentry.io)); empty DSN disables reporting |
 
 ## Google Maps
 
 - **Android:** `GOOGLE_MAPS_API_KEY` environment variable or `local.properties` — see [android/MAPS_KEY.md](../android/MAPS_KEY.md).
 - **iOS:** Copy `ios/Secrets.xcconfig.example` to `ios/Secrets.xcconfig` and set `GOOGLE_MAPS_API_KEY`, or inject that file in CI.
+- **Web:** Maps JS key is in [web/index.html](../web/index.html). Restrict it in Google Cloud to `https://menu-78832.web.app/*` and `https://menu-78832.firebaseapp.com/*`.
 
 ## Legal / store listings
 
@@ -22,12 +23,12 @@ Pass secrets and endpoints at **build time** with `--dart-define` (or your CI’
 | `LEGAL_PRIVACY_URL` | Public privacy policy URL (opened from Profile) |
 | `LEGAL_TERMS_URL` | Public terms of service URL |
 
-## Example release build
+## Example Android release build
 
 ```bash
 flutter build apk \
   --dart-define=APP_FLAVOR=prod \
-  --dart-define=API_BASE_URL=http://169.58.151.217:8000 \
+  --dart-define=API_BASE_URL=https://169.58.151.217.sslip.io \
   --dart-define=SENTRY_DSN=https://your-key@o.ingest.sentry.io/project \
   --dart-define=LEGAL_PRIVACY_URL=https://yourdomain.com/privacy \
   --dart-define=LEGAL_TERMS_URL=https://yourdomain.com/terms
@@ -37,25 +38,25 @@ Set `GOOGLE_MAPS_API_KEY` in the environment for the Gradle step (Android) and p
 
 ## Flutter web (Firebase Hosting)
 
-Firebase Hosting is HTTPS. The current VPS API (`http://169.58.151.217:8000`) is HTTP. Browsers **block mixed content**, so a Hosting deploy will not load the API or images until the API is served over HTTPS.
+Firebase project: `menu-78832`  
+Live site: https://menu-78832.web.app  
+Admin login: https://menu-78832.web.app/admin/login
 
-Required before a working web deploy:
+Hosting is HTTPS. The web build must call the HTTPS API (`https://169.58.151.217.sslip.io`). Caddy on the VPS terminates TLS and reverse-proxies to Node on `127.0.0.1:8000`. Port 8000 stays open so older APKs keep working.
 
-1. Point a domain at `169.58.151.217` and terminate TLS (nginx/caddy + Let’s Encrypt).
-2. Set `PUBLIC_BASE_URL=https://api.YOUR_DOMAIN` on the VPS so `/api/media` URLs are HTTPS.
-3. Set `CORS_ORIGINS` to the Hosting origin, e.g. `https://YOUR_PROJECT.web.app`.
-4. In Firebase Console create a project (Hosting only is enough). Replace `YOUR_FIREBASE_PROJECT_ID` in `.firebaserc`.
-5. Restrict the Maps JS key in [web/index.html](../web/index.html) to the Hosting HTTP referrer.
+VPS env:
+
+- `PUBLIC_BASE_URL=https://169.58.151.217.sslip.io` so `/api/media` URLs are HTTPS
+- `CORS_ORIGINS=https://menu-78832.web.app,https://menu-78832.firebaseapp.com`
 
 Build and deploy (from `menu_2026/`):
 
 ```bash
 flutter build web --release \
   --dart-define=APP_FLAVOR=prod \
-  --dart-define=API_BASE_URL=https://api.YOUR_DOMAIN
+  --dart-define=API_BASE_URL=https://169.58.151.217.sslip.io
 
 firebase deploy --only hosting
 ```
 
-Do **not** point the web build at `http://169.58.151.217:8000`. That URL will fail in the browser on an HTTPS Hosting origin.
-
+Do **not** point the web build at `http://169.58.151.217:8000`. Browsers block that mixed content on an HTTPS Hosting origin.

@@ -15,9 +15,10 @@ class AppEnvironment {
 
   bool get isProd => flavor == AppFlavor.prod;
 
-  /// Bare-metal VPS API (HTTP). Override anytime with
+  /// Production API origin (HTTPS via Caddy on the VPS). Override with
   /// `--dart-define=API_BASE_URL=http://localhost:8000` for a local API.
-  static const String vpsApiBaseUrl = "http://169.58.151.217:8000";
+  /// Direct `http://169.58.151.217:8000` still works for existing mobile builds.
+  static const String vpsApiBaseUrl = "https://169.58.151.217.sslip.io";
 
   static AppEnvironment fromDartDefine() {
     final flavorText = const String.fromEnvironment(

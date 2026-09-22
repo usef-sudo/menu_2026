@@ -1,7 +1,6 @@
-import "dart:io";
+import "dart:typed_data";
 
 import "package:file_picker/file_picker.dart";
-import "package:path_provider/path_provider.dart";
 import "package:share_plus/share_plus.dart";
 
 const String kExcelMime =
@@ -11,14 +10,16 @@ Future<void> shareExcelTemplate({
   required List<int> bytes,
   required String filename,
 }) async {
-  final Directory dir = await getTemporaryDirectory();
-  final File file = File("${dir.path}/$filename");
-  await file.writeAsBytes(bytes, flush: true);
   await SharePlus.instance.share(
     ShareParams(
       files: <XFile>[
-        XFile(file.path, mimeType: kExcelMime, name: filename),
+        XFile.fromData(
+          Uint8List.fromList(bytes),
+          mimeType: kExcelMime,
+          name: filename,
+        ),
       ],
+      fileNameOverrides: <String>[filename],
       subject: filename,
     ),
   );
@@ -34,14 +35,9 @@ Future<({List<int> bytes, String filename})?> pickExcelFile() async {
     return null;
   }
   final PlatformFile file = result.files.first;
-  final List<int>? bytes = file.bytes;
-  if (bytes != null && bytes.isNotEmpty) {
-    return (bytes: bytes, filename: file.name);
-  }
-  final String? path = file.path;
-  if (path == null || path.isEmpty) {
+  final Uint8List? bytes = file.bytes;
+  if (bytes == null || bytes.isEmpty) {
     return null;
   }
-  final List<int> fromDisk = await File(path).readAsBytes();
-  return (bytes: fromDisk, filename: file.name);
+  return (bytes: bytes, filename: file.name);
 }

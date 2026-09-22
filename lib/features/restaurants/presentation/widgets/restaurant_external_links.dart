@@ -1,9 +1,11 @@
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:menu_2026/core/l10n/context_l10n.dart";
 import "package:menu_2026/core/theme/tokens/app_radii.dart";
 import "package:menu_2026/core/utils/http_url.dart";
 import "package:menu_2026/features/restaurants/presentation/pages/in_app_web_view_page.dart";
 import "package:menu_2026/l10n/app_localizations.dart";
+import "package:url_launcher/url_launcher.dart";
 
 class RestaurantExternalLinks extends StatelessWidget {
   const RestaurantExternalLinks({
@@ -88,6 +90,15 @@ class RestaurantExternalLinks extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.restaurantLinkOpenFailed)),
       );
+      return;
+    }
+    if (kIsWeb) {
+      final bool ok = await launchUrl(uri, webOnlyWindowName: "_blank");
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.restaurantLinkOpenFailed)),
+        );
+      }
       return;
     }
     await Navigator.of(context).push(

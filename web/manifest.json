@@ -1,11 +1,11 @@
 {
-    "name": "menu_2026",
-    "short_name": "menu_2026",
+    "name": "Menu",
+    "short_name": "Menu",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Restaurant discovery and admin.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
